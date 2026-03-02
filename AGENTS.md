@@ -24,3 +24,18 @@
   - After creating a registration token in the Gitea UI, set `GITEA_RUNNER_REGISTRATION_TOKEN` (e.g. via `.env`) and run:
     - `docker compose up -d gitea-runner` to start the Actions runner.
 
+## Step 2: OpenAPI Spectral validation on PRs
+
+- **Goal**: On every pull request targeting `main`, run Spectral with the project ruleset on all OpenAPI files and fail the run if any file has errors.
+- **Implementation**:
+  - Added `.gitea/workflows/openapi-spectral.yml`:
+    - Trigger: `pull_request` to branch `main`.
+    - Job runs on `ubuntu-latest` (runner label from Step 1).
+    - Steps: checkout, show Node/npm versions, install `@stoplight/spectral-cli`, find files matching `*openapi*.yml` / `*openapi*.yaml` via `git ls-files`, then run `spectral lint -r spectral-ruleset.yaml` on each; job fails if Spectral reports errors.
+- **How to test locally** (simulate flow):
+  - From repo root (e.g. in WSL):  
+    `git ls-files '*openapi*.yml' '*openapi*.yaml'`  
+    then for each file:  
+    `npx -y @stoplight/spectral-cli lint -r spectral-ruleset.yaml <file>`  
+  - Expect exit code 0 for valid specs (warnings only), exit code 1 when the ruleset reports errors.
+
