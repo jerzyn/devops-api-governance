@@ -1,0 +1,43 @@
+services:
+  gitea:
+    image: gitea/gitea:latest
+    container_name: gitea
+    restart: unless-stopped
+    environment:
+      # Use SQLite for a simple demo setup
+      - GITEA__database__DB_TYPE=sqlite3
+      - GITEA__database__PATH=/data/gitea/gitea.db
+      # Server settings
+      - GITEA__server__ROOT_URL=http://localhost:3000/
+      - GITEA__server__HTTP_PORT=3000
+      # Ensure Actions are enabled (1.21+ enables by default, this is explicit)
+      - GITEA__actions__ENABLED=true
+    volumes:
+      - ./gitea-data:/data
+    ports:
+      - "3000:3000" # HTTP
+      - "2222:22"   # SSH (optional for demo)
+
+  gitea-runner:
+    image: gitea/act_runner:latest
+    container_name: gitea-runner
+    restart: unless-stopped
+    depends_on:
+      - gitea
+    # IMPORTANT: set GITEA_RUNNER_REGISTRATION_TOKEN in a .env file before starting this service
+    environment:
+      - GITEA_INSTANCE_URL=http://gitea:3000/
+      - GITEA_RUNNER_REGISTRATION_TOKEN=${GITEA_RUNNER_REGISTRATION_TOKEN}
+      - GITEA_RUNNER_NAME=local-runner
+      # Example label for Docker-based jobs (can be changed per your workflows)
+      - GITEA_RUNNER_LABELS=ubuntu-latest:docker://node:20-bullseye
+    volumes:
+      # Runner config and cache
+      - ./runner-data:/data
+      # Give runner access to host Docker (simpler for local demo)
+      - /var/run/docker.sock:/var/run/docker.sock
+
+networks:
+  default:
+    name: gitea-network
+
