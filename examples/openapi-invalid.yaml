@@ -1,0 +1,43 @@
+openapi: 3.0.0
+info:
+  title: sample api
+  version: "1.0"
+servers:
+  - url: http://api.example.com/
+paths:
+  /orders/{order-id}:
+    get:
+      summary: get order
+      description: short desc
+      parameters:
+        - name: order-id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: OK
+          content:
+            application/problem+json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: integer
+        '400':
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  items:
+                    type: array
+                    items:
+                      type: string
+                  isPaid:
+                    type:
+                      - boolean
+                      - null
+

@@ -1,0 +1,50 @@
+openapi: 3.1.0
+info:
+  title: Sample Orders API
+  version: 1.0.0
+  license:
+    name: MIT
+    url: https://example.com/license
+servers:
+  - url: https://api.example.com
+tags:
+  - name: Orders
+paths:
+  /orders/{orderId}:
+    summary: Orders resource
+    get:
+      summary: Get order
+      description: Retrieve a single order by its unique identifier.
+      parameters:
+        - name: orderId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  orderId:
+                    type: string
+                  isPaid:
+                    type: boolean
+        '400':
+          description: Bad request
+          content:
+            application/problem+json:
+              schema:
+                type: object
+                properties:
+                  type:
+                    type: string
+                    format: uri
+                  title:
+                    type: string
+                  detail:
+                    type: string
+
