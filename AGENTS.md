@@ -3,6 +3,10 @@
 - **TDD-first**: Always write or update tests *before* generating or changing any application code or configuration that affects behavior.
 - **Test before commit**: Always run the relevant test or validation command (e.g. `docker compose config`, automated tests, linting) and ensure it passes before committing.
 - **Fine-grained commits**: Commit to Git every single step and sub-step so that each commit represents one small, reviewable change.
+- **Single Docker context**: Prefer running `docker` and `docker compose` commands from Windows PowerShell against Docker Desktop, using this repository’s `docker-compose.yml` directly.
+- **Explicit WSL usage**: When WSL is required, always specify the distro explicitly (e.g. `wsl -d Ubuntu-24.04 -- ...`) and avoid mixing host and WSL paths in the same command.
+- **Secrets handling**: Never commit real secrets; use `.env` files or environment variables for values like `GITEA_RUNNER_REGISTRATION_TOKEN`, and document the required variables here instead.
+- **Document every step**: For each significant change (new services, workflows, scripts), add a short description and “how to run” notes to this file so the demo remains reproducible.
 
 ## Step 1: Local Gitea and Actions runner
 
