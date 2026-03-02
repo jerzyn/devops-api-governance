@@ -1,3 +1,9 @@
+## General guidelines
+
+- **TDD-first**: Always write or update tests *before* generating or changing any application code or configuration that affects behavior.
+- **Test before commit**: Always run the relevant test or validation command (e.g. `docker compose config`, automated tests, linting) and ensure it passes before committing.
+- **Fine-grained commits**: Commit to Git every single step and sub-step so that each commit represents one small, reviewable change.
+
 ## Step 1: Local Gitea and Actions runner
 
 - **Goal**: Provide a self-contained Git + CI environment for demos, entirely on the local machine.
