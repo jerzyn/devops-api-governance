@@ -1,2 +1,5 @@
 gitea-data/
-
+gitea-data.backup-*/
+.env
+runner-data/
+gitea-reset-backups/

@@ -1,3 +1,4 @@
+# Post-reset Gitea workflow verification (comment only)
 openapi: 3.1.0
 info:
   title: Sample Orders API
