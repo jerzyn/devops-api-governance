@@ -395,3 +395,9 @@ You can verify your configured remotes with:
 git remote -v
 ```
 
+## License
+
+This repository is licensed under [Creative Commons Attribution 4.0 International (CC BY 4.0)](https://creativecommons.org/licenses/by/4.0/).
+
+You may share and adapt the demo materials with attribution. See [LICENSE](LICENSE) for the full notice and links to the legal text.
+
