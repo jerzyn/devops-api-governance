@@ -12,6 +12,17 @@ services:
       - GITEA__server__HTTP_PORT=3000
       # Ensure Actions are enabled (1.21+ enables by default, this is explicit)
       - GITEA__actions__ENABLED=true
+      # File sessions (ensure gitea-data ownership is git/1000; see README)
+      - GITEA__session__PROVIDER=file
+      - GITEA__session__PROVIDER_CONFIG=/data/gitea/sessions
+      # OpenID can break sign-in if provider metadata is corrupted after DB recovery
+      - GITEA__openid__ENABLE_OPENID_SIGNIN=false
+      - GITEA__openid__ENABLE_OPENID_SIGNUP=false
+      # Persist secrets across restarts (environment-to-ini overwrites app.ini; empty SECRET_KEY breaks hooks)
+      - GITEA__security__SECRET_KEY=${GITEA_SECRET_KEY}
+      - GITEA__security__INTERNAL_TOKEN=${GITEA_INTERNAL_TOKEN}
+      - GITEA__server__LFS_JWT_SECRET=${GITEA_LFS_JWT_SECRET}
+      - GITEA__oauth2__JWT_SECRET=${GITEA_OAUTH2_JWT_SECRET}
     volumes:
       - ./gitea-data:/data
     ports:
@@ -31,13 +42,18 @@ services:
       - GITEA_RUNNER_NAME=local-runner
       # Example label for Docker-based jobs (can be changed per your workflows)
       - GITEA_RUNNER_LABELS=ubuntu-latest:docker://node:20-bullseye
+      # Pin Docker API version to avoid 500 from daemon when client uses v1.53
+      - DOCKER_API_VERSION=1.44
+      # Use config so job containers join gitea-network and can clone repo from Gitea
+      - CONFIG_FILE=/config.yaml
     volumes:
       # Runner config and cache
       - ./runner-data:/data
+      # Config: job containers use gitea-network so checkout can reach Gitea
+      - ./runner-config.yaml:/config.yaml:ro
       # Give runner access to host Docker (simpler for local demo)
       - /var/run/docker.sock:/var/run/docker.sock
 
 networks:
   default:
     name: gitea-network
-
