@@ -286,6 +286,50 @@ The job:
 
 This simulates a real governance gate where API contracts are checked automatically before merge.
 
+## Roadmap
+
+Today this demo stops at design-time linting in pull requests. The roadmap extends the same local platform toward a fuller API lifecycle: a shared catalogue, safe evolution of contracts, and verification that providers actually honor what they publish.
+
+### Central API catalogue sync (Git monorepo)
+
+**Goal:** Treat a central API catalogue as the organization-wide source of truth, backed by a Git monorepo rather than scattered repository copies.
+
+**Planned work:**
+
+- Define a monorepo layout for API descriptions (for example per domain or per product line).
+- Automate sync from team repositories into that catalogue on merge or on a schedule.
+- Run the same Spectral ruleset (or stricter variants) before changes land in the catalogue.
+- Expose discovery metadata (owners, lifecycle, links to implementations) so teams can find and reuse APIs consistently.
+
+This step models how platform teams often consolidate OpenAPI contracts while keeping team autonomy in their own repos.
+
+### Backwards compatibility checks
+
+**Goal:** Catch breaking contract changes before they reach `main`, not after consumers have already integrated.
+
+**Planned work:**
+
+- Compare the OpenAPI document in a pull request against the version on the target branch (or against the catalogue entry).
+- Fail the pipeline when changes break compatibility: removed operations, narrowed types, new required fields, renamed properties without aliases, or altered error shapes.
+- Report a clear diff of what changed and why it is considered breaking.
+- Align checks with semver and the extension rules described in `api-guidelines.md`.
+
+Spectral validates *quality*; compatibility tooling validates *stability* for existing clients.
+
+### Provider contract testing with Microcks
+
+**Goal:** Verify that a running API implementation matches its published contract, not only that the document is well formed.
+
+**Planned work:**
+
+- Run [Microcks](https://microcks.io/) locally (for example via Docker Compose) alongside Gitea.
+- Import OpenAPI definitions from this repository or from the central catalogue.
+- Generate contract tests and optional mocks from those definitions.
+- Execute tests against provider endpoints in CI (or on demand) after deploy or on every PR when a test environment is available.
+- Surface failures in Gitea Actions so contract drift is visible next to Spectral and compatibility results.
+
+Together, catalogue sync, compatibility gates, and Microcks close the loop from *documented* API to *delivered* API.
+
 ## Operational Notes
 
 ### Gitea Persistence
