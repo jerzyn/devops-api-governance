@@ -1,0 +1,27 @@
+# Backstage catalog entity for the governance policy repo (api-governance).
+# Discovered by the GiteaEntityProvider (scans the Gitea org for catalog-info.yaml
+# at repo root — see api-catalog/app-config.yaml). Surfaces the API Guidelines as
+# TechDocs, rendered from api-guidelines.md via mkdocs.yml in the same repo.
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: api-guidelines
+  description: PZU API Guidelines — design-first REST standards enforced by the Spectral ruleset.
+  tags:
+    - governance
+    - api-guidelines
+    - rest
+    - openapi
+  annotations:
+    # Build TechDocs from mkdocs.yml in this repo root.
+    backstage.io/techdocs-ref: dir:.
+  links:
+    - url: http://localhost:7007/docs/default/component/api-guidelines
+      title: API Guidelines (TechDocs)
+      icon: docs
+spec:
+  type: documentation
+  lifecycle: production
+  # Owned by the same team as the API entities (defined in the consumer repo's
+  # catalog-info.yaml). Cross-repo references resolve within the shared catalog.
+  owner: group:default/platform-team

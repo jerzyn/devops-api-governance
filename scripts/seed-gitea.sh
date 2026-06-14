@@ -59,7 +59,12 @@ GOV_SRC=/tmp/gov-src
 rm -rf "$GOV_SRC"; mkdir -p "$GOV_SRC"
 cp /governance/spectral/spectral-ruleset.yaml "$GOV_SRC"/
 cp -r /governance/spectral/spectral-functions "$GOV_SRC"/
-cp /governance/api-guidelines.md "$GOV_SRC"/ 2>/dev/null || true
+# Guidelines + their TechDocs wiring (catalog-info.yaml + mkdocs.yml) live in
+# governance/api-guidelines and are published to the repo root so Backstage
+# discovers the api-guidelines Component and renders it as TechDocs.
+cp /governance/api-guidelines/mkdocs.yml "$GOV_SRC"/
+cp /governance/api-guidelines/catalog-info.yaml "$GOV_SRC"/
+cp -r /governance/api-guidelines/docs "$GOV_SRC"/
 seed_repo "$GOV_SRC" "$GOV_REPO" "Governance policy: Spectral ruleset + functions"
 
 echo "==> runner registration token -> /seed/runner-token"

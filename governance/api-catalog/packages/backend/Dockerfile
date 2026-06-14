@@ -11,8 +11,16 @@ FROM node:24-bookworm-slim
 RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
     --mount=type=cache,target=/var/lib/apt,sharing=locked \
     apt-get update && \
-    apt-get install -y --no-install-recommends python3 g++ build-essential libsqlite3-dev && \
+    apt-get install -y --no-install-recommends python3 python3-pip python3-venv g++ build-essential libsqlite3-dev && \
     rm -rf /var/lib/apt/lists/*
+
+# TechDocs local generator: mkdocs + the techdocs-core plugin must be on PATH so
+# `techdocs.generator.runIn: 'local'` (app-config.yaml) can build docs without
+# Docker. Use a venv (Debian bookworm marks the system Python externally-managed)
+# and expose it on PATH for all users.
+RUN python3 -m venv /opt/techdocs && \
+    /opt/techdocs/bin/pip install --no-cache-dir mkdocs-techdocs-core
+ENV PATH="/opt/techdocs/bin:${PATH}"
 
 # Enable corepack (yarn 4 from packageManager) as root — it symlinks into
 # /usr/local/bin, which the unprivileged node user cannot write.

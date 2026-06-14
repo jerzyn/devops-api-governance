@@ -1,0 +1,10 @@
+# TechDocs config for the governance policy repo. Renders the API Guidelines.
+# Docs live in the default docs/ directory (mkdocs requires docs_dir to be a
+# child of the config file). The single guidelines page is docs/index.md so
+# mkdocs emits index.html at the site root, which Backstage TechDocs serves.
+# techdocs-core is required by Backstage TechDocs.
+site_name: API Guidelines
+nav:
+  - API Guidelines: index.md
+plugins:
+  - techdocs-core
