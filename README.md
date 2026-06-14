@@ -83,14 +83,20 @@ repo** (`example/` → Gitea `governance-demo/devops-api-governance`):
 
 1. Branch → edit `contracts/orders-openapi.yaml` and/or `sample-backend/` → open
    a PR into `main` in Gitea.
-2. Gitea Actions runs two gates **in order** (`pr-governance.yml`):
+2. Gitea Actions runs three gates **in order** (`pr-governance.yml`), each gated
+   by `needs:` so the next stage only runs if the previous one passed:
    - **Spectral** (`spectral-openapi-check`) — clones the governance repo for the
      ruleset, then lints the OpenAPI files changed in the PR, **fails on
      error-severity findings**.
-   - **Microcks contract test** (`contract-test`, gated by `needs:` — runs only
-     if Spectral passes) — imports the PR branch's contract and tests the running
-     `sample-backend` against it via the Microcks REST API; **fails on contract
-     drift**.
+   - **Backwards-compatibility** (`breaking-changes-check`) — installs a pinned
+     [`oasdiff`](https://github.com/oasdiff/oasdiff) (v1.19.0) and diffs every
+     PR-modified `*openapi*.{yml,yaml}` against its version on the PR's base
+     branch. **Fails on any ERR-severity breaking finding** (`--fail-on ERR`).
+     Brand-new files (no baseline) and identical-content edits are skipped;
+     the whole job is skipped on `workflow_dispatch` (no PR base ref).
+   - **Microcks contract test** (`contract-test`) — imports the PR branch's
+     contract and tests the running `sample-backend` against it via the Microcks
+     REST API; **fails on contract drift**.
 3. On merge, Backstage's Gitea provider discovers `catalog-info.yaml` from `main`
    and the API entity appears/updates in the catalog.
 
@@ -125,7 +131,7 @@ A step-by-step walkthrough (green/red for each gate + merge→catalog) is in
 | `contracts/orders-openapi.yaml` | The live OpenAPI contract (imported into Microcks). |
 | `catalog-info.yaml` | Backstage entities (API + Component + Group) discovered from Gitea. |
 | `sample-backend/` | Minimal provider-under-test (conformant, or drifting via `DRIFT=true`). |
-| `.gitea/workflows/pr-governance.yml` | One PR gate: `spectral-openapi-check` (linked ruleset) then `contract-test`, ordered via `needs:`. |
+| `.gitea/workflows/pr-governance.yml` | One PR gate, three stages ordered via `needs:`: `spectral-openapi-check` (linked ruleset) → `breaking-changes-check` (oasdiff) → `contract-test` (Microcks). |
 
 ## Governance rules (Spectral)
 
@@ -152,6 +158,47 @@ npx -y @stoplight/spectral-cli lint -r governance/spectral/spectral-ruleset.yaml
 `governance/spectral/examples/openapi-invalid.yaml` intentionally breaks rules (version, title,
 HTTPS, naming, Problem Detail, nullable). The CI gate lints only PR-changed
 files, so this example does not break unrelated PRs.
+
+## Backwards-compatibility checks (oasdiff)
+
+The `breaking-changes-check` gate uses [`oasdiff`](https://github.com/oasdiff/oasdiff)
+v1.19.0 (pinned, installed in the job at run time — no host install needed) to
+diff every PR-modified `*openapi*.{yml,yaml}` against its version on the PR's
+base branch and **fail on any ERR-severity breaking finding** (`oasdiff
+breaking --fail-on ERR`). Typical findings it blocks:
+
+- New required request parameter (query / header / cookie).
+- Existing request parameter narrowed (pattern added, `minLength` raised, …).
+- Response property removed from an existing operation.
+- Operation removed.
+
+Behaviour edge cases (verified in [`tests/pr-governance.feature.md`](tests/pr-governance.feature.md)):
+
+| Case                                                            | Behaviour |
+|-----------------------------------------------------------------|-----------|
+| PR adds a BRAND-NEW `*openapi*.yaml` file (no baseline on main) | skipped (`--diff-filter=M`); BC job passes |
+| PR touches an OpenAPI file but content is identical vs main     | skipped via `git diff --quiet`; emits a `::notice::` |
+| PR has no `*openapi*.{yml,yaml}` change at all                  | `has_files=false`; oasdiff step not executed |
+| Workflow triggered via `workflow_dispatch`                      | whole BC job skipped via `if: github.event_name == 'pull_request'` |
+
+The gate is **strict-mode**: only making the change backward-compatible
+(optional parameter, default value, removal of the new constraint, …) clears
+it. Bumping `info.version` to a new MAJOR alone does *not* pass the gate —
+semver-aware logic is intentionally out of scope for this iteration.
+
+### Run oasdiff locally
+
+```bash
+# Install (Linux amd64). For other platforms, see https://github.com/oasdiff/oasdiff/releases
+curl -fsSL -o /tmp/oasdiff.tgz \
+  https://github.com/oasdiff/oasdiff/releases/download/v1.19.0/oasdiff_1.19.0_linux_amd64.tar.gz
+tar -xzf /tmp/oasdiff.tgz -C /tmp && sudo install -m 0755 /tmp/oasdiff /usr/local/bin/oasdiff
+
+# Diff the PR head against main (annotated, fails on ERR):
+oasdiff breaking --fail-on ERR \
+  origin/main:contracts/orders-openapi.yaml \
+  contracts/orders-openapi.yaml -f githubactions
+```
 
 ## Contract testing
 
@@ -182,14 +229,15 @@ link to the Microcks mocks/tests.
 
 ## Roadmap status
 
-This demo originally stopped at design-time linting. Two of the three roadmap
+This demo originally stopped at design-time linting. All three roadmap
 directions are now **implemented**:
 
 - ✅ **Central API catalog** — Backstage discovers contracts from the Gitea org.
 - ✅ **Provider contract testing (Microcks)** — running impl tested vs contract in CI.
-- ⬜ **Backwards-compatibility checks** — diff a PR's OpenAPI vs `main` and fail on
-  breaking changes (removed operations, narrowed types, new required fields).
-  Aligns with `api-guidelines.md` semver/extension rules. *Not yet implemented.*
+- ✅ **Backwards-compatibility checks (oasdiff)** — PR diff of each modified
+  `*openapi*.{yml,yaml}` vs the base branch fails the gate on breaking changes
+  (new required parameters, narrowed types, removed response fields, removed
+  operations, …). Aligns with `api-guidelines.md` semver/extension rules.
 
 ## Operational notes
 
