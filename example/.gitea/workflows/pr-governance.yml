@@ -1,12 +1,16 @@
 name: PR API governance
 
-# Single PR gate, two stages run in order:
+# Single PR gate, three stages run in order (each gated by `needs:`):
 #   1. spectral-openapi-check — design-time lint of PR-changed OpenAPI files.
 #      The governance ruleset is NOT vendored here; it is linked: the job clones
 #      the central governance repo at run time and lints against its ruleset.
-#   2. contract-test — runtime contract test of the running sample-backend
-#      against the PR's contract. Gated by `needs:` so it runs ONLY if Spectral
-#      passes (don't contract-test a contract that fails lint).
+#   2. breaking-changes-check — diff every PR-modified OpenAPI file against its
+#      version on the PR's base branch using oasdiff; fail on any breaking
+#      change. New (added) files are skipped (no baseline). Skipped entirely
+#      on workflow_dispatch (no PR base ref).
+#   3. contract-test — runtime contract test of the running sample-backend
+#      against the PR's contract. Runs ONLY if the two gates above pass
+#      (don't contract-test a contract that fails lint or breaks consumers).
 #
 # Requires the "contract" compose profile up (microcks-uber + sample-backend) on
 # gitea-network:
@@ -100,8 +104,85 @@ jobs:
           EOF
           exit $FAIL
 
-  contract-test:
+  breaking-changes-check:
     needs: spectral-openapi-check
+    runs-on: ubuntu-latest
+    # workflow_dispatch has no PR base ref to diff against. The two real PR
+    # gates (spectral + contract-test) still run; this BC gate is PR-only.
+    if: github.event_name == 'pull_request'
+
+    steps:
+      - name: Checkout PR branch
+        uses: actions/checkout@v4
+        with:
+          # Full history so we can resolve `origin/<base>:<path>` for oasdiff
+          # and diff against it.
+          fetch-depth: 0
+
+      - name: Install oasdiff (pinned)
+        shell: bash
+        env:
+          OASDIFF_VERSION: 1.19.0
+        run: |
+          set -e
+          curl -fsSL -o /tmp/oasdiff.tgz \
+            "https://github.com/oasdiff/oasdiff/releases/download/v${OASDIFF_VERSION}/oasdiff_${OASDIFF_VERSION}_linux_amd64.tar.gz"
+          tar -xzf /tmp/oasdiff.tgz -C /tmp
+          install -m 0755 /tmp/oasdiff /usr/local/bin/oasdiff
+          oasdiff --version
+
+      - name: Find modified OpenAPI files vs base
+        id: find_openapi
+        shell: bash
+        run: |
+          set -e
+          git fetch -q origin "${{ github.base_ref }}"
+          BASE="origin/${{ github.base_ref }}"
+          # diff-filter=M => only files that exist on BOTH sides. We skip 'A'
+          # (added) because a brand-new file has no base to diff against, and
+          # 'D' (deleted) because there is no PR head file to lint.
+          FILES=$(git diff --name-only --diff-filter=M "${BASE}...HEAD" -- \
+            '*openapi*.yml' '*openapi*.yaml' 2>/dev/null || true)
+          if [ -z "$FILES" ]; then
+            echo "No modified OpenAPI files vs ${BASE}; skipping BC check."
+            echo "has_files=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "OpenAPI files to BC-check:"; echo "$FILES"
+            echo "has_files=true" >> "$GITHUB_OUTPUT"
+            { echo "files<<EOF"; echo "$FILES"; echo "EOF"; } >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Run oasdiff breaking (fail on breaking changes)
+        if: steps.find_openapi.outputs.has_files == 'true'
+        shell: bash
+        run: |
+          BASE="origin/${{ github.base_ref }}"
+          FAIL=0
+          while IFS= read -r f; do
+            [ -z "$f" ] && continue
+            # Short-circuit: if the file content vs base is identical, skip
+            # entirely (covers the "omit when files are identical" intent even
+            # if some other tool listed the file as touched).
+            if git diff --quiet "${BASE}...HEAD" -- "$f"; then
+              echo "::notice file=${f}::No diff vs ${BASE}; skipping."
+              continue
+            fi
+            echo "::group::oasdiff breaking ${f} (vs ${BASE})"
+            # Human-readable summary in the log (don't fail here — the second
+            # call below owns the exit code).
+            oasdiff breaking "${BASE}:${f}" "${f}" -f text || true
+            # Inline annotations + the actual gate exit code. --fail-on ERR
+            # makes oasdiff exit 1 when any ERR-severity breaking finding is
+            # reported (default in 1.19.0 is to print but exit 0).
+            oasdiff breaking --fail-on ERR "${BASE}:${f}" "${f}" -f githubactions || FAIL=1
+            echo "::endgroup::"
+          done <<'EOF'
+          ${{ steps.find_openapi.outputs.files }}
+          EOF
+          exit $FAIL
+
+  contract-test:
+    needs: breaking-changes-check
     runs-on: ubuntu-latest
     steps:
       - name: Checkout PR branch

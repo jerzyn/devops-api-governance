@@ -1,9 +1,9 @@
 # Feature: PR API governance loop (BDD)
 
 First-timer walkthrough. Acceptance scenario for the governance pipeline:
-**design-time lint (Spectral, linked ruleset) → runtime contract test (Microcks)
-→ catalog discovery (Backstage)**, driven through pull requests against the
-seeded Gitea **consumer** repo.
+**design-time lint (Spectral, linked ruleset) → backward-compatibility check
+(oasdiff) → runtime contract test (Microcks) → catalog discovery (Backstage)**,
+driven through pull requests against the seeded Gitea **consumer** repo.
 
 Architecture (see [`../docs/demo-isolation.md`](../docs/demo-isolation.md)):
 - **Governance context** = this project (`governance/` policy + `api-catalog/`).
@@ -148,16 +148,108 @@ Scenario: PR #2 — bump to 1.1.0 and add GET /orders
 
 ---
 
+## Scenario 3: backward-incompatible change is blocked by the BC gate
+
+Demonstrates the third gate: a change that is **Spectral-clean** (well-formed
+OpenAPI, all rules satisfied) and would **survive contract-test** (the backend
+handles it gracefully) is still blocked because it **breaks existing clients**.
+The gate uses `oasdiff` v1.19.0 (pinned, installed at job runtime) to diff the
+PR-changed `*openapi*.{yml,yaml}` files against their version on
+`origin/<base>`.
+
+```gherkin
+Scenario: PR #3 — add a required parameter, blocked by BC gate, then relaxed
+
+  Given a branch "feat/orders-currency-required" off main in the consumer clone
+
+  # --- open the PR (gate 2 RED) ---
+  When I edit contracts/orders-openapi.yaml: add a NEW REQUIRED query parameter
+       `currency` to GET /orders/{orderId}
+       AND give the parameter a description, schema with pattern "^[A-Z]{3}$",
+       and example value "PLN"
+    # The change is Spectral-clean: parameter has description (silences
+    # oas3-parameter-description), schema (silences validity checks), and an
+    # example that matches the schema (oas3-valid-media-example).
+  And I push and open a PR into main
+
+  Then "spectral-openapi-check" PASSES
+    # 0 errors from the linked ruleset.
+  And "breaking-changes-check" runs and FAILS
+    # CI installs oasdiff v1.19.0 (curl tarball from github.com/oasdiff/oasdiff
+    # releases, ~6 MB), diffs the file against `origin/main:<path>`, and
+    # surfaces the breaking change as a ::error:: annotation:
+    """
+    ::error file=contracts/orders-openapi.yaml::in API GET /orders/{orderId}
+    added the new required `query` request parameter `currency`
+    (rule: new-required-request-parameter)
+    """
+  And "contract-test" is SKIPPED (gated by needs: breaking-changes-check)
+  And the PR check is red
+
+  # --- fix: make it backward-compatible ---
+  When I commit a fix: drop `required: true` on the `currency` parameter
+    # The gate is strict-mode: ONLY making the change backward-compatible
+    # (optional parameter, default value, removal, etc.) clears it. Bumping
+    # info.version to a new MAJOR alone DOES NOT pass the gate — semver-aware
+    # logic is intentionally not wired in this iteration.
+  Then "breaking-changes-check" PASSES
+    # oasdiff exit 0; no BC findings reported.
+  And "contract-test" now runs and PASSES
+    # Microcks issues GET /orders/{orderId}?currency=PLN (from the example);
+    # the sample-backend ignores unknown query params and returns the same
+    # response shape, which matches the unchanged 200 schema.
+  And all three checks are green
+
+  # --- merge -> catalog ---
+  When I merge the PR into main
+  Then Backstage shows the updated contract with the new optional `currency`
+       query parameter on GET /orders/{orderId}
+    # (restart backstage to force re-discovery if you don't want to wait
+    #  for the Gitea provider refresh interval).
+```
+
+**Driving the BC gate red — other knobs you can turn**
+
+The gate fires on any `oasdiff breaking` finding. Quick ways to reproduce the
+red state on a sandbox PR (all of these are Spectral-clean):
+
+- Add a required **header** (e.g. `Tenant-Id`) to `GET /orders/{orderId}`
+  (`new-required-request-parameter`, `in: header`). Use `Hyphenated-Pascal-Case`
+  (e.g. `Tenant-Id`, not `X-Tenant-Id`) so Spectral rule
+  `pzu:rest10:2025-headers-naming-conventions-x-prefix` (warn) stays clean.
+- Narrow the path parameter `orderId`: add `minLength: 5` and/or
+  `pattern: "^[A-Z0-9-]+$"` to its schema
+  (`request-parameter-min-length-increased`, `request-parameter-pattern-added`).
+  Bump the example to match (e.g. `"ABC-123"`) so `oas3-valid-media-example`
+  does not turn Spectral red instead.
+- Remove an existing response field from the 200 schema
+  (`response-property-removed`).
+
+**Edge cases handled by the gate (no scenario, just behaviour)**
+
+| Case                                                            | Behaviour |
+|-----------------------------------------------------------------|-----------|
+| PR adds a BRAND-NEW `*openapi*.yaml` file (no baseline on main) | skipped (`--diff-filter=M`); BC job passes |
+| PR touches an OpenAPI file but content is identical vs main    | skipped via `git diff --quiet`; emits a `::notice::` |
+| PR has no `*openapi*.{yml,yaml}` change at all                  | `has_files=false`; oasdiff step not executed |
+| Workflow triggered via `workflow_dispatch`                      | whole BC job skipped via `if: github.event_name == 'pull_request'` |
+
+---
+
 ## Acceptance summary
 
-| # | Step | Expected | Verify at |
-|---|------|----------|-----------|
-| 1 | Bad change opened | Spectral RED (linked ruleset), Microcks skipped | Gitea PR checks |
-| 2 | Spectral fixed | Spectral GREEN, Microcks RED | Gitea PR checks + CI log |
-| 3 | Report link | `http://localhost:8080/...` (not `microcks-uber`) | contract-test CI log |
-| 4 | Contract under test | PR branch version; service version derived from contract | CI log "Testing service: ...:<version>" |
-| 5 | Mismatch fixed | Spectral GREEN, Microcks GREEN | Gitea PR checks |
-| 6 | Merge to main | API discovered / updated | Backstage http://localhost:7007 |
+| #  | Step | Expected | Verify at |
+|----|------|----------|-----------|
+| 1  | Bad change opened (Scenario 1, HTTPS rule) | Spectral RED, BC + Microcks SKIPPED (gated by `needs:`) | Gitea PR checks |
+| 2  | Spectral fixed (Scenario 1) | Spectral GREEN, BC PASS (response-only additions are non-breaking), Microcks RED | Gitea PR checks + CI log |
+| 3  | Microcks report link | `http://localhost:8080/...` (not `microcks-uber`) | contract-test CI log |
+| 4  | Contract under test | PR branch version; service version derived from contract | CI log "Testing service: ...:<version>" |
+| 5  | Mismatch fixed (Scenario 1) | All three gates GREEN | Gitea PR checks |
+| 6  | Merge to main | API discovered / updated | Backstage http://localhost:7007 |
+| 7  | Spectral-clean BC opened (Scenario 3) | Spectral GREEN, BC RED, Microcks SKIPPED | Gitea PR checks |
+| 8  | oasdiff annotation | `::error::...new required \`query\` request parameter \`currency\`` (or other oasdiff rule ID) | breaking-changes-check CI log |
+| 9  | BC fix applied (Scenario 3) | All three gates GREEN | Gitea PR checks |
+| 10 | oasdiff version pinned | `oasdiff version 1.19.0` printed in the install step | breaking-changes-check CI log |
 
 These map to the CI design in [`../docs/ci-fixes-scope.md`](../docs/ci-fixes-scope.md):
 linked ruleset, ordering (`needs:`), report URL, PR-branch contract, version-derive.
