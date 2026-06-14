@@ -74,7 +74,10 @@ proxy:
 techdocs:
   builder: 'local' # Alternatives - 'external'
   generator:
-    runIn: 'docker' # Alternatives - 'local'
+    # 'local' runs mkdocs in-process (mkdocs-techdocs-core is installed in the
+    # backend image). 'docker' would need the Docker socket mounted into the
+    # backstage container, which it isn't in this demo.
+    runIn: 'local'
   publisher:
     type: 'local' # Alternatives - 'googleGcs' or 'awsS3'. Read documentation for using alternatives.
 

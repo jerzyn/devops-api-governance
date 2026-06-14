@@ -27,7 +27,8 @@ The demo is split so a product team's repo stays separate from the platform that
 governs it:
 
 - **Governance context** — [`governance/`](governance/): the policy
-  (`spectral/` — ruleset + custom functions + examples, `api-guidelines.md`) and
+  (`spectral/` — ruleset + custom functions + examples, `api-guidelines/` —
+  the guidelines doc + its TechDocs wiring) and
   the catalog app (`api-catalog/`). Single source of truth for the rules.
   (`docker-compose.yml`, `scripts/` and `runner-config.yaml` stay at the repo root
   as orchestration that wires `governance/` and `example/` together.)
@@ -121,7 +122,7 @@ A step-by-step walkthrough (green/red for each gate + merge→catalog) is in
 | Path | Purpose |
 |------|---------|
 | `governance/spectral/` | `spectral-ruleset.yaml` + `spectral-functions/` + `examples/` — rules (policy as code), pushed to the `api-governance` Gitea repo and linked by consumer CI. |
-| `governance/api-guidelines.md` | The API design guidelines the rules encode. |
+| `governance/api-guidelines/` | `docs/index.md` (the API design guidelines the rules encode) + `catalog-info.yaml` + `mkdocs.yml` — published to the `api-governance` Gitea repo and surfaced in Backstage as TechDocs. |
 | `governance/api-catalog/` | The Backstage app (committed source; builds entirely in Docker). |
 
 **Consumer repo** ([`example/`](example/)) — the product unit / starting template (nested, git-ignored):
