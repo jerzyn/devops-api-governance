@@ -1,447 +1,216 @@
 # Governance DevOps Demo
 
-This repository is a local, self-contained DevOps and API governance demo. It shows how an organization can enforce API design rules early in the delivery process by combining:
+## Quick start
 
-- a local Git server, powered by Gitea;
-- a local CI runner, powered by Gitea Actions `act_runner`;
-- an OpenAPI-first workflow;
-- a Spectral ruleset that encodes REST API governance rules;
-- sample OpenAPI documents that demonstrate passing and failing API contracts.
+Starter prompt (paste into Claude Code / your agent):
 
-The goal is not to deploy a production service. The goal is to simulate the control points around API delivery: source control, pull requests, automated quality gates, and policy-as-code validation.
+> Get familiar with the repo, prepare the environment, and run the tests in
+> `tests/pr-governance.feature.md`. Present a summary as a table with links so I
+> can verify the intermediate states.
 
-## What This Simulates
+A local, self-contained demo of API governance across the full delivery loop —
+**documented → discovered → delivered** — running entirely on your machine:
 
-This repository models a small internal platform where teams design APIs through pull requests.
+- **Gitea** — local Git server + pull requests.
+- **Gitea Actions** (`act_runner`) — local CI.
+- **Spectral** — policy-as-code lint of OpenAPI on every PR (design-time quality).
+- **Microcks** — contract testing of a running implementation against its contract.
+- **Backstage** — API catalog that discovers contracts from Gitea.
 
-The simulated environment includes:
+The goal is not to deploy a production service. It simulates the control points
+around API delivery: source control, PRs, automated quality gates, contract
+testing, and a discoverable catalog.
 
-- **Source control**: Gitea acts as the organization's Git hosting platform.
-- **Pull request review**: changes to API contracts are proposed through PRs into `main`.
-- **CI execution**: Gitea Actions runs validation jobs on pull requests.
-- **API governance**: Spectral checks OpenAPI files against a project-specific ruleset.
-- **Policy as code**: governance rules live in `spectral-ruleset.yaml` and custom JavaScript functions under `spectral-functions/`.
-- **Runtime isolation**: Gitea data and runner data are stored locally, ignored by Git, and treated as disposable runtime state.
+## Two repositories
 
-The demo is useful for showing how an API platform team can move guidelines from a document into automated checks that run before an API contract is merged.
+The demo is split so a product team's repo stays separate from the platform that
+governs it:
 
-## Repository Contents
+- **Governance context** — [`governance/`](governance/): the policy
+  (`spectral/` — ruleset + custom functions + examples, `api-guidelines.md`) and
+  the catalog app (`api-catalog/`). Single source of truth for the rules.
+  (`docker-compose.yml`, `scripts/` and `runner-config.yaml` stay at the repo root
+  as orchestration that wires `governance/` and `example/` together.)
+- **Consumer repo** — [`example/`](example/): the product unit (OpenAPI
+  contract + `catalog-info.yaml` + backend implementation) and a thin PR
+  workflow. It is the **starting template**: `gitea-seed` materializes it into a
+  fresh Gitea repo on each `up`, and **PRs happen against that Gitea repo** (clone
+  it, branch, PR) — so test PRs never pollute this project.
 
-Key files and directories:
+The consumer's CI **links** the ruleset (clones the governance repo at run time)
+rather than vendoring it. Details: [`docs/demo-isolation.md`](docs/demo-isolation.md).
 
-- `.gitea/workflows/openapi-spectral.yml` defines the Gitea Actions workflow that runs Spectral on OpenAPI files during pull requests to `main`.
-- `docker-compose.yml` starts the local Gitea server and the local Actions runner.
-- `spectral-ruleset.yaml` contains the OpenAPI governance rules.
-- `spectral-functions/` contains custom Spectral JavaScript functions used by the ruleset.
-- `api-guidelines.md` documents the API design guidelines that the Spectral rules encode.
-- `examples/openapi-valid.yaml` is a sample API contract intended to pass the ruleset.
-- `examples/openapi-invalid.yaml` is a sample API contract intended to violate several rules.
-- `gitea-data/` is local Gitea runtime state and is ignored by Git.
-- `runner-data/` is local runner runtime state and is ignored by Git.
+## One command
 
-## Prerequisites
+Requires Docker Desktop (Compose). From the repo root:
 
-You need:
-
-- Docker Desktop with Docker Compose support.
-- Git.
-- A shell that can run Docker commands. On Windows, use PowerShell from the repository root.
-- Node.js/npm only if you want to run Spectral locally outside the CI runner.
-
-The compose setup exposes:
-
-- Gitea HTTP UI on `http://localhost:3000`.
-- Gitea SSH on local port `2222`.
-- A Docker network named `gitea-network`.
-
-## Local Runtime Files
-
-This repository intentionally does not track local runtime state.
-
-Ignored local directories include:
-
-- `gitea-data/`
-- `runner-data/`
-- `gitea-data.backup-*/`
-- `gitea-reset-backups/`
-
-This matters because Gitea continuously changes its database, sessions, queues, repositories, hooks, and indexes. Those files should remain local machine state, not project source code.
-
-## First-Time Setup
-
-Run all commands from the repository root.
-
-### 1. Create `.env`
-
-Create a local `.env` file. It is ignored by Git and should contain the Gitea secrets plus the runner registration token once you have one.
-
-You can generate Gitea secrets with the Gitea container image:
-
-```powershell
-docker run --rm gitea/gitea:latest gitea generate secret SECRET_KEY
-docker run --rm gitea/gitea:latest gitea generate secret INTERNAL_TOKEN
-docker run --rm gitea/gitea:latest gitea generate secret JWT_SECRET
-docker run --rm gitea/gitea:latest gitea generate secret JWT_SECRET
+```bash
+docker compose --profile contract --profile catalog up -d
 ```
 
-Then create `.env`:
+That brings up everything **and seeds it** — no `.env`, no scripts, no manual
+Gitea setup. Two one-shot seed services do the first-run work a plain `up`
+cannot:
 
-```dotenv
-GITEA_SECRET_KEY=<generated-secret-key>
-GITEA_INTERNAL_TOKEN=<generated-internal-token>
-GITEA_LFS_JWT_SECRET=<generated-jwt-secret>
-GITEA_OAUTH2_JWT_SECRET=<generated-jwt-secret>
+- **gitea-seed** (after Gitea is healthy): creates the admin (`demo` /
+  `demo12345`), the `governance-demo` org, and **two repos** — the consumer repo
+  (`devops-api-governance`, pushed from `example/`) and a lean governance repo
+  (`api-governance`, ruleset + functions + guidelines). Also writes a runner
+  registration token to a shared volume.
+- **microcks-seed** (after Microcks starts): imports the OpenAPI contract from
+  the consumer repo.
 
-# Add this later after creating a runner registration token in Gitea.
-GITEA_RUNNER_REGISTRATION_TOKEN=
-```
+Gitea secrets are auto-generated and persisted in the `gitea-data` volume.
+`gitea-runner` and `backstage` wait for `gitea-seed` via compose `depends_on`
+conditions; the runner reads its token from the shared volume.
 
-Do not commit `.env`.
+> The seed pushes the **committed** HEAD, so commit your work before `up` for it
+> to appear in Gitea / the catalog.
 
-### 2. Create `runner-config.yaml`
+Endpoints:
 
-The compose file mounts `runner-config.yaml` into the runner container. This local file tells job containers to join the same Docker network as Gitea, so checkout steps can reach `http://gitea:3000/` from inside CI jobs.
+| Service | URL | Notes |
+|---------|-----|-------|
+| Gitea | http://localhost:3000 | login `demo` / `demo12345` |
+| Microcks | http://localhost:8080 | mocks + contract test results |
+| Backstage | http://localhost:7007 | API catalog (guest sign-in) |
+| sample-backend | http://localhost:8081 | provider under test |
 
-Create this file in the repository root:
+## The demo loop
 
-```yaml
-container:
-  network: gitea-network
-```
+After the stack is up, governance runs through pull requests **in the consumer
+repo** (`example/` → Gitea `governance-demo/devops-api-governance`):
 
-If the runner needs more advanced settings later, generate a full `act_runner` config and keep the `container.network` setting aligned with `gitea-network`.
+1. Branch → edit `contracts/orders-openapi.yaml` and/or `sample-backend/` → open
+   a PR into `main` in Gitea.
+2. Gitea Actions runs two gates **in order** (`pr-governance.yml`):
+   - **Spectral** (`spectral-openapi-check`) — clones the governance repo for the
+     ruleset, then lints the OpenAPI files changed in the PR, **fails on
+     error-severity findings**.
+   - **Microcks contract test** (`contract-test`, gated by `needs:` — runs only
+     if Spectral passes) — imports the PR branch's contract and tests the running
+     `sample-backend` against it via the Microcks REST API; **fails on contract
+     drift**.
+3. On merge, Backstage's Gitea provider discovers `catalog-info.yaml` from `main`
+   and the API entity appears/updates in the catalog.
 
-### 3. Validate Compose
+A step-by-step walkthrough (green/red for each gate + merge→catalog) is in
+[`docs/ci-test-path.md`](docs/ci-test-path.md).
 
-```powershell
-docker compose config
-```
+## Repository layout
 
-This checks that Docker Compose can render the final configuration and that required environment variables are present.
+**Root** — orchestrator + meta:
 
-### 4. Start Gitea
+| Path | Purpose |
+|------|---------|
+| `docker-compose.yml` | All services + the seed services + profiles (`contract`, `catalog`). |
+| `scripts/` | `seed-gitea.sh`, `seed-microcks.sh` — orchestration run by the seed services. |
+| `runner-config.yaml` | Joins CI job containers to `gitea-network`. |
+| `tests/` | `pr-governance.feature.md` — BDD walkthrough of the PR loop. |
+| `docs/` | `demo-isolation.md` (two-repo model), `ci-test-path.md` walkthrough. |
+| `gitea-data/`, `runner-data/` | Local runtime state, git-ignored, disposable. |
 
-```powershell
-docker compose up -d gitea
-```
+**Governance context** ([`governance/`](governance/)) — policy + catalog app:
 
-Open:
+| Path | Purpose |
+|------|---------|
+| `governance/spectral/` | `spectral-ruleset.yaml` + `spectral-functions/` + `examples/` — rules (policy as code), pushed to the `api-governance` Gitea repo and linked by consumer CI. |
+| `governance/api-guidelines.md` | The API design guidelines the rules encode. |
+| `governance/api-catalog/` | The Backstage app (committed source; builds entirely in Docker). |
 
-```text
-http://localhost:3000
-```
+**Consumer repo** ([`example/`](example/)) — the product unit / starting template (nested, git-ignored):
 
-Complete the first-run Gitea setup in the browser. For a local demo, SQLite is already configured by `docker-compose.yml`.
+| Path | Purpose |
+|------|---------|
+| `contracts/orders-openapi.yaml` | The live OpenAPI contract (imported into Microcks). |
+| `catalog-info.yaml` | Backstage entities (API + Component + Group) discovered from Gitea. |
+| `sample-backend/` | Minimal provider-under-test (conformant, or drifting via `DRIFT=true`). |
+| `.gitea/workflows/pr-governance.yml` | One PR gate: `spectral-openapi-check` (linked ruleset) then `contract-test`, ordered via `needs:`. |
 
-### 5. Create or Mirror the Repository in Gitea
+## Governance rules (Spectral)
 
-Create a user and a repository in Gitea, for example:
-
-```text
-andrzej/governance-demo
-```
-
-Then point this local repository at the local Gitea remote:
-
-```powershell
-git remote add gitea http://localhost:3000/andrzej/governance-demo.git
-git push -u gitea main
-```
-
-If the `gitea` remote already exists, check it with:
-
-```powershell
-git remote -v
-```
-
-### 6. Register the Actions Runner
-
-In Gitea, create a runner registration token. Depending on the Gitea version and UI, this is usually under site administration, user settings, organization settings, or repository actions runner settings.
-
-Add the token to `.env`:
-
-```dotenv
-GITEA_RUNNER_REGISTRATION_TOKEN=<token-from-gitea>
-```
-
-Start the runner:
-
-```powershell
-docker compose up -d gitea-runner
-```
-
-Check the containers:
-
-```powershell
-docker compose ps
-```
-
-The runner should appear in Gitea as available with the label:
-
-```text
-ubuntu-latest
-```
-
-The workflow uses that label in `.gitea/workflows/openapi-spectral.yml`.
-
-## Running the Demo
-
-The main demo flow is:
-
-1. Start Gitea and the runner.
-2. Push this repository to the local Gitea remote.
-3. Create a feature branch.
-4. Modify or add an OpenAPI file.
-5. Push the branch to Gitea.
-6. Open a pull request into `main`.
-7. Watch Gitea Actions run the Spectral validation workflow.
-
-Example:
-
-```powershell
-git checkout -b demo/openapi-change
-git push -u gitea demo/openapi-change
-```
-
-Open Gitea at `http://localhost:3000`, create a pull request from the branch into `main`, and inspect the Actions result.
-
-## Local Spectral Validation
-
-You can run the same kind of validation locally without Gitea.
-
-Run Spectral on the valid example:
-
-```powershell
-npx -y @stoplight/spectral-cli lint -r spectral-ruleset.yaml examples/openapi-valid.yaml
-```
-
-Run Spectral on the invalid example:
-
-```powershell
-npx -y @stoplight/spectral-cli lint -r spectral-ruleset.yaml examples/openapi-invalid.yaml
-```
-
-The invalid example intentionally violates rules such as:
-
-- OpenAPI version recommendation.
-- API title casing and suffix.
-- semantic version format.
-- HTTPS requirement.
-- URI and path parameter naming conventions.
-- Problem Detail response format.
-- nullable boolean restrictions.
-
-To validate every tracked OpenAPI file locally:
-
-```powershell
-git ls-files '*openapi*.yml' '*openapi*.yaml' | ForEach-Object {
-  npx -y @stoplight/spectral-cli lint -r spectral-ruleset.yaml $_
-}
-```
-
-## Governance Rules
-
-The ruleset extends Spectral's built-in OpenAPI rules and adds organization-specific checks. The custom rules are based on the API guidance in `api-guidelines.md`.
-
-Examples of enforced or recommended practices:
+The ruleset extends Spectral's built-in OpenAPI rules with organization-specific
+checks based on `api-guidelines.md`. Examples:
 
 - OpenAPI documents must use OpenAPI 3.x.y and should use 3.1.y.
-- `info.title` must be Title Case and end with `API`.
-- `info.version` must use semantic versioning.
-- JSON property names should use camelCase.
-- schema object names should use PascalCase.
-- boolean fields must not allow `null`.
-- arrays and objects must not be nullable.
-- array property names should be plural.
-- paths must use kebab-case and must not end with `/`.
-- URI template variables must comply with RFC 6570.
-- headers must use Hyphenated-Pascal-Case.
-- APIs must use HTTPS server URLs.
-- error responses must use `application/problem+json`.
-- Problem Detail schemas must define required fields such as `type`, `title`, and `detail`.
+- `info.title` must be Title Case and end with `API`; `info.version` semver.
+- JSON properties camelCase; schema names PascalCase; array names plural.
+- paths kebab-case, no trailing `/`; URI template vars per RFC 6570.
+- HTTPS server URLs; error responses `application/problem+json` with `type`,
+  `title`, `detail`.
 
-Rules use severities:
+Severities: `error` (mandatory, fails the gate) · `warn` (recommended) ·
+`info` (optional).
 
-- `error` for mandatory governance requirements.
-- `warn` for recommended practices.
-- `info` for optional guidance.
+### Run Spectral locally
 
-## CI Workflow
-
-The Gitea Actions workflow is stored at:
-
-```text
-.gitea/workflows/openapi-spectral.yml
+```bash
+npx -y @stoplight/spectral-cli lint -r governance/spectral/spectral-ruleset.yaml governance/spectral/examples/openapi-valid.yaml    # passes
+npx -y @stoplight/spectral-cli lint -r governance/spectral/spectral-ruleset.yaml governance/spectral/examples/openapi-invalid.yaml  # violations
 ```
 
-It runs on pull requests targeting `main`.
+`governance/spectral/examples/openapi-invalid.yaml` intentionally breaks rules (version, title,
+HTTPS, naming, Problem Detail, nullable). The CI gate lints only PR-changed
+files, so this example does not break unrelated PRs.
 
-The job:
+## Contract testing
 
-1. Checks out the PR branch.
-2. Shows Node.js and npm versions.
-3. Installs `@stoplight/spectral-cli`.
-4. Finds tracked files matching `*openapi*.yml` and `*openapi*.yaml`.
-5. Runs Spectral with `spectral-ruleset.yaml`.
+`sample-backend` implements the Sample Orders API contract. To prove the gate:
 
-This simulates a real governance gate where API contracts are checked automatically before merge.
-
-## Roadmap
-
-Today this demo stops at design-time linting in pull requests. The roadmap extends the same local platform toward a fuller API lifecycle: a shared catalogue, safe evolution of contracts, and verification that providers actually honor what they publish.
-
-### Central API catalogue sync (Git monorepo)
-
-**Goal:** Treat a central API catalogue as the organization-wide source of truth, backed by a Git monorepo rather than scattered repository copies.
-
-**Planned work:**
-
-- Define a monorepo layout for API descriptions (for example per domain or per product line).
-- Automate sync from team repositories into that catalogue on merge or on a schedule.
-- Run the same Spectral ruleset (or stricter variants) before changes land in the catalogue.
-- Expose discovery metadata (owners, lifecycle, links to implementations) so teams can find and reuse APIs consistently.
-
-This step models how platform teams often consolidate OpenAPI contracts while keeping team autonomy in their own repos.
-
-### Backwards compatibility checks
-
-**Goal:** Catch breaking contract changes before they reach `main`, not after consumers have already integrated.
-
-**Planned work:**
-
-- Compare the OpenAPI document in a pull request against the version on the target branch (or against the catalogue entry).
-- Fail the pipeline when changes break compatibility: removed operations, narrowed types, new required fields, renamed properties without aliases, or altered error shapes.
-- Report a clear diff of what changed and why it is considered breaking.
-- Align checks with semver and the extension rules described in `api-guidelines.md`.
-
-Spectral validates *quality*; compatibility tooling validates *stability* for existing clients.
-
-### Provider contract testing with Microcks
-
-**Goal:** Verify that a running API implementation matches its published contract, not only that the document is well formed.
-
-**Planned work:**
-
-- Run [Microcks](https://microcks.io/) locally (for example via Docker Compose) alongside Gitea.
-- Import OpenAPI definitions from this repository or from the central catalogue.
-- Generate contract tests and optional mocks from those definitions.
-- Execute tests against provider endpoints in CI (or on demand) after deploy or on every PR when a test environment is available.
-- Surface failures in Gitea Actions so contract drift is visible next to Spectral and compatibility results.
-
-Together, catalogue sync, compatibility gates, and Microcks close the loop from *documented* API to *delivered* API.
-
-## Operational Notes
-
-### Gitea Persistence
-
-Gitea data is stored in:
-
-```text
-gitea-data/
+```bash
+# Conformant -> contract test passes (green).
+# Drift -> contract test fails (red):
+SAMPLE_BACKEND_DRIFT=true docker compose --profile contract up -d sample-backend
+# ...open a PR... then restore:
+SAMPLE_BACKEND_DRIFT=false docker compose --profile contract up -d sample-backend
 ```
 
-The runner cache and runtime data are stored in:
+Microcks uber is all-in-one (no Keycloak, embedded in-memory Mongo), so imported
+contracts are ephemeral and re-imported on each run.
 
-```text
-runner-data/
-```
+## Backstage catalog
 
-Both directories are intentionally local and ignored by Git.
+Committed under `governance/api-catalog/` and built entirely in Docker (Node 24 in-image — no
+host Node). It serves frontend + backend on port 7007 and authenticates to Gitea
+with the seeded admin credentials. The Gitea provider scans the `governance-demo`
+org for `catalog-info.yaml` and renders the API with its OpenAPI document and a
+link to the Microcks mocks/tests.
 
-### Docker Socket
+> The official `@microcks/microcks-backstage-provider` (0.0.7) is **not** used —
+> it depends on removed Backstage packages and crashes startup on current
+> Backstage. Microcks is surfaced via a link on the API entity instead.
 
-The runner mounts:
+## Roadmap status
 
-```text
-/var/run/docker.sock
-```
+This demo originally stopped at design-time linting. Two of the three roadmap
+directions are now **implemented**:
 
-This lets Gitea Actions start job containers through Docker. This is convenient for a local demo, but it gives the runner broad control over the local Docker daemon. Treat it as a local development setup, not as a hardened production pattern.
+- ✅ **Central API catalog** — Backstage discovers contracts from the Gitea org.
+- ✅ **Provider contract testing (Microcks)** — running impl tested vs contract in CI.
+- ⬜ **Backwards-compatibility checks** — diff a PR's OpenAPI vs `main` and fail on
+  breaking changes (removed operations, narrowed types, new required fields).
+  Aligns with `api-guidelines.md` semver/extension rules. *Not yet implemented.*
 
-### Runner Network
+## Operational notes
 
-The runner uses `runner-config.yaml` so CI job containers join `gitea-network`. Without this, a job container may not be able to reach the Gitea server at `http://gitea:3000/` during checkout.
+- **Docker socket**: `gitea-runner` and `gitea-seed` mount `/var/run/docker.sock`
+  (runner starts job containers; seed runs `gitea` CLI). Local-demo convenience,
+  not a hardened pattern.
+- **Runner network**: `runner-config.yaml` puts CI job containers on
+  `gitea-network` so checkout reaches `http://gitea:3000/`.
+- **Backstage config**: `governance/api-catalog/app-config.yaml` is mounted, so config changes
+  need only a `restart` (not a rebuild). For host `yarn dev`, override the compose
+  service-name hosts with `localhost` in `governance/api-catalog/app-config.local.yaml`.
 
-### Docker API Version
+## Stop / reset
 
-`DOCKER_API_VERSION=1.44` is set for the runner to avoid compatibility problems with Docker Desktop versions where the client may try a newer API than the daemon supports.
-
-## Stopping and Resetting
-
-Stop containers:
-
-```powershell
-docker compose down
-```
-
-Stop containers and remove local Gitea/runner state:
-
-```powershell
-docker compose down
-Remove-Item -Recurse -Force .\gitea-data, .\runner-data
-```
-
-Only remove those directories if you are comfortable losing local Gitea users, repositories, sessions, Actions data, and runner state.
-
-## Common Troubleshooting
-
-### `docker compose config` Reports Empty Variables
-
-Make sure `.env` exists and includes:
-
-```dotenv
-GITEA_SECRET_KEY=...
-GITEA_INTERNAL_TOKEN=...
-GITEA_LFS_JWT_SECRET=...
-GITEA_OAUTH2_JWT_SECRET=...
-```
-
-The runner token is only required when starting `gitea-runner`.
-
-### Runner Cannot Checkout the Repository
-
-Check that:
-
-- `runner-config.yaml` exists.
-- it contains `container.network: gitea-network`.
-- Gitea is running.
-- the runner is running.
-- the workflow uses `runs-on: ubuntu-latest`.
-- the runner label includes `ubuntu-latest:docker://node:20-bullseye`.
-
-### `git status` Shows `gitea-data/`
-
-It should not, because `gitea-data/` is ignored and should not be tracked. If it appears as untracked, confirm `.gitignore` contains:
-
-```gitignore
-gitea-data/
-```
-
-If files were accidentally tracked again, untrack them without deleting local data:
-
-```powershell
-git rm -r --cached gitea-data/
-```
-
-Then commit the cleanup.
-
-## Current Remote
-
-The local Gitea remote commonly used by this demo is:
-
-```text
-http://localhost:3000/andrzej/governance-demo.git
-```
-
-You can verify your configured remotes with:
-
-```powershell
-git remote -v
+```bash
+docker compose --profile contract --profile catalog down        # stop
+docker compose --profile contract --profile catalog down -v     # + drop seeded volumes
+rm -rf gitea-data runner-data                                    # + drop Gitea/runner state
 ```
 
 ## License
 
-This repository is licensed under [Creative Commons Attribution 4.0 International (CC BY 4.0)](https://creativecommons.org/licenses/by/4.0/).
-
-You may share and adapt the demo materials with attribution. See [LICENSE](LICENSE) for the full notice and links to the legal text.
-
+Licensed under [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/). Share
+and adapt with attribution — see [LICENSE](LICENSE).

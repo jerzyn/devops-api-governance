@@ -1,0 +1,4 @@
+# act_runner config: job containers join gitea-network so checkout can reach
+# Gitea at http://gitea:3000/. Mounted read-only by the gitea-runner service.
+container:
+  network: gitea-network
