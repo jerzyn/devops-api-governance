@@ -1,0 +1,45 @@
+# Backstage catalog entities for this repository. Discovered by the
+# GiteaEntityProvider (scans the Gitea org for catalog-info.yaml at repo root).
+apiVersion: backstage.io/v1alpha1
+kind: API
+metadata:
+  name: sample-orders-api
+  description: Sample Orders API governed by the Spectral ruleset and Microcks.
+  tags:
+    - openapi
+    - orders
+  links:
+    - url: http://localhost:8081
+      title: Sample backend (local demo provider)
+    # Microcks links (the auto-sync provider is incompatible with this Backstage
+    # line, so the mock + tests are surfaced as plain links instead).
+    - url: http://localhost:8080/#/services
+      title: Microcks — mocks & contract tests
+      icon: dashboard
+spec:
+  type: openapi
+  lifecycle: experimental
+  owner: group:default/platform-team
+  definition:
+    $text: ./contracts/orders-openapi.yaml
+---
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: sample-backend
+  description: Minimal provider-under-test implementing the Sample Orders API.
+spec:
+  type: service
+  lifecycle: experimental
+  owner: group:default/platform-team
+  providesApis:
+    - sample-orders-api
+---
+apiVersion: backstage.io/v1alpha1
+kind: Group
+metadata:
+  name: platform-team
+  description: Owns API governance tooling and the demo platform.
+spec:
+  type: team
+  children: []

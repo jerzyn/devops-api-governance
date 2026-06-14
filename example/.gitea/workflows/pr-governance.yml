@@ -1,0 +1,182 @@
+name: PR API governance
+
+# Single PR gate, two stages run in order:
+#   1. spectral-openapi-check — design-time lint of PR-changed OpenAPI files.
+#      The governance ruleset is NOT vendored here; it is linked: the job clones
+#      the central governance repo at run time and lints against its ruleset.
+#   2. contract-test — runtime contract test of the running sample-backend
+#      against the PR's contract. Gated by `needs:` so it runs ONLY if Spectral
+#      passes (don't contract-test a contract that fails lint).
+#
+# Requires the "contract" compose profile up (microcks-uber + sample-backend) on
+# gitea-network:
+#   docker compose --profile contract up -d
+#
+# To demonstrate a failing contract gate, restart sample-backend with drift:
+#   SAMPLE_BACKEND_DRIFT=true docker compose --profile contract up -d sample-backend
+
+on:
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
+
+env:
+  # Central governance repo (ruleset + custom Spectral functions). Linked, not
+  # vendored: the lint job clones it at run time. Anonymous clone (public repo).
+  GOVERNANCE_REPO: http://gitea:3000/governance-demo/api-governance.git
+  # Server-to-server API base (CI job container -> Microcks on gitea-network).
+  MICROCKS_URL: http://microcks-uber:8080
+  # Human-facing base for report links printed to the CI log. The internal
+  # hostname is unreachable from a browser; the host publishes 8080.
+  MICROCKS_PUBLIC_URL: http://localhost:8080
+  TEST_ENDPOINT: http://sample-backend:8081
+  # Service name part of the Microcks serviceId; the version part is derived
+  # from the contract at runtime (see "Run contract test") so bumping
+  # info.version does not break the hardcoded reference.
+  API_TITLE: "Sample Orders API"
+  CONTRACT_FILE: contracts/orders-openapi.yaml
+
+jobs:
+  spectral-openapi-check:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout PR branch
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Install Spectral CLI
+        run: npm install -g @stoplight/spectral-cli
+
+      - name: Fetch governance ruleset (linked, not vendored)
+        shell: bash
+        run: |
+          set -e
+          # The "link" to central governance: clone the ruleset + its custom
+          # Spectral functions. functionsDir in the ruleset is relative, so the
+          # functions resolve from the clone.
+          rm -rf .governance
+          git clone --depth 1 "${GOVERNANCE_REPO}" .governance
+          echo "Linked governance ruleset:"; ls .governance/spectral-ruleset.yaml
+
+      - name: Find changed OpenAPI files
+        id: find_openapi
+        shell: bash
+        run: |
+          set -e
+          git fetch -q origin "${{ github.base_ref }}" || true
+          BASE="origin/${{ github.base_ref }}"
+          # Only lint OpenAPI files changed in this PR (added/modified), not the
+          # whole tree — so the intentionally-invalid example doesn't break
+          # unrelated PRs.
+          FILES=$(git diff --name-only --diff-filter=AM "${BASE}...HEAD" -- \
+            '*openapi*.yml' '*openapi*.yaml' 2>/dev/null || true)
+          if [ -z "$FILES" ]; then
+            echo "No changed OpenAPI files in this PR; skipping Spectral."
+            echo "has_files=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "Changed OpenAPI files:"; echo "$FILES"
+            echo "has_files=true" >> "$GITHUB_OUTPUT"
+            { echo "files<<EOF"; echo "$FILES"; echo "EOF"; } >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Run Spectral (fail on errors)
+        if: steps.find_openapi.outputs.has_files == 'true'
+        shell: bash
+        run: |
+          # No `|| true`: spectral exits non-zero on error-severity findings, so
+          # the job (gate) fails. A here-doc loop keeps the fail flag out of a
+          # pipe subshell.
+          FAIL=0
+          while IFS= read -r f; do
+            [ -z "$f" ] && continue
+            echo "::group::spectral $f"
+            spectral lint -r .governance/spectral-ruleset.yaml "$f" || FAIL=1
+            echo "::endgroup::"
+          done <<'EOF'
+          ${{ steps.find_openapi.outputs.files }}
+          EOF
+          exit $FAIL
+
+  contract-test:
+    needs: spectral-openapi-check
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout PR branch
+        uses: actions/checkout@v4
+        with:
+          # Check out the PR head commit so the contract under test is the PR's
+          # version, not the base branch (main). Empty on workflow_dispatch ->
+          # falls back to the dispatched ref.
+          ref: ${{ github.event.pull_request.head.sha }}
+
+      - name: Wait for Microcks to be ready
+        shell: bash
+        run: |
+          set -e
+          for i in $(seq 1 30); do
+            if curl -sf "${MICROCKS_URL}/api/health" >/dev/null; then
+              echo "Microcks is up."; exit 0
+            fi
+            echo "waiting for Microcks ($i)..."; sleep 2
+          done
+          echo "Microcks did not become ready in time." >&2
+          exit 1
+
+      - name: Import contract into Microcks
+        shell: bash
+        run: |
+          set -e
+          # Keycloak is disabled in the uber stack, so the upload endpoint needs
+          # no auth. mainArtifact=true marks this as the primary artifact.
+          # Re-importing the same contract is idempotent.
+          curl -sf -X POST \
+            -F "file=@${CONTRACT_FILE}" \
+            "${MICROCKS_URL}/api/artifact/upload?mainArtifact=true"
+          echo "Imported ${CONTRACT_FILE}."
+
+      - name: Run contract test
+        shell: bash
+        run: |
+          set -e
+          # Derive the service version from the contract's info.version so a
+          # version bump in the PR is tested against the matching Microcks
+          # service (not a stale hardcoded version).
+          VERSION=$(grep -E '^[[:space:]]+version:' "${CONTRACT_FILE}" | head -1 \
+            | sed -E 's/.*version:[[:space:]]*//' | tr -d '"'"'"' ')
+          API_SERVICE="${API_TITLE}:${VERSION}"
+          echo "Testing service: ${API_SERVICE}"
+          # Launch the test via the Microcks REST API (no microcks-cli binary —
+          # the published linux-amd64 release asset 404s). Pure curl + poll.
+          BODY="{\"serviceId\":\"${API_SERVICE}\",\"testEndpoint\":\"${TEST_ENDPOINT}\",\"runnerType\":\"OPEN_API_SCHEMA\",\"timeout\":10000}"
+          RESP=$(curl -sf -X POST "${MICROCKS_URL}/api/tests" \
+            -H 'Content-Type: application/json' -d "${BODY}")
+          TID=$(printf '%s' "$RESP" | grep -o '"id":"[a-f0-9]*"' | head -1 | sed 's/.*:"\(.*\)"/\1/')
+          if [ -z "$TID" ]; then
+            echo "Failed to launch test. Response: $RESP" >&2; exit 1
+          fi
+          echo "Launched test ${TID}; polling..."
+
+          RESULT=""
+          for i in $(seq 1 20); do
+            sleep 2
+            RESULT=$(curl -sf "${MICROCKS_URL}/api/tests/${TID}")
+            printf '%s' "$RESULT" | grep -q '"inProgress":false' && break
+            echo "  in progress ($i)..."
+          done
+
+          # Top-level success is the one immediately followed by ,"inProgress".
+          SUCCESS=$(printf '%s' "$RESULT" | grep -o '"success":[a-z]*,"inProgress"' \
+            | head -1 | sed 's/"success":\([a-z]*\).*/\1/')
+          echo "Test ${TID} success=${SUCCESS}"
+          # Human-facing link: localhost (browser-reachable), not the internal
+          # microcks-uber hostname used for the API calls above.
+          echo "Details: ${MICROCKS_PUBLIC_URL}/#/tests/${TID}"
+          if [ "$SUCCESS" != "true" ]; then
+            echo "Contract test FAILED:" >&2
+            printf '%s\n' "$RESULT" >&2
+            exit 1
+          fi
+          echo "Contract test PASSED."
