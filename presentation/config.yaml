@@ -2,5 +2,9 @@
 defaults:
   theme: dark
   image_protocol: auto
+d2:
+  scale: 1.2
 options:
   implicit_slide_ends: false
+  auto_render_languages:
+    - d2

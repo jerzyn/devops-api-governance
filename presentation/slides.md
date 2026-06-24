@@ -67,10 +67,7 @@ options:
 
 # The full image
 
-- OpenAPI contract in Git
-- PR triggers CI
-- Spectral (design) → oasdiff (compatibility) → Microcks (runtime contract)
-- Merge → Backstage catalog discovery
+<!-- include: diagrams/governance-pipeline.md -->
 
 # Next steps
 
