@@ -17,8 +17,10 @@ for other distros and package managers.
 
 ## Install d2 (for diagrams)
 
-D2 renders pipeline diagrams on slides that use `d2` code blocks (e.g. **The full image**).
-Presenterm shells out to the `d2` binary — it must be on your `PATH`.
+Diagrams are **pre-rendered to PNG** for sharp display in the terminal (live
+`+render` tends to look soft when presenterm scales the bitmap).
+
+Install the [d2 CLI](https://d2lang.com/tour/install/) — it must be on your `PATH`:
 
 **Option A — Go** (if Go is installed):
 
@@ -40,7 +42,13 @@ export PATH="$HOME/.local/bin:$PATH"
 curl -fsSL https://d2lang.com/install.sh | sh -s --
 ```
 
-Verify before running presenterm:
+After editing `diagrams/*.d2`, re-render (default scale 4; override with `D2_SCALE`):
+
+```bash
+./presentation/render-diagrams.sh
+```
+
+Verify d2 is available:
 
 ```bash
 d2 --version
@@ -77,5 +85,6 @@ Exported PDF/HTML files are git-ignored.
 | File | Purpose |
 |------|---------|
 | `slides.md` | Slide content (markdown) |
-| `config.yaml` | Project-local presenterm defaults (incl. d2 rendering) |
-| `diagrams/` | D2 diagram snippets included from slides |
+| `config.yaml` | Project-local presenterm defaults |
+| `diagrams/` | D2 sources (`.d2`), rendered PNGs, and slide includes |
+| `render-diagrams.sh` | Bake `.d2` → `.png` at high scale for sharp slides |
