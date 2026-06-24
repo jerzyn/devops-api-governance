@@ -1,0 +1,6 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/mfontanini/presenterm/master/config-file-schema.json
+defaults:
+  theme: dark
+  image_protocol: auto
+options:
+  implicit_slide_ends: false
