@@ -5,7 +5,7 @@ authors:
   - Andrzej Jarzyna
   - Krzysztof Madeński
 theme:
-  name: dark
+  path: theme.yaml
 options:
   implicit_slide_ends: true
   h1_slide_titles: true

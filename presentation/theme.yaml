@@ -1,0 +1,31 @@
+extends: dark
+
+intro_slide:
+  title:
+    alignment: center
+    bold: true
+    font_size: 7
+    colors:
+      foreground: palette:light_blue
+  subtitle:
+    alignment: center
+    bold: false
+    font_size: 5
+    colors:
+      foreground: palette:aqua
+  author:
+    alignment: center
+    positioning: page_bottom
+    font_size: 3
+    colors:
+      foreground: "b6eada"
+  footer: false
+
+slide_title:
+  alignment: center
+  bold: true
+  font_size: 5
+  padding_top: 1
+  padding_bottom: 1
+  colors:
+    foreground: palette:orange
