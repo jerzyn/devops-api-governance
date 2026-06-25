@@ -114,6 +114,7 @@ A step-by-step walkthrough (green/red for each gate + merge→catalog) is in
 | `scripts/` | `seed-gitea.sh`, `seed-microcks.sh` — orchestration run by the seed services. |
 | `runner-config.yaml` | Joins CI job containers to `gitea-network`. |
 | `tests/` | `pr-governance.feature.md` — BDD walkthrough of the PR loop. |
+| `presentation/` | Terminal slide deck (`slides.md`) + presenterm config; see [`presentation/README.md`](presentation/README.md). |
 | `docs/` | `demo-isolation.md` (two-repo model), `ci-test-path.md` walkthrough. |
 | `gitea-data/`, `runner-data/` | Local runtime state, git-ignored, disposable. |
 
