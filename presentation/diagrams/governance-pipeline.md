@@ -1,1 +1,1 @@
-![image:width:100%](governance-pipeline.png)
+![image:width:95%](governance-pipeline.png)

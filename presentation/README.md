@@ -48,11 +48,15 @@ export PATH="$HOME/.local/bin:$PATH"
 curl -fsSL https://d2lang.com/install.sh | sh -s --
 ```
 
-After editing `diagrams/*.d2`, re-render (default scale 4; override with `D2_SCALE`):
+After editing `diagrams/*.d2`, re-render (default scale **1** for terminal-friendly size;
+use `D2_SCALE=2` only if you need extra sharpness in Kitty and images still load):
 
 ```bash
 ./presentation/render-diagrams.sh
 ```
+
+The baked PNG must stay under ~4000px wide or Kitty may not display it at all; Konsole
+falls back to block artifacts. Re-run the script after changing `D2_SCALE`.
 
 Verify d2 is available:
 
@@ -85,6 +89,9 @@ To try Konsole (Plasma 6 / Konsole 24.02+):
 presenterm --image-protocol sixel \
   --config-file presentation/config.yaml presentation/slides.md
 ```
+
+For Kitty, [`config.yaml`](config.yaml) sets `image_protocol: kitty-local`. Override
+with `--image-protocol sixel` when presenting from Konsole.
 
 Images may look blockier than in Kitty. **`font_size` in the theme does not work in
 Konsole** — only normal-weight text sizing; use Kitty for larger title/heading sizes.

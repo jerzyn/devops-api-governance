@@ -6,7 +6,7 @@ set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")" && pwd)"
 DIAGRAMS="${ROOT}/diagrams"
-SCALE="${D2_SCALE:-4}"
+SCALE="${D2_SCALE:-1}"
 
 if ! command -v d2 >/dev/null 2>&1; then
   echo "d2 not found on PATH — install via presentation/install-d2.sh or go install" >&2
