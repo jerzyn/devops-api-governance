@@ -89,15 +89,15 @@ repo** (`example/` → Gitea `governance-demo/devops-api-governance`):
    - **Spectral** (`spectral-openapi-check`) — clones the governance repo for the
      ruleset, then lints the OpenAPI files changed in the PR, **fails on
      error-severity findings**.
+   - **Microcks contract test** (`contract-test`) — imports the PR branch's
+     contract and tests the running `sample-backend` against it via the Microcks
+     REST API; **fails on contract drift**.
    - **Backwards-compatibility** (`breaking-changes-check`) — installs a pinned
      [`oasdiff`](https://github.com/oasdiff/oasdiff) (v1.19.0) and diffs every
      PR-modified `*openapi*.{yml,yaml}` against its version on the PR's base
      branch. **Fails on any ERR-severity breaking finding** (`--fail-on ERR`).
      Brand-new files (no baseline) and identical-content edits are skipped;
      the whole job is skipped on `workflow_dispatch` (no PR base ref).
-   - **Microcks contract test** (`contract-test`) — imports the PR branch's
-     contract and tests the running `sample-backend` against it via the Microcks
-     REST API; **fails on contract drift**.
 3. On merge, Backstage's Gitea provider discovers `catalog-info.yaml` from `main`
    and the API entity appears/updates in the catalog.
 
@@ -258,6 +258,43 @@ docker compose --profile contract --profile catalog down        # stop
 docker compose --profile contract --profile catalog down -v     # + drop seeded volumes
 rm -rf gitea-data runner-data                                    # + drop Gitea/runner state
 ```
+
+## Reproduce the demo
+
+This demo was presented at **API Days Munich, 07-2026** — four topics. Below is
+how to run each one live. Full PR-driven flows are in
+[`tests/pr-governance.feature.md`](tests/pr-governance.feature.md).
+
+**Setup.** Bring the stack up and clone the consumer repo (all demos run against
+it, never against this project):
+
+```bash
+docker compose --profile contract --profile catalog up -d      # up + auto-seed
+git clone http://demo:demo12345@localhost:3000/governance-demo/devops-api-governance.git
+```
+
+Endpoints: Gitea `:3000` (`demo`/`demo12345`) · Microcks `:8080` · Backstage
+`:7007` (guest) · sample-backend `:8081`.
+
+**Topic 1 — API Catalog.** One `catalog-info.yaml` makes an API org-wide visible.
+Backstage → **APIs** shows `sample-orders-api`, auto-discovered from Gitea; its
+**Definition** tab has the rendered contract + owner + docs.
+
+**Topic 2 — Guidelines as Code.** The guidelines live in the catalog (Backstage →
+`api-governance` → **Docs**) and run as Spectral checks in CI. In the cloned
+consumer repo, branch, break a rule (e.g. server URL `http://` instead of
+`https://`), and open a PR in Gitea → Actions runs `spectral-openapi-check` →
+**red**, with rule · file · line. Fix it, push again → **green**.
+
+**Topic 3 — Mocking & Contract Testing.** Microcks serves a live mock from the
+spec (Microcks UI → `Sample Orders API`) and tests the running backend for drift.
+Run the contract test from the Microcks UI, or let it run as the `contract-test`
+gate on a PR — drift goes red, in-sync goes green.
+
+**Topic 4 — Breaking Changes.** Making an existing field required breaks live
+clients. Open a PR with that change → the `breaking-changes-check` gate (oasdiff)
+runs and blocks it → **red**. Relax the change to stay compatible, push again →
+**green**.
 
 ## License
 
