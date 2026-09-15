@@ -261,8 +261,8 @@ rm -rf gitea-data runner-data                                    # + drop Gitea/
 
 ## Reproduce the demo
 
-This demo was presented at **API Days Munich, 07-2026** — four topics. Below is
-how to run each one live. Full PR-driven flows are in
+This demo covers four topics. Below is how to run each one live. Full
+PR-driven flows are in
 [`tests/pr-governance.feature.md`](tests/pr-governance.feature.md).
 
 **Setup.** Bring the stack up and clone the consumer repo (all demos run against
