@@ -1,17 +1,25 @@
 # Demo isolation: the two-repo model
 
 The demo is split into two repos so a product team's repo stays separate from
-the platform that governs it. This project's working tree contains both, but
-they play different roles and get pushed to two separate Gitea repos on `up`.
+the platform that governs it. This project's working tree contains both, plus
+a third piece (the catalog app) that never leaves the local machine.
 
 ## Governance context (this project → `governance-demo/api-governance`)
 
 [`governance/`](../governance/) is the policy: the Spectral ruleset + its
-custom functions ([`governance/spectral/`](../governance/spectral/)), the
+custom functions ([`governance/spectral/`](../governance/spectral/)) and the
 guidelines doc + its TechDocs wiring
-([`governance/api-guidelines/`](../governance/api-guidelines/)), and the
-Backstage catalog app ([`governance/api-catalog/`](../governance/api-catalog/)).
-Single source of truth for the rules.
+([`governance/api-guidelines/`](../governance/api-guidelines/)). Single
+source of truth for the rules. `gitea-seed` pushes only this lean subset
+(ruleset + functions + guidelines, not the whole `governance/` tree) to the
+`governance-demo/api-governance` Gitea repo — that's the "linked, not
+vendored" copy the consumer's CI clones (see below).
+
+The Backstage catalog app ([`governance/api-catalog/`](../governance/api-catalog/))
+is committed here but **never pushed to Gitea** — `docker-compose.yml`
+builds and runs it straight from this local working tree. It's part of the
+governance context conceptually (it's the platform surfacing the rules and
+the catalog), but not part of what gets seeded.
 
 `docker-compose.yml`, `scripts/`, and `runner-config.yaml` stay at the repo
 root rather than under `governance/` — they're orchestration that wires
