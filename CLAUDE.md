@@ -58,9 +58,16 @@ being asked.
 - `docs/` is referenced by `README.md` and `tests/pr-governance.feature.md`
   (`demo-isolation.md`, `ci-test-path.md`, `ci-fixes-scope.md`) but does not
   exist — broken links.
-- `governance/spectral/spectral-functions/disallowedNullInTypeArrayAndObjects.js`:
-  the `properties` branch resets `result = []` after its loop, so the rule
-  never actually fires on nested objects. Needs a fix + a regression test.
+- ~~`governance/spectral/spectral-functions/disallowedNullInTypeArrayAndObjects.js`
+  never fired on nested properties~~ — resolved: was overwriting `result`
+  instead of accumulating (own-type/items/properties checks each clobbered
+  the previous one, and the `properties` branch reset it to `[]` after its
+  loop besides). Fixed to accumulate into an array. TDD: reproduced with a
+  fixture (0 findings before, 1 after); regression-checked against both
+  `governance/spectral/examples/*` fixtures and the real
+  `example/contracts/orders-openapi.yaml` (no new errors there —
+  `openapi-invalid.yaml` correctly gained one finding it always should have
+  had, that's the fix working, not a regression).
 - `governance/spectral/spectral-functions/logAndHelp.js`: registered in the
   ruleset's `functionsDir` but not used by any rule; leftover debug
   `console.log`. Dead code — remove it (or wire it up if it was meant to be
