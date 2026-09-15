@@ -18,3 +18,8 @@ microcks-data/
 # Agent tool state (index cache, local memory) - not part of the project
 .lurus/
 
+# Local Docker-Desktop-less dev override (e.g. Podman socket path bind for
+# gitea-seed/gitea-runner); docker compose auto-loads this file if present,
+# so keep it machine-local and never commit it.
+docker-compose.override.yml
+
