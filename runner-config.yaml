@@ -2,3 +2,8 @@
 # Gitea at http://gitea:3000/. Mounted read-only by the gitea-runner service.
 container:
   network: gitea-network
+  # None of the three PR-governance jobs run docker themselves (npm, git, curl
+  # only) - don't mount the host docker socket into job/service containers.
+  # "-" still lets act_runner find a docker host for its own container
+  # management; it just skips passing that socket into job containers too.
+  docker_host: "-"
