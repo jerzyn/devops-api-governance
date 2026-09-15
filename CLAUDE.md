@@ -69,22 +69,17 @@ being asked.
   rebranded to the fictional "API Peak" (rule ID prefix `api-peak:*`, guideline
   links now `api-guidelines.api-peak.com`) across the ruleset, guidelines docs,
   catalog-info, and the test scenarios that quote rule IDs.
-- `governance/api-guidelines/docs/index.md` rule-number inconsistencies
-  (pre-existing, not introduced by the PZU rebrand — confirmed via `git show
-  main:...`):
-  - Three rule numbers are each attached to two unrelated headings in the doc
-    itself: `rest18` (Separacja Zagadnień at line 359 vs Kody Statusu
-    Odpowiedzi at line 430), `rest31` (Wyniki operacji grupowych at line 681
-    vs "NIE UŻYWAJ POST Tunneling" at line 687), `rest37` (Zmiany formatu
-    reprezentacji at line 880 vs Wersjonowanie opisu API at line 911). Harmless
-    for CI (anchor links and the actual Spectral rule keys in
-    `spectral-ruleset.yaml` stay unique), but misleading for a human
-    cross-referencing a rule number to the doc.
-  - Bigger issue: for numbers ≥ 20, the doc's own numbering has drifted from
-    what `spectral-ruleset.yaml` enforces under the same number — e.g. the
-    ruleset's `rest23` is status-codes/separation-of-concerns and `rest25` is
-    Problem Detail, but the doc's `rest23` is "Format Czasu Trwania" (Duration
-    Format) and `rest25` is "Standardowe Znaczniki Czasowe" (Timestamps). A CI
-    failure quoting `api-peak:rest23:...` sends a reader to the wrong section
-    of the guidelines doc. Needs a full re-sync of doc heading numbers against
-    the actual ruleset rule IDs.
+- ~~`governance/api-guidelines/docs/index.md` rule-number inconsistencies~~ —
+  resolved. Turned out to be two distinct bugs, both fixed:
+  1. Four rule numbers (not three — found a fourth while fixing) were each
+     duplicated onto two unrelated headings: `rest18`, `rest20`, `rest31`,
+     `rest37`.
+  2. "Metody zapytań" (request methods) had no rule-number tag at all, even
+     though it's exactly the topic `rest19:request-methods` enforces — this
+     gap is what pushed everything after it out of alignment.
+  Fixed by renumbering every doc heading from `rest19` onward sequentially
+  (doc now runs 1-42, not 1-37) and syncing the three `spectral-ruleset.yaml`
+  rule IDs that had drifted from their doc topic (`separation-of-concerns`
+  rest23→18, `status-codes` rest23→20, `problem-detail*` rest25→22).
+  Verified with a before/after Spectral lint diff on both example files:
+  identical findings/lines/severities/exit codes, purely a relabeling.
