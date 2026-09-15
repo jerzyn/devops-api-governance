@@ -3,7 +3,7 @@ export default function checkTableNamePlural(input, options, context) {
   
   if (!isPlural(input)) {
     errors.push({
-      message: `Array collection property '${input}' SHOULD be plural. https://api-guidelines.app.pzu.pl/general-guidelines/#json-pzugeneral112025-json`,
+      message: `Array collection property '${input}' SHOULD be plural. https://api-guidelines.api-peak.com/general-guidelines/#json-api-peakgeneral112025-json`,
       path: context.path
     });
   }
