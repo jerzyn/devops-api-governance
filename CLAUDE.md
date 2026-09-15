@@ -65,6 +65,7 @@ being asked.
   ruleset's `functionsDir` but not used by any rule; leftover debug
   `console.log`. Dead code — remove it (or wire it up if it was meant to be
   used somewhere).
-- The ruleset and guidelines reference the real company "PZU" (rule IDs like
-  `pzu:rest1:...`, links to `api-guidelines.app.pzu.pl`). Confirm this is
-  intentional before this repo is shared/presented publicly.
+- ~~The ruleset and guidelines referenced the real company "PZU"~~ — resolved:
+  rebranded to the fictional "API Peak" (rule ID prefix `api-peak:*`, guideline
+  links now `api-guidelines.api-peak.com`) across the ruleset, guidelines docs,
+  catalog-info, and the test scenarios that quote rule IDs.
