@@ -1,0 +1,9 @@
+{
+  "version": 3,
+  "name": "Sample Orders API Gateway",
+  "port": 8090,
+  "timeout": "5s",
+  "cache_ttl": "0s",
+  "output_encoding": "json",
+  "endpoints": []
+}

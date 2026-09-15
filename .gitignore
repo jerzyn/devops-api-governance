@@ -18,6 +18,10 @@ microcks-data/
 # Agent tool state (index cache, local memory) - not part of the project
 .lurus/
 
+# Gateway generator's npm install (linked tooling, installed fresh by CI
+# and by local development - never commit the resolved tree)
+governance/gateway/node_modules/
+
 # Local Docker-Desktop-less dev override (e.g. Podman socket path bind for
 # gitea-seed/gitea-runner); docker compose auto-loads this file if present,
 # so keep it machine-local and never commit it.
