@@ -1,0 +1,332 @@
+API Days Munich 2026
+Andrzej Jarzyna
+Krzysztof Madeński
+Munich, July 2026
+DevOps-Driven API Governance
+1
+1
+
+2
+Andrzej Jarzyna
+
+2
+
+3
+empty
+
+3
+
+Lack of discoverability -> API Sprawl, zombie endpoints
+Manual checks later in the lifecycle
+Uneven quality - leads to tools and agents problems
+4
+Why do we do Governance?
+4
+
+5
+What API Governance is about?
+Make it easy to do things right and hard to do things wrong
+5
+
+6
+Frictionless
+Good governance is invisible to the user
+6
+
+Design-first approach
+API Contract as the single source of truth (OAS/AAS)
+Configuration-as-code
+Github-style CI runner
+https://github.com/jerzyn/devops-api-governance
+7
+Premises
+The Devops Process
+7
+
+8
+Git repo
+CI/CD
+PullRequest
+Deployment
+API Governance in the pipeline
+Deploy
+Build
+Merge
+8
+
+You can't govern what you can't see
+Topic 1 — API Catalog
+thousands of APIs across the org, who knows they exist?
+1
+
+One team's backyard
+ 
+
+2
+1.1a
+repo, code, OpenAPI, CI on every PR
+
+Now zoom
+out - the
+whole
+organization
+3
+1.1b
+you can't govern what you can't see
+
+# catalog-info.yaml
+apiVersion: backstage.io/v1alpha1
+kind: API
+metadata:
+  name: sample-orders-api
+  owner: platform-team
+spec:
+  type: openapi
+  lifecycle: production
+  definition:
+    $text: ./contracts/orders-openapi.yaml
+One file.
+That's the
+whole cost.
+4
+name, owner, OpenAPI spec -  next to the code
+the first step has to be almost invisible
+
+Merge it -
+and you're
+done
+5
+1.3
+commit, merge, done
+one commit, a few lines
+
+The API
+appears in
+the catalog
+6
+1.4
+auto-discovered, org-wide visible, no duplicates
+
+Contract,
+owner, docs
+-  one place
+7
+contract, owner, docs in one place
+platform migration, runtime change
+visibility first
+
+16
+Git repo
+CI/CD
+PullRequest
+API Governance in the pipeline
+Build
+ContractRepository
+Fetch APIs
+Deployment
+Deploy
+Merge
+16
+
+A guideline nobody enforces is a
+suggestion
+Step 2 — Guidelines as Code
+8
+well writen, carefully review but...
+
+Guidelines
+live in the
+API catalog
+9
+2.2
+markdown in the catalog - readable with examples
+same rules for humans & AI - one source of truth
+
+19
+Git repo
+CI/CD
+PullRequest
+API Governance in the pipeline
+Build
+API 
+Guidelines
+ContractRepository
+Fetch APIs
+Deployment
+Deploy
+Merge
+19
+
+ 
+ 
+ 
+The same
+rules - as
+code
+10
+2.3
+executable, deterministic
+operation summary is missing?
+PR blocked -> rule, file, line, how to fix feedback
+
+Fix. Push.
+Green.
+11
+2.4
+any CI, no lock-in
+feedback in seconds, not weeks - right at PR
+
+22
+Git repo
+CI/CD
+PullRequest
+API Governance in the pipeline
+Build
+API 
+Guidelines
+ContractRepository
+Fetch APIs
+Deployment
+Deploy
+Merge
+22
+
+Iterate on the API before writing a line
+of code
+Step 3 — Central Mocking & Contract Testing
+a contract is a promise
+12
+
+Q1 — integrate before it exists?
+Push the
+spec 
+→
+ get a
+live mock
+13
+just OpenAPI file -> org-wide live mock
+
+
+
+The mock
+responds -
+partners
+integrate
+today
+14
+3.3
+real response from contract.examples
+iterate with clients before implementation
+contract-first consumer-driven
+
+Q2 — does code match the contract?
+Then we
+implement
+- and drift
+gets caught
+15
+spec promised a required field, code didn’t
+API drift  caught automatically
+ContractTesting
+Q2 - does implementation do what the contract says
+
+# one example inside the OpenAPI contract…
+examples:
+  order_123:
+    value:
+      orderId: "123"
+      isPaid: true
+      currency: "PLN"
+In sync -
+contract &
+code
+16
+3.5
+example -> mocks , example -> test - double return
++ generic MCP mock from OpenAPI
+
+28
+Git repo
+CI/CD
+PullRequest
+API Governance in the pipeline
+Build
+API 
+Guidelines
+ContractTesting
+ContractRepository
+Fetch APIs
+Deployment
+Deploy
+Merge
++ Mocking
+28
+
+Now imagine a partner is integrated
+Step 4 — Breaking Changes
+17
+
+# orders-openapi.yaml — the "innocent" change
+Order:
+  required:
+    - orderId
+    - customerId      # ← was optional, now REQUIRED
+  properties:
+    orderId:    { type: string }
+    customerId: { type: string }
+    currency:   { type: string }   # ← new field
+The
+innocent
+change
+18
+add currency - safe, addictive
+make customerId required - innocent?
+
+$ oasdiff breaking  base → PR   (orders-openapi.yaml)
+ERROR  request-property-became-required
+   POST /orders · request property 'customerId' became required
+   clients that omit it today will start getting 400
+1 breaking change · exit code 1  →  PR blocked
+Blocked -
+before
+anyone gets
+hurt
+19
+4.3
+optional -> required = breaking
+quest checkouts/internal tools -> 4xx
+before merge, before deploy, before incident
+
+An explicit decision — not an accident
+
+
+20
+4.4
+decide on purpose
+no breaking by accident
+
+33
+Git repo
+CI/CD
+PullRequest
+API Governance in the pipeline
+Build
+API 
+Guidelines
+ContractTesting
+Mocks
+BreakingChanges
+ContractRepository
+Fetch APIs
+Deployment
+Deploy
+Merge
+33
+
+34
+34
+
+Thank you!
+35
+Share your feedback about speech:
+35
