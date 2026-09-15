@@ -23,3 +23,7 @@ microcks-data/
 # so keep it machine-local and never commit it.
 docker-compose.override.yml
 
+# Subagent-driven-development scratch workspace (ledgers, briefs, review
+# packages) - session-local working state, not project content.
+.superpowers/
+
