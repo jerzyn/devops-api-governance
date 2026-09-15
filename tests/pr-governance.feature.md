@@ -66,7 +66,7 @@ Scenario: PR #1 — tighten the contract, fix lint, fix drift, merge
   And I push and open a PR into main
   Then the "spectral-openapi-check" stage runs first and FAILS
     # CI clones governance-demo/api-governance and lints against its ruleset;
-    # custom rule pzu:rest17:2025-https-required (error) fires.
+    # custom rule api-peak:rest17:2025-https-required (error) fires.
   And the "contract-test" stage is SKIPPED (gated by needs:)
   And the PR check is red
 
@@ -119,7 +119,7 @@ Scenario: PR #2 — bump to 1.1.0 and add GET /orders
        AND add a GET /orders list endpoint (with examples)
   And I open a PR into main
   Then "spectral-openapi-check" FAILS until every new-path rule is satisfied
-    # e.g. the new /orders path needs a `summary` (rule pzu:rest12, error)
+    # e.g. the new /orders path needs a `summary` (rule api-peak:rest12, error)
   When I commit the Spectral fixes
   Then "spectral-openapi-check" PASSES
 
@@ -216,7 +216,7 @@ red state on a sandbox PR (all of these are Spectral-clean):
 - Add a required **header** (e.g. `Tenant-Id`) to `GET /orders/{orderId}`
   (`new-required-request-parameter`, `in: header`). Use `Hyphenated-Pascal-Case`
   (e.g. `Tenant-Id`, not `X-Tenant-Id`) so Spectral rule
-  `pzu:rest10:2025-headers-naming-conventions-x-prefix` (warn) stays clean.
+  `api-peak:rest10:2025-headers-naming-conventions-x-prefix` (warn) stays clean.
 - Narrow the path parameter `orderId`: add `minLength: 5` and/or
   `pattern: "^[A-Z0-9-]+$"` to its schema
   (`request-parameter-min-length-increased`, `request-parameter-pattern-added`).

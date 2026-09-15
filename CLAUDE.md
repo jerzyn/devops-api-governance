@@ -65,6 +65,26 @@ being asked.
   ruleset's `functionsDir` but not used by any rule; leftover debug
   `console.log`. Dead code — remove it (or wire it up if it was meant to be
   used somewhere).
-- The ruleset and guidelines reference the real company "PZU" (rule IDs like
-  `pzu:rest1:...`, links to `api-guidelines.app.pzu.pl`). Confirm this is
-  intentional before this repo is shared/presented publicly.
+- ~~The ruleset and guidelines referenced the real company "PZU"~~ — resolved:
+  rebranded to the fictional "API Peak" (rule ID prefix `api-peak:*`, guideline
+  links now `api-guidelines.api-peak.com`) across the ruleset, guidelines docs,
+  catalog-info, and the test scenarios that quote rule IDs.
+- `governance/api-guidelines/docs/index.md` rule-number inconsistencies
+  (pre-existing, not introduced by the PZU rebrand — confirmed via `git show
+  main:...`):
+  - Three rule numbers are each attached to two unrelated headings in the doc
+    itself: `rest18` (Separacja Zagadnień at line 359 vs Kody Statusu
+    Odpowiedzi at line 430), `rest31` (Wyniki operacji grupowych at line 681
+    vs "NIE UŻYWAJ POST Tunneling" at line 687), `rest37` (Zmiany formatu
+    reprezentacji at line 880 vs Wersjonowanie opisu API at line 911). Harmless
+    for CI (anchor links and the actual Spectral rule keys in
+    `spectral-ruleset.yaml` stay unique), but misleading for a human
+    cross-referencing a rule number to the doc.
+  - Bigger issue: for numbers ≥ 20, the doc's own numbering has drifted from
+    what `spectral-ruleset.yaml` enforces under the same number — e.g. the
+    ruleset's `rest23` is status-codes/separation-of-concerns and `rest25` is
+    Problem Detail, but the doc's `rest23` is "Format Czasu Trwania" (Duration
+    Format) and `rest25` is "Standardowe Znaczniki Czasowe" (Timestamps). A CI
+    failure quoting `api-peak:rest23:...` sends a reader to the wrong section
+    of the guidelines doc. Needs a full re-sync of doc heading numbers against
+    the actual ruleset rule IDs.
