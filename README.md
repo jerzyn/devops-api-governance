@@ -89,15 +89,15 @@ repo** (`example/` → Gitea `governance-demo/devops-api-governance`):
    - **Spectral** (`spectral-openapi-check`) — clones the governance repo for the
      ruleset, then lints the OpenAPI files changed in the PR, **fails on
      error-severity findings**.
-   - **Microcks contract test** (`contract-test`) — imports the PR branch's
-     contract and tests the running `sample-backend` against it via the Microcks
-     REST API; **fails on contract drift**.
    - **Backwards-compatibility** (`breaking-changes-check`) — installs a pinned
      [`oasdiff`](https://github.com/oasdiff/oasdiff) (v1.19.0) and diffs every
      PR-modified `*openapi*.{yml,yaml}` against its version on the PR's base
      branch. **Fails on any ERR-severity breaking finding** (`--fail-on ERR`).
      Brand-new files (no baseline) and identical-content edits are skipped;
      the whole job is skipped on `workflow_dispatch` (no PR base ref).
+   - **Microcks contract test** (`contract-test`) — imports the PR branch's
+     contract and tests the running `sample-backend` against it via the Microcks
+     REST API; **fails on contract drift**.
 3. On merge, Backstage's Gitea provider discovers `catalog-info.yaml` from `main`
    and the API entity appears/updates in the catalog.
 
@@ -114,7 +114,7 @@ A step-by-step walkthrough (green/red for each gate + merge→catalog) is in
 | `scripts/` | `seed-gitea.sh`, `seed-microcks.sh` — orchestration run by the seed services. |
 | `runner-config.yaml` | Joins CI job containers to `gitea-network`. |
 | `tests/` | `pr-governance.feature.md` — BDD walkthrough of the PR loop. |
-| `docs/` | `demo-isolation.md` (two-repo model), `ci-test-path.md` walkthrough. |
+| `docs/` | `demo-isolation.md` (two-repo model), `ci-test-path.md` walkthrough, `ci-fixes-scope.md` (CI design rationale). |
 | `gitea-data/`, `runner-data/` | Local runtime state, git-ignored, disposable. |
 
 **Governance context** ([`governance/`](governance/)) — policy + catalog app:
