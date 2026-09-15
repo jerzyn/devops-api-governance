@@ -169,8 +169,45 @@ services:
     ports:
       - "7007:7007"
 
+  # --- Track C: API gateway (profile: gateway) --------------------------------
+  # KrakenD CE - real gateway routing to sample-backend. Config is generated
+  # from the OpenAPI contract by governance/gateway/generate.js and deployed
+  # via krakend-deployer: KrakenD CE has no hot-reload/admin API, and job
+  # containers were deliberately stripped of docker/podman socket access
+  # (see runner-config.yaml's container.docker_host) - so a small sidecar
+  # with socket access does the restart instead of the job container.
+  krakend:
+    # Docker's official image, NOT "krakend/krakend" (doesn't exist) and not
+    # "krakend/krakend-ee" (that's the paid Enterprise image).
+    image: krakend:latest
+    container_name: krakend
+    restart: unless-stopped
+    profiles: ["gateway"]
+    depends_on:
+      - sample-backend
+      # krakend-deployer bootstraps the shared volume's krakend.json on its
+      # own startup - without this, krakend can start before that file
+      # exists on a completely fresh volume. restart: unless-stopped would
+      # eventually self-heal, but don't rely on the race.
+      - krakend-deployer
+    volumes:
+      - krakend-config:/etc/krakend
+    command: ["run", "-c", "/etc/krakend/krakend.json"]
+    ports:
+      - "8090:8090"
+
+  krakend-deployer:
+    build: ./governance/gateway/deployer
+    container_name: krakend-deployer
+    restart: unless-stopped
+    profiles: ["gateway"]
+    volumes:
+      - krakend-config:/shared
+      - /var/run/docker.sock:/var/run/docker.sock
+
 volumes:
   seed-state:
+  krakend-config:
 
 networks:
   default:
