@@ -184,12 +184,18 @@ services:
     restart: unless-stopped
     profiles: ["gateway"]
     depends_on:
-      - sample-backend
+      sample-backend:
+        condition: service_started
       # krakend-deployer bootstraps the shared volume's krakend.json on its
-      # own startup - without this, krakend can start before that file
-      # exists on a completely fresh volume. restart: unless-stopped would
-      # eventually self-heal, but don't rely on the race.
-      - krakend-deployer
+      # own startup - without waiting for its healthcheck, krakend can start
+      # before that file exists (or before it's been overwritten by the
+      # deployer's own bootstrap default rather than KrakenD's built-in
+      # factory default at the same path) on a completely fresh volume.
+      # ensureInitialConfig() runs synchronously before /health can return
+      # 200, so waiting for service_healthy guarantees a valid config is
+      # already on disk by the time krakend starts.
+      krakend-deployer:
+        condition: service_healthy
     volumes:
       - krakend-config:/etc/krakend
     command: ["run", "-c", "/etc/krakend/krakend.json"]
@@ -204,6 +210,12 @@ services:
     volumes:
       - krakend-config:/shared
       - /var/run/docker.sock:/var/run/docker.sock
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:9000/health"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+      start_period: 5s
 
 volumes:
   seed-state:
