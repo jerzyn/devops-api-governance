@@ -8,14 +8,13 @@ each already commented inline where it's made — this page just collects the
 ## Linked ruleset, not vendored
 
 `spectral-openapi-check` clones `governance-demo/api-governance` at run time
-rather than carrying a copy of the ruleset in the consumer repo. One place to
-change the rules; every consumer picks up the change on its next PR. See
-[`demo-isolation.md`](demo-isolation.md) for the fuller tradeoff.
+rather than carrying a copy of the ruleset in the consumer repo. Rationale
+and tradeoff: [`demo-isolation.md`](demo-isolation.md).
 
 ## Ordering via `needs:`
 
-The three jobs run `spectral-openapi-check → breaking-changes-check →
-contract-test`, each gated by `needs:` on the previous one. A contract that
+Each job in the pipeline (see [`ci-test-path.md`](ci-test-path.md) for the
+actual sequence) is gated by `needs:` on the previous one. A contract that
 fails lint or breaks existing clients never gets a runtime contract test —
 there's no point testing something that's already going to be rejected.
 
