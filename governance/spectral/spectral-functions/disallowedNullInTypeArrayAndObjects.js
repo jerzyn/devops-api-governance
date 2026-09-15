@@ -35,25 +35,22 @@ export default function (targetVal, _options = undefined, context) {
     return [];
   }
 
-  let result;
-  const { type } = targetVal;
+  const results = [];
 
-  result = testType(type, context);
+  results.push(...(testType(targetVal.type, context) || []));
 
   if (targetVal.items) {
-    const itemsType = targetVal.items.type;
-    result = testType(itemsType, context);
+    results.push(...(testType(targetVal.items.type, context) || []));
   }
 
   if (targetVal.properties) {
     Object.entries(targetVal.properties).forEach(([key, value]) => {
       if (value.type) {
-        result = testType(value.type, context);
+        results.push(...(testType(value.type, context) || []));
       }
-    })
-    result = [];
+    });
   }
 
-  return result;
+  return results;
 }
 
