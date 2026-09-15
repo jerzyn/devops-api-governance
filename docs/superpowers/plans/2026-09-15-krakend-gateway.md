@@ -624,12 +624,19 @@ Insert this block after the `backstage` service and before the top-level `volume
   # (see runner-config.yaml's container.docker_host) - so a small sidecar
   # with socket access does the restart instead of the job container.
   krakend:
-    image: krakend/krakend:latest
+    # Docker's official image, NOT "krakend/krakend" (doesn't exist) and not
+    # "krakend/krakend-ee" (that's the paid Enterprise image).
+    image: krakend:latest
     container_name: krakend
     restart: unless-stopped
     profiles: ["gateway"]
     depends_on:
       - sample-backend
+      # krakend-deployer bootstraps the shared volume's krakend.json on its
+      # own startup - without this, krakend can start before that file
+      # exists on a completely fresh volume. restart: unless-stopped would
+      # eventually self-heal, but don't rely on the race.
+      - krakend-deployer
     volumes:
       - krakend-config:/etc/krakend
     command: ["run", "-c", "/etc/krakend/krakend.json"]
@@ -833,8 +840,11 @@ Append this job at the end of the `jobs:` section, after `contract-test`:
           KRAKEND_VERSION: 2.6.2
         run: |
           set -e
+          # Asset name is krakend_<version>_amd64_generic-linux.tar.gz, NOT
+          # krakend_<version>_linux_amd64.tar.gz - verified against the
+          # krakend-ce GitHub releases API for this version.
           curl -fsSL -o /tmp/krakend.tgz \
-            "https://github.com/krakend/krakend-ce/releases/download/v${KRAKEND_VERSION}/krakend_${KRAKEND_VERSION}_linux_amd64.tar.gz"
+            "https://github.com/krakend/krakend-ce/releases/download/v${KRAKEND_VERSION}/krakend_${KRAKEND_VERSION}_amd64_generic-linux.tar.gz"
           tar -xzf /tmp/krakend.tgz -C /tmp
           install -m 0755 /tmp/usr/bin/krakend /usr/local/bin/krakend
           krakend version
@@ -860,7 +870,13 @@ Append this job at the end of the `jobs:` section, after `contract-test`:
         run: |
           set -e
           for i in $(seq 1 30); do
-            CODE=$(curl -s -o /dev/null -w '%{http_code}' "${GATEWAY_URL}/orders/readiness-probe" || echo "000")
+            # curl's own -w format already writes "000" on a failed/refused
+            # connection (verified: it always evaluates -w, even on
+            # failure) - appending "|| echo 000" here would double it to
+            # "000000", which then never matches the != "000" check below
+            # and falsely reports "ready" on the very first try. Do not add
+            # that back.
+            CODE=$(curl -s -o /dev/null -w '%{http_code}' "${GATEWAY_URL}/orders/readiness-probe")
             if [ "$CODE" != "000" ]; then
               echo "KrakenD is up (HTTP $CODE)."
               break
