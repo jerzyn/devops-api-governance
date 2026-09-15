@@ -55,9 +55,16 @@ being asked.
 
 ## Known gaps (from a repo review, not yet fixed — pick these up as separate tasks)
 
-- `docs/` is referenced by `README.md` and `tests/pr-governance.feature.md`
-  (`demo-isolation.md`, `ci-test-path.md`, `ci-fixes-scope.md`) but does not
-  exist — broken links.
+- ~~`docs/` referenced by `README.md` and `tests/pr-governance.feature.md` but
+  missing~~ — resolved: added `docs/demo-isolation.md`, `docs/ci-test-path.md`,
+  `docs/ci-fixes-scope.md`, all short and drawing only on material already in
+  the repo (README's own two-repo section, the workflow's inline comments) -
+  not invented. `ci-test-path.md` deliberately doesn't duplicate
+  `tests/pr-governance.feature.md`'s scripted scenarios, just narrates the
+  same path at a higher level and points there for detail. Also fixed a gate
+  order bug found along the way: README's bullet list under "The demo loop"
+  described Spectral → Microcks → Backwards-compatibility, but the workflow's
+  real `needs:` chain is Spectral → Backwards-compatibility → Microcks.
 - ~~`governance/spectral/spectral-functions/disallowedNullInTypeArrayAndObjects.js`
   never fired on nested properties~~ — resolved: was overwriting `result`
   instead of accumulating (own-type/items/properties checks each clobbered
