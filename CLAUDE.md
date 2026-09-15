@@ -68,10 +68,10 @@ being asked.
   `example/contracts/orders-openapi.yaml` (no new errors there —
   `openapi-invalid.yaml` correctly gained one finding it always should have
   had, that's the fix working, not a regression).
-- `governance/spectral/spectral-functions/logAndHelp.js`: registered in the
-  ruleset's `functionsDir` but not used by any rule; leftover debug
-  `console.log`. Dead code — remove it (or wire it up if it was meant to be
-  used somewhere).
+- ~~`governance/spectral/spectral-functions/logAndHelp.js` leftover debug
+  `console.log`~~ — resolved: commented out (kept, not deleted, per request)
+  rather than removed. Function stays registered in the ruleset's
+  `functionsDir`, still unused by any rule, still dead code — just silent now.
 - ~~The ruleset and guidelines referenced the real company "PZU"~~ — resolved:
   rebranded to the fictional "API Peak" (rule ID prefix `api-peak:*`, guideline
   links now `api-guidelines.api-peak.com`) across the ruleset, guidelines docs,
