@@ -15,3 +15,6 @@ gitea-reset-backups/
 # Stray runtime state (no service mounts this now; guard against re-tracking)
 microcks-data/
 
+# Agent tool state (index cache, local memory) - not part of the project
+.lurus/
+
