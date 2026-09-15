@@ -420,11 +420,11 @@ rules:
         match: "^(get|head|put|patch|post|trace|options|delete|parameters|summary|description|$ref|servers)$"
 
   # Each API MUST use only valid HTTP status codes to communicate the result of a request operation.
-  api-peak:rest23:2025-status-codes:
+  api-peak:rest20:2025-status-codes:
     description: >
       Each API MUST use only valid HTTP status codes to communicate the result of a request operation.
       Only standard status codes or the "default" key are allowed in responses.
-    message: "Invalid HTTP status code '{{property}}' found in responses. Only standard codes (except custom and WebDAV codes) or 'default' are allowed. \n https://api-guidelines.api-peak.com/rest/#kody-statusu-odpowiedzi-ang-response-status-codes-api-peakrest232025-status-codes"
+    message: "Invalid HTTP status code '{{property}}' found in responses. Only standard codes (except custom and WebDAV codes) or 'default' are allowed. \n https://api-guidelines.api-peak.com/rest/#kody-statusu-odpowiedzi-ang-response-status-codes-api-peakrest202025-status-codes"
     severity: "error"
     given: "$.paths[*].[get,post,put,patch,delete,head,options,trace].responses[*]~"
     then:
@@ -433,7 +433,7 @@ rules:
         match: "^(default|10[0-3]|20[0-6]|208|226|30[0-5]|307|308|40[0-9]|41[0,3,5-7]|421|428|429|431|451|50[0-8]|510|511)$"
 
   # Error responses MUST define the 'content' property to communicate error details
-  api-peak:rest23:2025-separation-of-concerns:
+  api-peak:rest18:2025-separation-of-concerns:
     description: "Error responses (status codes 400–599) MUST define the 'content' property to communicate error details in API responses."
     message: "Error response MUST define the content property. \n https://api-guidelines.api-peak.com/rest/#separacja-zagadnien-api-peakrest182025-separation-of-concerns"
     severity: "error"
@@ -443,9 +443,9 @@ rules:
       function: truthy
 
   # Each application/problem+json response MUST contain 'type', 'title' and 'detail' fields
-  api-peak:rest25:2025-problem-detail-fields-required:
+  api-peak:rest22:2025-problem-detail-fields-required:
     description: "Each response with the 'application/problem+json' media type MUST include the 'type', 'title' and 'detail' fields as required properties."
-    message: "Error response (problem-detail) MUST define 'type', 'title' and 'detail' fields in its schema. \n https://api-guidelines.api-peak.com/rest/#format-odpowiedzi-na-bad-api-peakrest252025-problem-detail"
+    message: "Error response (problem-detail) MUST define 'type', 'title' and 'detail' fields in its schema. \n https://api-guidelines.api-peak.com/rest/#format-odpowiedzi-na-bad-api-peakrest222025-problem-detail"
     severity: "error"
     given: "$.paths[*].[get,post,put,patch,delete,head,options,trace].responses[?(@property >= 400 && @property <= 599)].content['application/problem+json'].schema"
     then:
@@ -464,9 +464,9 @@ rules:
             - properties
 
   # application/problem+json 'type' property MUST be a string with URI format
-  api-peak:rest25:2025-problem-detail-type-format:
+  api-peak:rest22:2025-problem-detail-type-format:
     description: "The 'type' property in 'application/problem+json' response body MUST be a string with uri format."
-    message: "'type' property in application/problem+json response body MUST be a string with uri format. \n https://api-guidelines.api-peak.com/rest/#format-odpowiedzi-na-bad-api-peakrest252025-problem-detail"
+    message: "'type' property in application/problem+json response body MUST be a string with uri format. \n https://api-guidelines.api-peak.com/rest/#format-odpowiedzi-na-bad-api-peakrest222025-problem-detail"
     severity: "error"
     given: "$.paths[*].[get,post,put,patch,delete,head,options,trace].responses[?(@property >= 400 && @property <= 599)].content['application/problem+json'].schema"
     then:
@@ -490,9 +490,9 @@ rules:
             - properties
 
   # application/problem+json 'title' property MUST be a string
-  api-peak:rest25:2025-problem-detail-title-format:
+  api-peak:rest22:2025-problem-detail-title-format:
     description: "The 'title' property in 'application/problem+json' response body MUST be a string."
-    message: "'title' property in application/problem+json response body MUST be a string. \n https://api-guidelines.api-peak.com/rest/#format-odpowiedzi-na-bad-api-peakrest252025-problem-detail"
+    message: "'title' property in application/problem+json response body MUST be a string. \n https://api-guidelines.api-peak.com/rest/#format-odpowiedzi-na-bad-api-peakrest222025-problem-detail"
     severity: "error"
     given: "$.paths[*].[get,post,put,patch,delete,head,options,trace].responses[?(@property >= 400 && @property <= 599)].content['application/problem+json'].schema"
     then:
@@ -514,9 +514,9 @@ rules:
             - properties
 
   # application/problem+json 'detail' property MUST be a string
-  api-peak:rest25:2025-problem-detail-detail-format:
+  api-peak:rest22:2025-problem-detail-detail-format:
     description: "The 'detail' property in 'application/problem+json' response body MUST be a string."
-    message: "'detail' property in application/problem+json response body MUST be a string. \n https://api-guidelines.api-peak.com/rest/#format-odpowiedzi-na-bad-api-peakrest252025-problem-detail"
+    message: "'detail' property in application/problem+json response body MUST be a string. \n https://api-guidelines.api-peak.com/rest/#format-odpowiedzi-na-bad-api-peakrest222025-problem-detail"
     severity: "error"
     given: "$.paths[*].[get,post,put,patch,delete,head,options,trace].responses[?(@property >= 400 && @property <= 599)].content['application/problem+json'].schema"
     then:
@@ -538,9 +538,9 @@ rules:
             - properties
 
   # Error responses MUST use application/problem+json (Problem Detail) format
-  api-peak:rest25:2025-problem-detail:
+  api-peak:rest22:2025-problem-detail:
     description: "MUST use Problem Detail (application/problem+json) format to communicate error details in API responses."
-    message: "MUST use Problem Detail (application/problem+json) format to communicate error details in API responses. \n https://api-guidelines.api-peak.com/rest/#format-odpowiedzi-na-bad-api-peakrest252025-problem-detail"
+    message: "MUST use Problem Detail (application/problem+json) format to communicate error details in API responses. \n https://api-guidelines.api-peak.com/rest/#format-odpowiedzi-na-bad-api-peakrest222025-problem-detail"
     severity: "error"
     given: "$.paths[*].[get,post,put,patch,delete,head,options,trace].responses[?(@property >= 400 && @property <= 599)].content"
     then:
@@ -548,9 +548,9 @@ rules:
       function: truthy
 
   # Problem Detail MUST NOT be used with 2xx responses
-  api-peak:rest25:2025-problem-detail-not-2xx:
+  api-peak:rest22:2025-problem-detail-not-2xx:
     description: "MUST NOT use Problem Detail (application/problem+json) format for successful API (status codes 1xx,2xx and 3xx)."
-    message: "MUST NOT use Problem Detail (application/problem+json) format for successful API (status codes 1xx,2xx and 3xx). \n https://api-guidelines.api-peak.com/rest/#format-odpowiedzi-na-bad-api-peakrest252025-problem-detail"
+    message: "MUST NOT use Problem Detail (application/problem+json) format for successful API (status codes 1xx,2xx and 3xx). \n https://api-guidelines.api-peak.com/rest/#format-odpowiedzi-na-bad-api-peakrest222025-problem-detail"
     severity: "error"
     given: "$.paths[*].[get,post,put,patch,delete,head,options,trace].responses[?(@property >= 100 && @property < 400)].content"
     then:
@@ -558,9 +558,9 @@ rules:
       function: falsy
 
   # application/problem+json MAY include 'instance' (URI of the resource) field
-  api-peak:rest25:2025-problem-detail-instance-optional:
+  api-peak:rest22:2025-problem-detail-instance-optional:
     description: "Each response with the 'application/problem+json' media type MAY include the 'instance' field (a URI reference to the resource)."
-    message: "MAY include the optional 'instance' (URI of the resource) field for error responses \n https://api-guidelines.api-peak.com/rest/#format-odpowiedzi-na-bad-api-peakrest252025-problem-detail"
+    message: "MAY include the optional 'instance' (URI of the resource) field for error responses \n https://api-guidelines.api-peak.com/rest/#format-odpowiedzi-na-bad-api-peakrest222025-problem-detail"
     severity: "info"
     given: "$.paths[*].[get,post,put,patch,delete,head,options,trace].responses[?(@property >= 400 && @property <= 599)].content['application/problem+json'].schema"
     then:
@@ -577,9 +577,9 @@ rules:
             - properties
 
   # application/problem+json MAY include 'status' (the HTTP error status code) field
-  api-peak:rest25:2025-problem-detail-status-optional:
+  api-peak:rest22:2025-problem-detail-status-optional:
     description: "Each response with the 'application/problem+json' media type MAY include the 'status' field (the HTTP error status code)."
-    message: "MAY include the optional 'status' of type integer (the HTTP error status code) field for error responses \n https://api-guidelines.api-peak.com/rest/#format-odpowiedzi-na-bad-api-peakrest252025-problem-detail"
+    message: "MAY include the optional 'status' of type integer (the HTTP error status code) field for error responses \n https://api-guidelines.api-peak.com/rest/#format-odpowiedzi-na-bad-api-peakrest222025-problem-detail"
     severity: "info"
     given: "$.paths[*].[get,post,put,patch,delete,head,options,trace].responses[?(@property >= 400 && @property <= 599)].content['application/problem+json'].schema"
     then:
@@ -596,9 +596,9 @@ rules:
             - properties
 
   # application/problem+json 'instance' property, if present, MUST be a string with URI format
-  api-peak:rest25:2025-problem-detail-instance-format:
+  api-peak:rest22:2025-problem-detail-instance-format:
     description: "The 'instance' property in 'application/problem+json' response body MUST be a string with uri format."
-    message: "'instance' property in application/problem+json response body MUST be a string with uri format. \n https://api-guidelines.api-peak.com/rest/#format-odpowiedzi-na-bad-api-peakrest252025-problem-detail"
+    message: "'instance' property in application/problem+json response body MUST be a string with uri format. \n https://api-guidelines.api-peak.com/rest/#format-odpowiedzi-na-bad-api-peakrest222025-problem-detail"
     severity: "error"
     given: "$.paths[*].[get,post,put,patch,delete,head,options,trace].responses[?(@property >= 400 && @property <= 599)].content['application/problem+json'].schema"
     then:
@@ -622,9 +622,9 @@ rules:
             - properties
 
   # application/problem+json 'status' property, if present, MUST be an integer and a valid HTTP status code (100-599)
-  api-peak:rest25:2025-problem-detail-status-format:
+  api-peak:rest22:2025-problem-detail-status-format:
     description: "'status' property in application/problem+json response body MUST be an integer and be a valid HTTP status code (400-599)."
-    message: "'status' property in application/problem+json response body MUST be an integer and be a valid HTTP status code (400-599). \n https://api-guidelines.api-peak.com/rest/#format-odpowiedzi-na-bad-api-peakrest252025-problem-detail"
+    message: "'status' property in application/problem+json response body MUST be an integer and be a valid HTTP status code (400-599). \n https://api-guidelines.api-peak.com/rest/#format-odpowiedzi-na-bad-api-peakrest222025-problem-detail"
     severity: "error"
     given: "$.paths[*].[get,post,put,patch,delete,head,options,trace].responses[?(@property >= 400 && @property <= 599)].content['application/problem+json'].schema"
     then:

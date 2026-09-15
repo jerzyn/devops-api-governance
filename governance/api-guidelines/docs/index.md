@@ -373,7 +373,7 @@ Znajdują się na [stronie dobrych praktyk, w dziale "Separacja Zagadnień"](/be
 
 ---
 
-## [Metody zapytań](#request-methods)
+## [Metody zapytań (api-peak:rest19:2025-request-methods)](#request-methods)
 
 Każde API **MUSI** używać poprawnych [metod HTTP](https://github.com/for-GET/know-your-http-well/blob/master/methods.md) dla każdej operacji.
 
@@ -427,14 +427,14 @@ Używanie metody PUT do częściowej aktualizacji jest **niedopuszczalne** (nale
 
 ---
 
-## [Kody Statusu Odpowiedzi (ang. Response Status Codes) (api-peak:rest18:2025-separation-of-concerns)](#status-codes)
+## [Kody Statusu Odpowiedzi (ang. Response Status Codes) (api-peak:rest20:2025-status-codes)](#status-codes)
 
 Każde API **MUSI** używać odpowiednich [kodów statusu HTTP](https://github.com/for-GET/know-your-http-well/blob/master/status-codes.md), aby komunikować wynik operacji żądania.
 
 Każdy projektant, wdrożeniowiec i użytkownik API **MUSI** rozumieć semantykę kodu statusu HTTP, którego używa.
 Wszyscy **POWINNI** być zaznajomieni z semantyką [_powszechnych_ kodów statusu HTTP](https://github.com/for-GET/know-your-http-well/blob/master/status-codes.md#common).
 
-### [Używaj kodów 4xx lub 5xx do komunikowania błędów (api-peak:rest19:2025-error-codes)](#error-codes)
+### [Używaj kodów 4xx lub 5xx do komunikowania błędów (api-peak:rest21:2025-error-codes)](#error-codes)
 
 Zakres `4xx` dotyczy błędów po stronie konsumenta/klienta API, podczas gdy zakres `5xx` dotyczy błędów w usłudze infrastruktury lub implementacji API.
 
@@ -475,7 +475,7 @@ HTTP/1.1 404 Not Found
 
 ## [Format Wiadomości](#message-format)
 
-### [Format Odpowiedzi na Błąd (api-peak:rest20:2025-problem-detail)](#problem-detail)
+### [Format Odpowiedzi na Błąd (api-peak:rest22:2025-problem-detail)](#problem-detail)
 
 Format `application/problem+json` (Problem Detail) **MUSI** być używany do komunikowania szczegółów dotyczących błędu.
 
@@ -514,11 +514,11 @@ Każda odpowiedź Problem Detail powinna mieć pole `type` z identyfikatorem bł
 
 Jeśli to konieczne, Problem Detail **MOŻE** zawierać dodatkowe pola, szczegóły znajdują się w [RFC9457](https://www.rfc-editor.org/rfc/rfc9457).
 
-### [Format Wiadomości Żądania (api-peak:rest20:2025-message-json)](#message-json)
+### [Format Wiadomości Żądania (api-peak:rest23:2025-message-json)](#message-json)
 
 Wiadomości żądania z treścią **MUSZĄ** obsługiwać format `application/json (JSON)`.
 
-## [Negocjacja Zawartości (ang. Content Negotiation) (api-peak:rest21:2025-content-negotiation)](#content-negotiation)
+## [Negocjacja Zawartości (ang. Content Negotiation) (api-peak:rest24:2025-content-negotiation)](#content-negotiation)
 
 Każde API **MUSI** implementować, a każdy Konsument API **MUSI** używać [negocjacji zawartości HTTP](https://tools.ietf.org/html/rfc7231#section-3.4), **gdy żądana jest reprezentacja zasobu**.
 
@@ -552,19 +552,19 @@ Więcej o negocjacji zawartości można przeczytać na stronie [MDN Content nego
 
 ## [Typy Danych](#data-formats)
 
-### [Format Daty i Czasu (api-peak:rest22:2025-date-time-format)](#date-time-format)
+### [Format Daty i Czasu (api-peak:rest25:2025-date-time-format)](#date-time-format)
 
 Data i czas **MUSZĄ** zawsze być zgodne z formatem [ISO 8601](https://pl.wikipedia.org/wiki/ISO_8601), np.: `2017-06-21T14:07:17Z` (data i czas) lub `2017-06-21` (data)<!--, **MUSZĄ** używać UTC (bez przesunięć czasowych) - tu musimy ustalić jaką strefę czasową używamy. Czy jest to polska, UTC, itp. Pamietajmy, ze strefa czasowa zmienia sie w zaleznosci od tego czy mamy czas letni, czy zimowy (zimowy to nasza nominalna strefa czasowa UTC+1, natomiast letnia, to UTC+2)-->.
 
-### [Format Czasu Trwania (api-peak:rest23:2025-duration-format)](#duration-format)
+### [Format Czasu Trwania (api-peak:rest26:2025-duration-format)](#duration-format)
 
 Format czasu trwania **MUSI** być zgodny ze standardem [ISO 8601](https://pl.wikipedia.org/wiki/ISO_8601), np.: `P3Y6M4DT12H30M5S` (trzy lata, sześć miesięcy, cztery dni, dwanaście godzin, trzydzieści minut i pięć sekund).
 
-### [Format Przedziału Czasowego (api-peak:rest24:2025-timeframe-format)](#timeframe-format)
+### [Format Przedziału Czasowego (api-peak:rest27:2025-timeframe-format)](#timeframe-format)
 
 Format przedziału czasowego **MUSI** być zgodny ze standardem [ISO 8601](https://pl.wikipedia.org/wiki/ISO_8601), np.: `2007-03-01T13:00:00Z/2008-05-11T15:30:00Z`.
 
-### [Standardowe Znaczniki Czasowe (api-peak:rest25:2025-timestamps)](#timestamps)
+### [Standardowe Znaczniki Czasowe (api-peak:rest28:2025-timestamps)](#timestamps)
 
 Gdy to możliwe, reprezentacja zasobu **POWINNA** zawierać standardowe znaczniki czasowe:
 
@@ -583,21 +583,21 @@ Gdy to możliwe, reprezentacja zasobu **POWINNA** zawierać standardowe znacznik
 }
 ```
 
-### [Format Kodów Językowych (api-peak:rest26:2025-language-codes)](#language-codes)
+### [Format Kodów Językowych (api-peak:rest29:2025-language-codes)](#language-codes)
 
 Kody językowe **MUSZĄ** być zgodne z [ISO 639](https://en.wikipedia.org/wiki/List_of_ISO_639-1_codes), np.: `pl` dla polskiego.
 
-### [Format Kodów Krajów (api-peak:rest27:2025-country-codes)](#country-codes)
+### [Format Kodów Krajów (api-peak:rest30:2025-country-codes)](#country-codes)
 
 Kody krajów **MUSZĄ** być zgodne z [ISO 3166-1 alpha-2](https://en.wikipedia.org/wiki/ISO_3166-1_alpha-2), np.: `PL` dla Polski.
 
-### [Format Waluty (api-peak:rest28:2025-currency-codes)](#currency-codes)
+### [Format Waluty (api-peak:rest31:2025-currency-codes)](#currency-codes)
 
 Kody walut **MUSZĄ** być zgodne z [ISO 4217](https://en.wikipedia.org/wiki/ISO_4217), np.: `PLN` dla polskiego złotego.
 
 ---
 
-## [Stronicowanie (api-peak:rest29:2025-pagination)](#pagination)
+## [Stronicowanie (api-peak:rest32:2025-pagination)](#pagination)
 
 Zasób kolekcji **POWINIEN** udostępniać linki `first`, `last`, `next` i `prev` do nawigacji w obrębie kolekcji.
 
@@ -630,7 +630,7 @@ Kolekcja zamówień z użyciem linków nawigacyjnych kolekcji oraz parametrów z
 
 ## [Operacje Grupowe (Batch processing)](#batch-processing)
 
-### [Przetwarzanie podobnych zasobów (api-peak:rest30:2025-collections)](#collections)
+### [Przetwarzanie podobnych zasobów (api-peak:rest33:2025-collections)](#collections)
 
 Operacja, która musi przetwarzać kilka powiązanych zasobów w sposób wsadowy, **POWINNA** wykorzystywać zasób kolekcji z odpowiednią metodą HTTP. Podczas przetwarzania istniejących zasobów treść wiadomości żądania **MUSI** zawierać adresy URL odpowiednich zasobów, które są przetwarzane.
 
@@ -678,17 +678,17 @@ Content-Type: application/json
 }
 ```
 
-### [Wyniki operacji grupowych (batch operations) (api-peak:rest31:2025-batch-operations-results)](#batch-operations-results)
+### [Wyniki operacji grupowych (batch operations) (api-peak:rest34:2025-batch-operations-results)](#batch-operations-results)
 
 Każda operacja grupowa **MUSI** być atomowa i traktowana tak samo, jak każda inna operacja.
 
 > Serwer musi implementować żądania zbiorcze jako atomowe. Jeśli żądanie dotyczy utworzenia dziesięciu adresów, serwer powinien utworzyć wszystkie dziesięć adresów przed zwróceniem kodu odpowiedzi oznaczającego sukces. Serwer nie powinien częściowo zatwierdzać zmian w przypadku niepowodzeń.
 
-### [NIE UŻYWAJ "POST Tunneling" (api-peak:rest31:2025-post-tunneling)](#post-tunneling)
+### [NIE UŻYWAJ "POST Tunneling" (api-peak:rest35:2025-post-tunneling)](#post-tunneling)
 
 Każde API **MUSI** unikać tunelowania wielu żądań HTTP w jednym żądaniu POST. Zamiast tego należy zapewnić dedykowany zasób aplikacyjny do przetwarzania żądań wsadowych.
 
-### [Nieatomowe operacje grupowe (api-peak:rest32:2025-non-atomic-batch-operations)](#non-atomic-batch-operations)
+### [Nieatomowe operacje grupowe (api-peak:rest36:2025-non-atomic-batch-operations)](#non-atomic-batch-operations)
 
 Operacje grupowe nieatomowe są zdecydowanie odradzane, ponieważ nakładają dodatkowe obciążenie i wprowadzają zamieszanie dla klienta. Trudno je konsumować, debugować, utrzymywać i rozwijać w dłuższym okresie czasu.
 
@@ -762,7 +762,7 @@ Pole `processed` powinno zawierać wynik przetworzonych podoperacji tak, jakby z
 
 ---
 
-## [Zapytania wyszukiwania (api-peak:rest33:2025-filtering)](#filtering)
+## [Zapytania wyszukiwania (api-peak:rest37:2025-filtering)](#filtering)
 
 Operacja wyszukiwania (filtrowania) w zasobie kolekcji **POWINNA** być zdefiniowana jako bezpieczna, idempotentna i możliwa do buforowania, dlatego należy używać metody HTTP **GET**.  
 
@@ -831,7 +831,7 @@ paths:
 
 ## [Zmiany i Wersjonowanie](#changing-versioning)
 
-### [Podstawowe zasady (api-peak:rest34:2025-basic-versioning)](#basic-versioning)
+### [Podstawowe zasady (api-peak:rest38:2025-basic-versioning)](#basic-versioning)
 
 > "Fundamentalną zasadą jest to, że nie możesz psuć istniejących klientów, ponieważ nie wiesz, co implementują, i nie masz nad nimi kontroli. Dlatego musisz zmienić niekompatybilną zmianę w taką, która jest kompatybilna."  
 > – [Mark Nottingham](https://www.mnot.net/blog/2011/10/25/web_api_versioning_smackdown)
@@ -855,7 +855,7 @@ Zmiany dotyczące:
 - **NIE MOŻNA** czynić opcjonalnych rzeczy wymaganymi
 - Wszystko, co dodajesz, **MUSI** być opcjonalne (powiązane: [Zasada solidności](https://en.wikipedia.org/wiki/Robustness_principle))
 
-### [Stabilność identyfikatorów (Brak wersjonowania URI) (api-peak:rest35:2025-id-stability)](#id-stability)
+### [Stabilność identyfikatorów (Brak wersjonowania URI) (api-peak:rest39:2025-id-stability)](#id-stability)
 
 Zmiana **NIE MOŻE** wpływać na istniejące identyfikatory zasobów (nazwy / URI). Ponadto identyfikator zasobu **NIE POWINIEN** zawierać wersji semantycznej w celu przekazania wersji zasobu lub jego formatu reprezentacji.
 
@@ -866,7 +866,7 @@ Zmiana **NIE MOŻE** wpływać na istniejące identyfikatory zasobów (nazwy / U
 
 Dodanie nowej akcji do istniejącego zasobu o identyfikatorze `/greeting` NIE zmienia jego identyfikatora na `/v2/greeting` (lub `/greeting-with-new-action` itp.).
 
-### [Zmiany niekompatybilne wstecz (api-peak:rest36:2025-backwards-incompatibility)](#backwards-incompatibility)
+### [Zmiany niekompatybilne wstecz (api-peak:rest40:2025-backwards-incompatibility)](#backwards-incompatibility)
 
 Zmiana identyfikatora zasobu, metadanych zasobu, akcji zasobu lub relacji między zasobami, która **NIE MOŻE** być zgodna z zasadami rozszerzania, **MUSI** skutkować utworzeniem nowej wersji wariantu zasobu. Istniejący wariant zasobu **MUSI** zostać zachowany.
 
@@ -877,7 +877,7 @@ Zmiana formatu reprezentacji **NIE POWINNA** skutkować utworzeniem nowego waria
 Obecnie opcjonalny parametr zapytania `first` w istniejącym zasobie `/greeting?first=John&last=Appleseed` musi stać się wymagany. Ponieważ ta zmiana narusza trzecią zasadę rozszerzania i może powodować problemy z istniejącymi klientami, tworzony jest nowy wariant zasobu z innym URI: `/named-greeting?first=John&last=Appleseed`.
 
 
-### [Zmiany formatu reprezentacji (api-peak:rest37:2025-representation-format-change)](#representation-format-change)
+### [Zmiany formatu reprezentacji (api-peak:rest41:2025-representation-format-change)](#representation-format-change)
 
 Format reprezentacji to format serializacji (typ mediów) używany w treściach żądań i odpowiedzi HTTP, który zazwyczaj reprezentuje zasób lub jego część, ewentualnie z dodatkowymi kontrolkami hipermedialnymi.
 
@@ -908,7 +908,7 @@ application/vnd.example.resource+json; version=3
 > Jednak preferowane jest użycie informacji o wersji oddzielonej średnikiem.
 
 
-### [Wersjonowanie opisu API (api-peak:rest37:2025-api-description-versioning)](#api-description-versioning)
+### [Wersjonowanie opisu API (api-peak:rest42:2025-api-description-versioning)](#api-description-versioning)
 
 Opis API w formacie specyfikacji OpenAPI **MUSI** zawierać pole `version`. Pole `version` **MUSI** być zgodne z wersjonowaniem semantycznym:
 
