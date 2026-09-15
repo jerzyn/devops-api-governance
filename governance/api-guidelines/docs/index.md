@@ -1,5 +1,5 @@
 # General API Guidelines
-## [Podejście API First (pzu:general1:2025-api-first)](#api-first)
+## [Podejście API First (api-peak:general1:2025-api-first)](#api-first)
 
 Każdy **POWINIEN** przestrzegać zasady **API First**. Zasada API First jest rozszerzeniem zasady **design-first**. Dlatego rozwój API **POWINIEN** zawsze zaczynać się od projektu API bez żadnych wstępnych działań związanych z kodowaniem. Projekt API (np. opis, schema) jest **źródłem prawdy**, a nie implementacja API. Implementacja API **MUSI** zawsze być zgodna z konkretnym projektem API, który reprezentuje kontrakt między API a jego konsumentem.
 
@@ -7,13 +7,13 @@ Każdy **POWINIEN** przestrzegać zasady **API First**. Zasada API First jest ro
 
 ---
 
-## [Język (pzu:general2:2025-language)](#language)
+## [Język (api-peak:general2:2025-language)](#language)
 
 TBD.
 
 ---
 
-## [Terminologia (pzu:general3:2025-terminology)](#terminology)
+## [Terminologia (api-peak:general3:2025-terminology)](#terminology)
 
 - **Specyfikacja API** - odnosi się do do formatu specyfikacji, takiego jak OpenAPI lub AsyncAPI, ale nie do dokumentu utworzonego przy użyciu takiej specyfikacji.
 
@@ -25,13 +25,13 @@ TBD.
 
 ---
 
-## [Nowe i istniejące API (pzu:general4:2025-new-existing-APIs)](#new-vs-existing)
+## [Nowe i istniejące API (api-peak:general4:2025-new-existing-APIs)](#new-vs-existing)
 
 Dla wszystkich nowo powstających API **MUSZĄ** być spełnione wszystkie [zasady API Guidelines](/) w wyszczególnionym zakresie (MUSI/POWINIEN/MOŻE)<!-- i [zasady projektowe API asynchornicznych]()-->.
 
 Dla już istniejących API, [zasady API Guidelines](/) **POWINNY** być spełnione.
 
-## [Semver (pzu:general5:2025-semver)](#semver)
+## [Semver (api-peak:general5:2025-semver)](#semver)
 
 API MUSI używać Semantic Versioning (SemVer) w formacie MAJOR.MINOR.PATCH jako jedynego dozwolonego oznaczania wersjonowania.
 
@@ -45,7 +45,7 @@ API MUSI używać Semantic Versioning (SemVer) w formacie MAJOR.MINOR.PATCH jako
 
 ---
 
-## [Kontrakt (pzu:general6:2025-contract)](#api-contract)
+## [Kontrakt (api-peak:general6:2025-contract)](#api-contract)
 
 Zatwierdzony **projekt API**, reprezentowany przez jego **dokument API** lub schema, **MUSI** stanowić kontrakt między interesariuszami API, "providerami" i konsumentami. Aktualizacja odpowiedniego kontraktu (**projektu API**) **MUSI** być zaimplementowana w jego opisie i zatwierdzona przed wprowadzeniem jakichkolwiek zmian w implementacji API.
 
@@ -58,7 +58,7 @@ Po uzgodnieniu z interesariuszami, kontrakt **MUSI** zostać opublikowany w **re
 
 ---
 
-## [Niezawodność (pzu:general7:2025-robustness)](#robustness)
+## [Niezawodność (api-peak:general7:2025-robustness)](#robustness)
 
 Każda implementacja API i każdy konsument API **MUSI** przestrzegać **prawa Postela**:
 
@@ -70,19 +70,19 @@ Oznacza to, że należy wysyłać niezbędne minimum i być jak najbardziej tole
 
 ---
 
-## [System Kontroli Wersji (pzu:general8:2025-version-control)](#version-control)
+## [System Kontroli Wersji (api-peak:general8:2025-version-control)](#version-control)
 
 Każdy projekt API **MUSI** być przechowywany w Systemie Kontroli Wersji (np. Bitbucket, GitHub). Tam, gdzie to możliwe, projekt API **POWINIEN** być przechowywany w tym samym repozytorium co implementacja API. W przypadku ścisłych zasad bezpieczeństwa związanych z dostępem do repozytorium zawierającego implementację API, kontrakt API **POWINIEN** być dostępny dla interesariuszy do wglądu w innym miejscu.
 
 ---
 
-## [Minimalna Powierzchnia API (pzu:general9:2025-yagni)](#yagni)
+## [Minimalna Powierzchnia API (api-peak:general9:2025-yagni)](#yagni)
 
 Każdy projekt API **MUSI** dążyć do minimalnej powierzchni API bez poświęcania wymagań produktowych. Projekt API **NIE POWINIEN** zawierać zbędnych zasobów, relacji, akcji lub danych. Projekt API **NIE POWINIEN** dodawać funkcjonalności, dopóki nie zostanie to uznane za konieczne (zasada [YAGNI](https://en.wikipedia.org/wiki/You_aren%27t_gonna_need_it)).
 
 ---
 
-## [Zasady rozszerzania (pzu:general10:2025-rules-of-extension)](#rules-of-extension)
+## [Zasady rozszerzania (api-peak:general10:2025-rules-of-extension)](#rules-of-extension)
 
 Każda modyfikacja istniejącego API **MUSI** unikać wprowadzania zmian łamiących zgodność i **MUSI** zachować wsteczną kompatybilność. W przypadku, gdy istnieje potrzeba złamania kompatybilności wstecznej, API **MUSI** również zmienić swoją wersję **major**.
 
@@ -97,7 +97,7 @@ W szczególności, każda zmiana w API **MUSI** przestrzegać następujących Za
 
 ---
 
-## [JSON (pzu:general11:2025-json)](#json)
+## [JSON (api-peak:general11:2025-json)](#json)
 
 Każda wiadomość oparta na JSON **MUSI** być zgodna z następującymi zasadami:
 
@@ -118,11 +118,11 @@ Publikacja schematu JSON odpowiadającego oczekiwanym payloadom w treściach ż�
 
 ---
 
-## [Jedno Źródło Prawdy (pzu:general12:2025-single-source-of-truth)](#single-source-of-truth)
+## [Jedno Źródło Prawdy (api-peak:general12:2025-single-source-of-truth)](#single-source-of-truth)
 <!--
 Azure API Center jest główną platformą wspierającą podejście API-first. Azure API Center **MUSI** być używany podczas projektowania API.
 
-Każdy opis API **MUSI** być przechowywany w Azure API Center w ramach zespołu PZU. -->
+Każdy opis API **MUSI** być przechowywany w Azure API Center w ramach zespołu API Peak. -->
 
 Pliki schematów definicji interfejsów, takie jak:
 
@@ -140,19 +140,19 @@ Na przykład, waliduje poprawność opisu API oraz automatycznie generuje dokume
 
 # API Guidelines dla REST
 
-Wytyczne REST API PZU definiują standardy i wskazówki dotyczące budowania interfejsów REST API w PZU. Wytyczne te muszą być przestrzegane razem z Ogólnymi Wytycznymi Projektowymi API PZU.
+Wytyczne REST API Peak definiują standardy i wskazówki dotyczące budowania interfejsów REST API w API Peak. Wytyczne te muszą być przestrzegane razem z Ogólnymi Wytycznymi Projektowymi API Peak.
 
-## [OpenAPI Specification (pzu:rest1:2025-openapi)](#open-api-specification)
+## [OpenAPI Specification (api-peak:rest1:2025-openapi)](#open-api-specification)
 
 Każde API **MUSI** być opisane przy użyciu formatu opisu OpenAPI. Używany format OpenAPI **MUSI** być zgodny ze [specyfikacją OpenAPI (wcześniej znaną jako Swagger Specification) w wersji 3.x.y](https://github.com/OAI/OpenAPI-Specification/blob/main/versions/3.1.1.md). Jeśli to możliwe, format opisu API **POWINIEN** być zgodny ze specyfikacją 3.1.x, ze względu na pełną kompatybilność z formatem JSON-Schema.
 
-### `info.version` w OpenAPI (pzu:rest2:2025-openapi-version)
+### `info.version` w OpenAPI (api-peak:rest2:2025-openapi-version)
 
 Element `info.version` w dokumencie OpenAPI **MUSI** określać wersję dokumentu API. Ta wersja nie jest tym samym, co wersja API.
 
 ---
 
-## [Dojrzałość Projektowania API (pzu:rest3:2025-design-maturity-wadmm)](#maturity-wadmm)
+## [Dojrzałość Projektowania API (api-peak:rest3:2025-design-maturity-wadmm)](#maturity-wadmm)
 
 > Jak zaprojektować API
 
@@ -162,7 +162,7 @@ Projekt API **POWINIEN** być zorientowany na funkcję użytkową ([Poziom 3 Mod
 
 ---
 
-## [Dojrzałość Implementacji Projektu API (pzu:rest4:2025-design-maturity-rmm)](#maturity-rmm)
+## [Dojrzałość Implementacji Projektu API (api-peak:rest4:2025-design-maturity-rmm)](#maturity-rmm)
 
 Każda implementacja projektu API korzystająca z protokołu HTTP **MUSI** używać odpowiedniej metody żądania HTTP ([Poziom 2 Modelu Dojrzałości Richardsona](https://martinfowler.com/articles/richardsonMaturityModel.html#level2)) do realizacji działania oferowanego przez zasób.
 
@@ -181,7 +181,7 @@ Każda implementacja API REST **MUSI** być przetestowana względem swojego kont
 
 Poniższe konwencje nazewnictwa odnoszą się do formatu opisu API.
 
-### [Ogólne Zasady Nazewnictwa (pzu:rest5:2025-general-naming-conventions)](#general-naming-conventions)
+### [Ogólne Zasady Nazewnictwa (api-peak:rest5:2025-general-naming-conventions)](#general-naming-conventions)
 
 Każdy identyfikator **MUSI** być zapisany małymi literami.
 
@@ -189,7 +189,7 @@ Identyfikator **NIE POWINIEN** zawierać akronimów biznesowych.
 
 Do oddzielania złożonych słów **MUSI** być używana konwencja `camelCase` (np. `itemIdentifier`).  
 
-### [URI (pzu:rest6:2025-uri-naming-conventions)](#uri-naming-conventions)  
+### [URI (api-peak:rest6:2025-uri-naming-conventions)](#uri-naming-conventions)  
 
 Każdy URI **MUSI** przestrzegać Ogólnych Zasad, z wyjątkiem konwencji `camelCase`. Zamiast tego, do oddzielania złożonych słów **MUSI** być używany łącznik (-) (konwencja `kebab-case`). Ponadto URI **NIE MOŻE** kończyć się ukośnikiem (/). <!-- a co z przykładami, gdy identyfikator zawiera /? -->
 
@@ -207,13 +207,13 @@ Poprawnie sformułowany URI:
 /system-orders/1234/author
 ```
 
-### [Parametry Zapytania i Fragmenty Ścieżki (pzu:rest7:2025-paths-naming-conventions)](#parameters-paths-naming-conventions)  
+### [Parametry Zapytania i Fragmenty Ścieżki (api-peak:rest7:2025-paths-naming-conventions)](#parameters-paths-naming-conventions)  
 
 Każdy parametr zapytania URI lub fragment **MUSI** przestrzegać Ogólnych Zasad. Dodatkowo **NIE MOGĄ** one kolidować z zastrzeżonymi nazwami parametrów zapytania, np `offset` dla stronicowania, lub parametrów zarezerwowanych przez używane.
 
 <!-- doprecyzować jakie są zastrzeżone parametry; czy sa zastrzeżone zawsze, czy jako konwencja/best practice -->
 
-#### [Zmienne Szablonu URI (pzu:rest8:2025-path-params-naming-conventions)](#path-params-naming-conventions)
+#### [Zmienne Szablonu URI (api-peak:rest8:2025-path-params-naming-conventions)](#path-params-naming-conventions)
 
 Oprócz Ogólnych Zasad Nazewnictwa, nazwy zmiennych szablonu URI **MUSZĄ** być zgodne z [RFC6570](https://datatracker.ietf.org/doc/html/rfc6570#section-2.3). Oznacza to, że nazwy zmiennych mogą składać się wyłącznie z symboli `ALPHA / DIGIT / "_" / pct-encoded`.
 
@@ -229,7 +229,7 @@ Poprawnie sformułowana zmienna szablonu URI:
 /system-orders/{orderId}/author
 ```
 
-### [Format Pola Reprezentacji (pzu:rest9:2025-representation-format-naming-conventions)](#representation-format-naming-conventions)
+### [Format Pola Reprezentacji (api-peak:rest9:2025-representation-format-naming-conventions)](#representation-format-naming-conventions)
 
 Każde pole formatu reprezentacji **MUSI** być zgodne z Ogólnymi Zasadami Nazewnictwa.
 
@@ -270,7 +270,7 @@ Poprawnie sformułowana reprezentacja zasobu z niestandardową relacją fulfillm
 }
 ```
 -->
-### [Nagłówki HTTP (pzu:rest10:2025-headers-naming-conventions)](#headers-naming-conventions)
+### [Nagłówki HTTP (api-peak:rest10:2025-headers-naming-conventions)](#headers-naming-conventions)
 
 Każdy nagłówek HTTP **POWINIEN** stosować konwencję `Hyphenated-Pascal-Case`. Niestandardowy nagłówek HTTP **NIE POWINIEN** zaczynać się od `X-` (zgodnie z [RFC6648](https://datatracker.ietf.org/doc/html/rfc6648)).
 
@@ -284,7 +284,7 @@ Order-Metadata-Header: 42
 
 ## [Opis API](#api-description)
 
-### [Nazwa API (pzu:rest11:2025-api-naming)](#api-naming) 
+### [Nazwa API (api-peak:rest11:2025-api-naming)](#api-naming) 
 
 Każda nazwa API w dokumencie opisu API **MUSI** być zapisana w konwencji **Title Case**, czyli każdy wyraz **MUSI** zaczynać się od wielkiej litery. Ponadto, każda nazwa API **MUSI** kończyć się słowem `API`. Tytuł API **NIE POWINIEN** zawierać akronimów biznesowych i skrótów, np. `Ubezpieczenia GR API` lub `Szko Lik API`.
 
@@ -297,7 +297,7 @@ info:
   title: 'Customer Orders API'
 ```
 
-### [Nazwa Zasobu (pzu:rest12:2025-resource-name)](#resource-name)
+### [Nazwa Zasobu (api-peak:rest12:2025-resource-name)](#resource-name)
 
 Każdy zasób (endpoint) **MUSI** mieć nazwę (zdefiniowaną w polu `summary`). Nazwa zasobu **MUSI** być zapisana w **Title Case**, a słowa oddzielone spacją. Nazwa zasobu **NIE POWINNA** zawierać akronimów biznesowych i skrótów, np. `Lista GR` lub `Lista Ub`.
 
@@ -308,7 +308,7 @@ Każdy zasób (endpoint) **MUSI** mieć nazwę (zdefiniowaną w polu `summary`).
   summary: List of Orders
 ```
 
-### [Nazwa operacji (pzu:rest13:2025-operation-name)](#operation-name)
+### [Nazwa operacji (api-peak:rest13:2025-operation-name)](#operation-name)
 
 Każda operacja (akcja) **MUSI** mieć nazwę (zdefiniowaną w polu `summary`). Nazwa akcji **MUSI** być zapisana w **Title Case**, a słowa oddzielone spacją. Nazwa operacji **NIE POWINNA** zawierać akronimów biznesowych i skrótów, np. `Uaktualnij listę GR` lub `Usuń Ub`.
 
@@ -319,7 +319,7 @@ get:
   summary: Retrieve List of Orders
 ```
 
-### [Opis operacji (pzu:rest14:2025-operation-description)](#operation-description)
+### [Opis operacji (api-peak:rest14:2025-operation-description)](#operation-description)
 
 Każda operacja (akcja) **POWINNA** mieć opis (zdefiniowaną w polu `description`). Każdy opis **POWINIEN** mieć długość przynajmniej 30 znaków. Opis **MOŻE** być w formacie Markdown.
 
@@ -334,21 +334,21 @@ get:
 
 ---
 <!-- do sprawdzenia, dodać przykład -->
-## [Struktura URI (pzu:rest15:2025-uri-structure)](#uri-structure)
+## [Struktura URI (api-peak:rest15:2025-uri-structure)](#uri-structure)
 
 URI służy do wyrażania tożsamości zasobu. URI jest identyfikatorem i **NIE MOŻE** przekazywać żadnych innych informacji.
 
-W PZU URI podlegają konwencjom nazewnictwa opisanym powyżej.
+W API Peak URI podlegają konwencjom nazewnictwa opisanym powyżej.
 
 Aby dowiedzieć się więcej na temat tej problematyki, zapoznaj się z dokumentem [RFC 7320: URI Design and Ownership](https://tools.ietf.org/html/rfc7320).
 <!-- do tąd -->
 ---
 
-## [HTTP (pzu:rest16:2025-http)](#http)
+## [HTTP (api-peak:rest16:2025-http)](#http)
 
 Każde API **MUSI** obsługiwać co najmniej [HTTP/1.1](https://www.rfc-editor.org/rfc/rfc9112) i **MUSI** przestrzegać jego semantyki. <!-- API **MOŻE** obsługiwać HTTP/2 lub HTTP/3. (dodac linki) -->
 
-### [HTTPS (pzu:rest17:2025-https)](#https)
+### [HTTPS (api-peak:rest17:2025-https)](#https)
 
 Każde API **MUSI** wymagać bezpiecznych połączeń z użyciem [TLS w wersji przynajmniej 1.2](https://datatracker.ietf.org/doc/html/rfc5246). **MOŻE** używać [TLS 1.3](https://datatracker.ietf.org/doc/html/rfc8446). Oznacza to, że API korzystające z protokołu HTTP **MUSI** używać HTTPS.
 
@@ -356,7 +356,7 @@ Wszelkie żądania bez TLS **POWINNY** być ignorowane. W środowiskach HTTP, gd
 
 ---
 
-## [Separacja Zagadnień (pzu:rest18:2025-separation-of-concerns)](#separation-of-concerns)
+## [Separacja Zagadnień (api-peak:rest18:2025-separation-of-concerns)](#separation-of-concerns)
 
 Każde API korzystające z HTTP **MUSI** ściśle przestrzegać separacji zagadnień w wiadomości HTTP:
 
@@ -427,14 +427,14 @@ Używanie metody PUT do częściowej aktualizacji jest **niedopuszczalne** (nale
 
 ---
 
-## [Kody Statusu Odpowiedzi (ang. Response Status Codes) (pzu:rest18:2025-separation-of-concerns)](#status-codes)
+## [Kody Statusu Odpowiedzi (ang. Response Status Codes) (api-peak:rest18:2025-separation-of-concerns)](#status-codes)
 
 Każde API **MUSI** używać odpowiednich [kodów statusu HTTP](https://github.com/for-GET/know-your-http-well/blob/master/status-codes.md), aby komunikować wynik operacji żądania.
 
 Każdy projektant, wdrożeniowiec i użytkownik API **MUSI** rozumieć semantykę kodu statusu HTTP, którego używa.
 Wszyscy **POWINNI** być zaznajomieni z semantyką [_powszechnych_ kodów statusu HTTP](https://github.com/for-GET/know-your-http-well/blob/master/status-codes.md#common).
 
-### [Używaj kodów 4xx lub 5xx do komunikowania błędów (pzu:rest19:2025-error-codes)](#error-codes)
+### [Używaj kodów 4xx lub 5xx do komunikowania błędów (api-peak:rest19:2025-error-codes)](#error-codes)
 
 Zakres `4xx` dotyczy błędów po stronie konsumenta/klienta API, podczas gdy zakres `5xx` dotyczy błędów w usłudze infrastruktury lub implementacji API.
 
@@ -475,7 +475,7 @@ HTTP/1.1 404 Not Found
 
 ## [Format Wiadomości](#message-format)
 
-### [Format Odpowiedzi na Błąd (pzu:rest20:2025-problem-detail)](#problem-detail)
+### [Format Odpowiedzi na Błąd (api-peak:rest20:2025-problem-detail)](#problem-detail)
 
 Format `application/problem+json` (Problem Detail) **MUSI** być używany do komunikowania szczegółów dotyczących błędu.
 
@@ -500,7 +500,7 @@ Każda odpowiedź Problem Detail powinna mieć pole `type` z identyfikatorem bł
 
 ```json
 {
-  "type": "https://api.pzu.pl/problems/scv/unauthorized",
+  "type": "https://api-peak.com/problems/scv/unauthorized",
   "title": "Authentication required",
   "detail": "Missing authentication credentials for the Greeting resource.",
   "instance": "/greeting",
@@ -514,11 +514,11 @@ Każda odpowiedź Problem Detail powinna mieć pole `type` z identyfikatorem bł
 
 Jeśli to konieczne, Problem Detail **MOŻE** zawierać dodatkowe pola, szczegóły znajdują się w [RFC9457](https://www.rfc-editor.org/rfc/rfc9457).
 
-### [Format Wiadomości Żądania (pzu:rest20:2025-message-json)](#message-json)
+### [Format Wiadomości Żądania (api-peak:rest20:2025-message-json)](#message-json)
 
 Wiadomości żądania z treścią **MUSZĄ** obsługiwać format `application/json (JSON)`.
 
-## [Negocjacja Zawartości (ang. Content Negotiation) (pzu:rest21:2025-content-negotiation)](#content-negotiation)
+## [Negocjacja Zawartości (ang. Content Negotiation) (api-peak:rest21:2025-content-negotiation)](#content-negotiation)
 
 Każde API **MUSI** implementować, a każdy Konsument API **MUSI** używać [negocjacji zawartości HTTP](https://tools.ietf.org/html/rfc7231#section-3.4), **gdy żądana jest reprezentacja zasobu**.
 
@@ -552,19 +552,19 @@ Więcej o negocjacji zawartości można przeczytać na stronie [MDN Content nego
 
 ## [Typy Danych](#data-formats)
 
-### [Format Daty i Czasu (pzu:rest22:2025-date-time-format)](#date-time-format)
+### [Format Daty i Czasu (api-peak:rest22:2025-date-time-format)](#date-time-format)
 
 Data i czas **MUSZĄ** zawsze być zgodne z formatem [ISO 8601](https://pl.wikipedia.org/wiki/ISO_8601), np.: `2017-06-21T14:07:17Z` (data i czas) lub `2017-06-21` (data)<!--, **MUSZĄ** używać UTC (bez przesunięć czasowych) - tu musimy ustalić jaką strefę czasową używamy. Czy jest to polska, UTC, itp. Pamietajmy, ze strefa czasowa zmienia sie w zaleznosci od tego czy mamy czas letni, czy zimowy (zimowy to nasza nominalna strefa czasowa UTC+1, natomiast letnia, to UTC+2)-->.
 
-### [Format Czasu Trwania (pzu:rest23:2025-duration-format)](#duration-format)
+### [Format Czasu Trwania (api-peak:rest23:2025-duration-format)](#duration-format)
 
 Format czasu trwania **MUSI** być zgodny ze standardem [ISO 8601](https://pl.wikipedia.org/wiki/ISO_8601), np.: `P3Y6M4DT12H30M5S` (trzy lata, sześć miesięcy, cztery dni, dwanaście godzin, trzydzieści minut i pięć sekund).
 
-### [Format Przedziału Czasowego (pzu:rest24:2025-timeframe-format)](#timeframe-format)
+### [Format Przedziału Czasowego (api-peak:rest24:2025-timeframe-format)](#timeframe-format)
 
 Format przedziału czasowego **MUSI** być zgodny ze standardem [ISO 8601](https://pl.wikipedia.org/wiki/ISO_8601), np.: `2007-03-01T13:00:00Z/2008-05-11T15:30:00Z`.
 
-### [Standardowe Znaczniki Czasowe (pzu:rest25:2025-timestamps)](#timestamps)
+### [Standardowe Znaczniki Czasowe (api-peak:rest25:2025-timestamps)](#timestamps)
 
 Gdy to możliwe, reprezentacja zasobu **POWINNA** zawierać standardowe znaczniki czasowe:
 
@@ -583,21 +583,21 @@ Gdy to możliwe, reprezentacja zasobu **POWINNA** zawierać standardowe znacznik
 }
 ```
 
-### [Format Kodów Językowych (pzu:rest26:2025-language-codes)](#language-codes)
+### [Format Kodów Językowych (api-peak:rest26:2025-language-codes)](#language-codes)
 
 Kody językowe **MUSZĄ** być zgodne z [ISO 639](https://en.wikipedia.org/wiki/List_of_ISO_639-1_codes), np.: `pl` dla polskiego.
 
-### [Format Kodów Krajów (pzu:rest27:2025-country-codes)](#country-codes)
+### [Format Kodów Krajów (api-peak:rest27:2025-country-codes)](#country-codes)
 
 Kody krajów **MUSZĄ** być zgodne z [ISO 3166-1 alpha-2](https://en.wikipedia.org/wiki/ISO_3166-1_alpha-2), np.: `PL` dla Polski.
 
-### [Format Waluty (pzu:rest28:2025-currency-codes)](#currency-codes)
+### [Format Waluty (api-peak:rest28:2025-currency-codes)](#currency-codes)
 
 Kody walut **MUSZĄ** być zgodne z [ISO 4217](https://en.wikipedia.org/wiki/ISO_4217), np.: `PLN` dla polskiego złotego.
 
 ---
 
-## [Stronicowanie (pzu:rest29:2025-pagination)](#pagination)
+## [Stronicowanie (api-peak:rest29:2025-pagination)](#pagination)
 
 Zasób kolekcji **POWINIEN** udostępniać linki `first`, `last`, `next` i `prev` do nawigacji w obrębie kolekcji.
 
@@ -630,7 +630,7 @@ Kolekcja zamówień z użyciem linków nawigacyjnych kolekcji oraz parametrów z
 
 ## [Operacje Grupowe (Batch processing)](#batch-processing)
 
-### [Przetwarzanie podobnych zasobów (pzu:rest30:2025-collections)](#collections)
+### [Przetwarzanie podobnych zasobów (api-peak:rest30:2025-collections)](#collections)
 
 Operacja, która musi przetwarzać kilka powiązanych zasobów w sposób wsadowy, **POWINNA** wykorzystywać zasób kolekcji z odpowiednią metodą HTTP. Podczas przetwarzania istniejących zasobów treść wiadomości żądania **MUSI** zawierać adresy URL odpowiednich zasobów, które są przetwarzane.
 
@@ -678,17 +678,17 @@ Content-Type: application/json
 }
 ```
 
-### [Wyniki operacji grupowych (batch operations) (pzu:rest31:2025-batch-operations-results)](#batch-operations-results)
+### [Wyniki operacji grupowych (batch operations) (api-peak:rest31:2025-batch-operations-results)](#batch-operations-results)
 
 Każda operacja grupowa **MUSI** być atomowa i traktowana tak samo, jak każda inna operacja.
 
 > Serwer musi implementować żądania zbiorcze jako atomowe. Jeśli żądanie dotyczy utworzenia dziesięciu adresów, serwer powinien utworzyć wszystkie dziesięć adresów przed zwróceniem kodu odpowiedzi oznaczającego sukces. Serwer nie powinien częściowo zatwierdzać zmian w przypadku niepowodzeń.
 
-### [NIE UŻYWAJ "POST Tunneling" (pzu:rest31:2025-post-tunneling)](#post-tunneling)
+### [NIE UŻYWAJ "POST Tunneling" (api-peak:rest31:2025-post-tunneling)](#post-tunneling)
 
 Każde API **MUSI** unikać tunelowania wielu żądań HTTP w jednym żądaniu POST. Zamiast tego należy zapewnić dedykowany zasób aplikacyjny do przetwarzania żądań wsadowych.
 
-### [Nieatomowe operacje grupowe (pzu:rest32:2025-non-atomic-batch-operations)](#non-atomic-batch-operations)
+### [Nieatomowe operacje grupowe (api-peak:rest32:2025-non-atomic-batch-operations)](#non-atomic-batch-operations)
 
 Operacje grupowe nieatomowe są zdecydowanie odradzane, ponieważ nakładają dodatkowe obciążenie i wprowadzają zamieszanie dla klienta. Trudno je konsumować, debugować, utrzymywać i rozwijać w dłuższym okresie czasu.
 
@@ -762,7 +762,7 @@ Pole `processed` powinno zawierać wynik przetworzonych podoperacji tak, jakby z
 
 ---
 
-## [Zapytania wyszukiwania (pzu:rest33:2025-filtering)](#filtering)
+## [Zapytania wyszukiwania (api-peak:rest33:2025-filtering)](#filtering)
 
 Operacja wyszukiwania (filtrowania) w zasobie kolekcji **POWINNA** być zdefiniowana jako bezpieczna, idempotentna i możliwa do buforowania, dlatego należy używać metody HTTP **GET**.  
 
@@ -831,7 +831,7 @@ paths:
 
 ## [Zmiany i Wersjonowanie](#changing-versioning)
 
-### [Podstawowe zasady (pzu:rest34:2025-basic-versioning)](#basic-versioning)
+### [Podstawowe zasady (api-peak:rest34:2025-basic-versioning)](#basic-versioning)
 
 > "Fundamentalną zasadą jest to, że nie możesz psuć istniejących klientów, ponieważ nie wiesz, co implementują, i nie masz nad nimi kontroli. Dlatego musisz zmienić niekompatybilną zmianę w taką, która jest kompatybilna."  
 > – [Mark Nottingham](https://www.mnot.net/blog/2011/10/25/web_api_versioning_smackdown)
@@ -848,14 +848,14 @@ Zmiany dotyczące:
 
 **MUSZĄ** być zgodne z zasadami rozszerzania.
 
-### [Zasady rozszerzania (pzu:general10:2025-rules-of-extension)](#rules-of-extending)
+### [Zasady rozszerzania (api-peak:general10:2025-rules-of-extension)](#rules-of-extending)
 
 - **NIE MOŻNA** niczego usuwać (powiązane: [Zasada minimalnej powierzchni](https://en.wikipedia.org/wiki/YAGNI), [Zasada solidności](https://en.wikipedia.org/wiki/Robustness_principle))
 - **NIE MOŻNA** zmieniać reguł przetwarzania
 - **NIE MOŻNA** czynić opcjonalnych rzeczy wymaganymi
 - Wszystko, co dodajesz, **MUSI** być opcjonalne (powiązane: [Zasada solidności](https://en.wikipedia.org/wiki/Robustness_principle))
 
-### [Stabilność identyfikatorów (Brak wersjonowania URI) (pzu:rest35:2025-id-stability)](#id-stability)
+### [Stabilność identyfikatorów (Brak wersjonowania URI) (api-peak:rest35:2025-id-stability)](#id-stability)
 
 Zmiana **NIE MOŻE** wpływać na istniejące identyfikatory zasobów (nazwy / URI). Ponadto identyfikator zasobu **NIE POWINIEN** zawierać wersji semantycznej w celu przekazania wersji zasobu lub jego formatu reprezentacji.
 
@@ -866,7 +866,7 @@ Zmiana **NIE MOŻE** wpływać na istniejące identyfikatory zasobów (nazwy / U
 
 Dodanie nowej akcji do istniejącego zasobu o identyfikatorze `/greeting` NIE zmienia jego identyfikatora na `/v2/greeting` (lub `/greeting-with-new-action` itp.).
 
-### [Zmiany niekompatybilne wstecz (pzu:rest36:2025-backwards-incompatibility)](#backwards-incompatibility)
+### [Zmiany niekompatybilne wstecz (api-peak:rest36:2025-backwards-incompatibility)](#backwards-incompatibility)
 
 Zmiana identyfikatora zasobu, metadanych zasobu, akcji zasobu lub relacji między zasobami, która **NIE MOŻE** być zgodna z zasadami rozszerzania, **MUSI** skutkować utworzeniem nowej wersji wariantu zasobu. Istniejący wariant zasobu **MUSI** zostać zachowany.
 
@@ -877,7 +877,7 @@ Zmiana formatu reprezentacji **NIE POWINNA** skutkować utworzeniem nowego waria
 Obecnie opcjonalny parametr zapytania `first` w istniejącym zasobie `/greeting?first=John&last=Appleseed` musi stać się wymagany. Ponieważ ta zmiana narusza trzecią zasadę rozszerzania i może powodować problemy z istniejącymi klientami, tworzony jest nowy wariant zasobu z innym URI: `/named-greeting?first=John&last=Appleseed`.
 
 
-### [Zmiany formatu reprezentacji (pzu:rest37:2025-representation-format-change)](#representation-format-change)
+### [Zmiany formatu reprezentacji (api-peak:rest37:2025-representation-format-change)](#representation-format-change)
 
 Format reprezentacji to format serializacji (typ mediów) używany w treściach żądań i odpowiedzi HTTP, który zazwyczaj reprezentuje zasób lub jego część, ewentualnie z dodatkowymi kontrolkami hipermedialnymi.
 
@@ -908,7 +908,7 @@ application/vnd.example.resource+json; version=3
 > Jednak preferowane jest użycie informacji o wersji oddzielonej średnikiem.
 
 
-### [Wersjonowanie opisu API (pzu:rest37:2025-api-description-versioning)](#api-description-versioning)
+### [Wersjonowanie opisu API (api-peak:rest37:2025-api-description-versioning)](#api-description-versioning)
 
 Opis API w formacie specyfikacji OpenAPI **MUSI** zawierać pole `version`. Pole `version` **MUSI** być zgodne z wersjonowaniem semantycznym:
 
