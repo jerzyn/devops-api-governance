@@ -296,15 +296,19 @@ jobs:
           node .governance-gateway/gateway/generate.js "${CONTRACT_FILE}" krakend.json
           echo "Generated krakend.json:"; cat krakend.json
 
-      # Pinned to 2.13.11, matching the krakend:2.13.11 image (see
-      # docker-compose.yml). The original 2.6.2 pin was a real CLI/GitHub
-      # release but was never a published Docker Hub image tag for this
-      # image (Docker Hub only has 2.9.0+) - discovered when the compose
-      # image tried to pull a tag that doesn't exist.
+      # Deliberately NOT pinned to the same version as the krakend image in
+      # docker-compose.yml (2.13.11). Tried that: krakend-ce's 2.13.11 CLI
+      # binary requires GLIBC_2.32+/2.34+, which this job's container
+      # (node:20-bullseye, glibc 2.31) doesn't have - "version `GLIBC_2.34'
+      # not found" at run time. `krakend check` only validates the v3 config
+      # schema (version/timeout/cache_ttl/output_encoding/endpoints), which
+      # has been stable across releases, so the validator's version doesn't
+      # need to track the running gateway's version - 2.6.2 runs fine on
+      # this container and was already verified live earlier.
       - name: Install KrakenD CLI (pinned)
         shell: bash
         env:
-          KRAKEND_VERSION: 2.13.11
+          KRAKEND_VERSION: 2.6.2
         run: |
           set -e
           # Asset name is krakend_<version>_amd64_generic-linux.tar.gz, NOT
