@@ -40,6 +40,10 @@ env:
   # info.version does not break the hardcoded reference.
   API_TITLE: "Sample Orders API"
   CONTRACT_FILE: contracts/orders-openapi.yaml
+  # Server-to-server: job container -> krakend on gitea-network.
+  GATEWAY_URL: http://krakend:8090
+  # Server-to-server: job container -> krakend-deployer on gitea-network.
+  GATEWAY_DEPLOYER_URL: http://krakend-deployer:9000
 
 jobs:
   spectral-openapi-check:
@@ -261,3 +265,126 @@ jobs:
             exit 1
           fi
           echo "Contract test PASSED."
+
+  gateway-deploy-check:
+    needs: contract-test
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout PR branch
+        uses: actions/checkout@v4
+        with:
+          # Same rationale as contract-test: gateway config must come from
+          # the PR's contract, not main's.
+          ref: ${{ github.event.pull_request.head.sha }}
+
+      - name: Fetch governance gateway tooling (linked, not vendored)
+        shell: bash
+        run: |
+          set -e
+          rm -rf .governance-gateway
+          git clone --depth 1 "${GOVERNANCE_REPO}" .governance-gateway
+          echo "Linked gateway tooling:"; ls .governance-gateway/gateway/generate.js
+
+      - name: Install generator dependencies
+        shell: bash
+        run: npm install --prefix .governance-gateway/gateway
+
+      - name: Generate krakend.json from the PR contract
+        shell: bash
+        run: |
+          set -e
+          node .governance-gateway/gateway/generate.js "${CONTRACT_FILE}" krakend.json
+          echo "Generated krakend.json:"; cat krakend.json
+
+      # Pinned to 2.6.2, matching the krakend:2.6.2 image (see
+      # docker-compose.yml).
+      - name: Install KrakenD CLI (pinned)
+        shell: bash
+        env:
+          KRAKEND_VERSION: 2.6.2
+        run: |
+          set -e
+          # Asset name is krakend_<version>_amd64_generic-linux.tar.gz, NOT
+          # krakend_<version>_linux_amd64.tar.gz - verified against the
+          # krakend-ce GitHub releases API for this version.
+          curl -fsSL -o /tmp/krakend.tgz \
+            "https://github.com/krakend/krakend-ce/releases/download/v${KRAKEND_VERSION}/krakend_${KRAKEND_VERSION}_amd64_generic-linux.tar.gz"
+          tar -xzf /tmp/krakend.tgz -C /tmp
+          install -m 0755 /tmp/usr/bin/krakend /usr/local/bin/krakend
+          krakend version
+
+      # `krakend check -c` is the validation this version provides; no
+      # stricter lint flag is in use.
+      - name: Validate the generated config (fail on any error)
+        shell: bash
+        run: krakend check -c krakend.json
+
+      - name: Deploy to the running gateway
+        shell: bash
+        run: |
+          set -e
+          curl -sf -X POST "${GATEWAY_DEPLOYER_URL}/deploy" \
+            -H 'Content-Type: application/json' \
+            --data-binary @krakend.json
+          echo "Deployed."
+
+      - name: Wait for KrakenD to be ready
+        shell: bash
+        run: |
+          set -e
+          for i in $(seq 1 30); do
+            # curl's own -w format already writes "000" on a failed/refused
+            # connection (verified: it always evaluates -w, even on
+            # failure) - appending "|| echo 000" here would double it to
+            # "000000", which then never matches the != "000" check below
+            # and falsely reports "ready" on the very first try. Do not add
+            # that back.
+            CODE=$(curl -s -o /dev/null -w '%{http_code}' "${GATEWAY_URL}/orders/readiness-probe")
+            if [ "$CODE" != "000" ]; then
+              echo "KrakenD is up (HTTP $CODE)."
+              break
+            fi
+            if [ "$i" -eq 30 ]; then
+              echo "KrakenD did not become ready in time." >&2
+              exit 1
+            fi
+            echo "waiting for KrakenD ($i)..."; sleep 2
+          done
+
+      - name: Run contract test through the gateway
+        shell: bash
+        run: |
+          set -e
+          # Same contract already imported into Microcks by contract-test -
+          # just launch another test run against the gateway's endpoint.
+          VERSION=$(grep -E '^[[:space:]]+version:' "${CONTRACT_FILE}" | head -1 \
+            | sed -E 's/.*version:[[:space:]]*//' | tr -d '"'"'"' ')
+          API_SERVICE="${API_TITLE}:${VERSION}"
+          echo "Testing service through gateway: ${API_SERVICE}"
+          BODY="{\"serviceId\":\"${API_SERVICE}\",\"testEndpoint\":\"${GATEWAY_URL}\",\"runnerType\":\"OPEN_API_SCHEMA\",\"timeout\":10000}"
+          RESP=$(curl -sf -X POST "${MICROCKS_URL}/api/tests" \
+            -H 'Content-Type: application/json' -d "${BODY}")
+          TID=$(printf '%s' "$RESP" | grep -o '"id":"[a-f0-9]*"' | head -1 | sed 's/.*:"\(.*\)"/\1/')
+          if [ -z "$TID" ]; then
+            echo "Failed to launch test. Response: $RESP" >&2; exit 1
+          fi
+          echo "Launched test ${TID}; polling..."
+
+          RESULT=""
+          for i in $(seq 1 20); do
+            sleep 2
+            RESULT=$(curl -sf "${MICROCKS_URL}/api/tests/${TID}")
+            printf '%s' "$RESULT" | grep -q '"inProgress":false' && break
+            echo "  in progress ($i)..."
+          done
+
+          SUCCESS=$(printf '%s' "$RESULT" | grep -o '"success":[a-z]*,"inProgress"' \
+            | head -1 | sed 's/"success":\([a-z]*\).*/\1/')
+          echo "Test ${TID} success=${SUCCESS}"
+          echo "Details: ${MICROCKS_PUBLIC_URL}/#/tests/${TID}"
+          if [ "$SUCCESS" != "true" ]; then
+            echo "Gateway contract test FAILED:" >&2
+            printf '%s\n' "$RESULT" >&2
+            exit 1
+          fi
+          echo "Gateway contract test PASSED."

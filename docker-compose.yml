@@ -169,8 +169,59 @@ services:
     ports:
       - "7007:7007"
 
+  # --- Track C: API gateway (profile: gateway) --------------------------------
+  # KrakenD CE - real gateway routing to sample-backend. Config is generated
+  # from the OpenAPI contract by governance/gateway/generate.js and deployed
+  # via krakend-deployer: KrakenD CE has no hot-reload/admin API, and job
+  # containers were deliberately stripped of docker/podman socket access
+  # (see runner-config.yaml's container.docker_host) - so a small sidecar
+  # with socket access does the restart instead of the job container.
+  krakend:
+    # Docker's official image, NOT "krakend/krakend" (doesn't exist) and not
+    # "krakend/krakend-ee" (that's the paid Enterprise image).
+    # Pinned to match the CI job's KRAKEND_VERSION (pr-governance.yml) so a
+    # config validated by `krakend check` runs on the same engine version.
+    image: krakend:2.6.2
+    container_name: krakend
+    restart: unless-stopped
+    profiles: ["gateway"]
+    depends_on:
+      sample-backend:
+        condition: service_started
+      # krakend-deployer bootstraps the shared volume's krakend.json on its
+      # own startup - without waiting for its healthcheck, krakend can start
+      # before that file exists (or before it's been overwritten by the
+      # deployer's own bootstrap default rather than KrakenD's built-in
+      # factory default at the same path) on a completely fresh volume.
+      # ensureInitialConfig() runs synchronously before /health can return
+      # 200, so waiting for service_healthy guarantees a valid config is
+      # already on disk by the time krakend starts.
+      krakend-deployer:
+        condition: service_healthy
+    volumes:
+      - krakend-config:/etc/krakend
+    command: ["run", "-c", "/etc/krakend/krakend.json"]
+    ports:
+      - "8090:8090"
+
+  krakend-deployer:
+    build: ./governance/gateway/deployer
+    container_name: krakend-deployer
+    restart: unless-stopped
+    profiles: ["gateway"]
+    volumes:
+      - krakend-config:/shared
+      - /var/run/docker.sock:/var/run/docker.sock
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:9000/health"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+      start_period: 5s
+
 volumes:
   seed-state:
+  krakend-config:
 
 networks:
   default:

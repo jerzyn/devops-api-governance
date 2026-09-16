@@ -2,7 +2,7 @@
 
 First-timer walkthrough. Acceptance scenario for the governance pipeline:
 **design-time lint (Spectral, linked ruleset) → backward-compatibility check
-(oasdiff) → runtime contract test (Microcks) → catalog discovery (Backstage)**,
+(oasdiff) → runtime contract test (Microcks) → API gateway (KrakenD) → catalog discovery (Backstage)**,
 driven through pull requests against the seeded Gitea **consumer** repo.
 
 Architecture (see [`../docs/demo-isolation.md`](../docs/demo-isolation.md)):
@@ -18,7 +18,7 @@ Background:
   Given a fresh clone of this project and Docker Desktop running
   When I run:
     """
-    docker compose --profile contract --profile catalog up -d
+    docker compose --profile contract --profile catalog --profile gateway up -d
     """
   Then gitea-seed creates org "governance-demo" and two repos:
     | repo                                  | content                          |
@@ -198,7 +198,7 @@ Scenario: PR #3 — add a required parameter, blocked by BC gate, then relaxed
     # Microcks issues GET /orders/{orderId}?currency=PLN (from the example);
     # the sample-backend ignores unknown query params and returns the same
     # response shape, which matches the unchanged 200 schema.
-  And all three checks are green
+  And all four checks are green
 
   # --- merge -> catalog ---
   When I merge the PR into main
@@ -244,12 +244,18 @@ red state on a sandbox PR (all of these are Spectral-clean):
 | 2  | Spectral fixed (Scenario 1) | Spectral GREEN, BC PASS (response-only additions are non-breaking), Microcks RED | Gitea PR checks + CI log |
 | 3  | Microcks report link | `http://localhost:8080/...` (not `microcks-uber`) | contract-test CI log |
 | 4  | Contract under test | PR branch version; service version derived from contract | CI log "Testing service: ...:<version>" |
-| 5  | Mismatch fixed (Scenario 1) | All three gates GREEN | Gitea PR checks |
+| 5  | Mismatch fixed (Scenario 1) | All four gates GREEN | Gitea PR checks |
 | 6  | Merge to main | API discovered / updated | Backstage http://localhost:7007 |
 | 7  | Spectral-clean BC opened (Scenario 3) | Spectral GREEN, BC RED, Microcks SKIPPED | Gitea PR checks |
 | 8  | oasdiff annotation | `::error::...new required \`query\` request parameter \`currency\`` (or other oasdiff rule ID) | breaking-changes-check CI log |
-| 9  | BC fix applied (Scenario 3) | All three gates GREEN | Gitea PR checks |
+| 9  | BC fix applied (Scenario 3) | All four gates GREEN | Gitea PR checks |
 | 10 | oasdiff version pinned | `oasdiff version 1.19.0` printed in the install step | breaking-changes-check CI log |
+| 11 | Gateway deploy (new Scenario 4) | Spectral/BC/contract-test GREEN, `gateway-deploy-check` deploys config and re-tests through KrakenD | Gitea PR checks + gateway-deploy-check CI log |
+
+> Scenario 4 (gateway deploy) is exercised in Task 5 of
+> `docs/superpowers/plans/2026-09-15-krakend-gateway.md`'s manual
+> verification step; a full scripted BDD scenario matching Scenarios 1-3's
+> format is a reasonable follow-up, not required for this gate to function.
 
 These map to the CI design in [`../docs/ci-fixes-scope.md`](../docs/ci-fixes-scope.md):
 linked ruleset, ordering (`needs:`), report URL, PR-branch contract, version-derive.

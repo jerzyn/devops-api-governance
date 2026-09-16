@@ -65,6 +65,13 @@ cp -r /governance/spectral/spectral-functions "$GOV_SRC"/
 cp /governance/api-guidelines/mkdocs.yml "$GOV_SRC"/
 cp /governance/api-guidelines/catalog-info.yaml "$GOV_SRC"/
 cp -r /governance/api-guidelines/docs "$GOV_SRC"/
+# Gateway config generator (OpenAPI -> KrakenD), linked the same way as the
+# ruleset - the deployer/ subfolder is platform-side (built directly by
+# docker-compose) and is intentionally NOT included here.
+mkdir -p "$GOV_SRC"/gateway
+cp /governance/gateway/generate.js "$GOV_SRC"/gateway/
+cp /governance/gateway/package.json "$GOV_SRC"/gateway/
+cp /governance/gateway/krakend-base.json "$GOV_SRC"/gateway/
 seed_repo "$GOV_SRC" "$GOV_REPO" "Governance policy: Spectral ruleset + functions"
 
 echo "==> runner registration token -> /seed/runner-token"

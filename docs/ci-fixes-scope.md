@@ -40,3 +40,15 @@ Instead of hardcoding that version, the workflow reads it out of the
 checked-out contract's `info.version` at run time. A PR that bumps the
 version doesn't silently start testing against a stale, nonexistent service
 id.
+
+## Gateway deploy: a sidecar, not docker-in-job
+
+`gateway-deploy-check` needs to restart the `krakend` container to pick up
+a new config (KrakenD CE has no hot-reload or admin API). Job containers
+were deliberately stripped of docker/podman socket access in an earlier
+fix (`runner-config.yaml`'s `container.docker_host: "-"`) because none of
+the other three jobs need it, and that setting is runner-wide, not
+per-job. Rather than reverting that fix, `krakend-deployer` — a small
+sidecar with socket access, mirroring the existing `gitea-seed`/
+`gitea-runner` mount pattern — exposes one HTTP endpoint the job container
+calls instead.

@@ -1,0 +1,13 @@
+{
+  "name": "governance-gateway-tools",
+  "private": true,
+  "version": "1.0.0",
+  "description": "OpenAPI-to-KrakenD config generator (linked governance tooling, cloned by consumer CI)",
+  "main": "generate.js",
+  "scripts": {
+    "test": "node --test generate.test.js"
+  },
+  "dependencies": {
+    "js-yaml": "^4.1.0"
+  }
+}
