@@ -181,7 +181,10 @@ services:
     # "krakend/krakend-ee" (that's the paid Enterprise image).
     # Pinned to match the CI job's KRAKEND_VERSION (pr-governance.yml) so a
     # config validated by `krakend check` runs on the same engine version.
-    image: krakend:2.6.2
+    # 2.6.2 (the original pin) does not exist as a Docker Hub tag for this
+    # image - Docker Hub only publishes 2.9.0+. 2.13.11 is confirmed real on
+    # both Docker Hub and as a krakend-ce GitHub release asset.
+    image: krakend:2.13.11
     container_name: krakend
     restart: unless-stopped
     profiles: ["gateway"]
