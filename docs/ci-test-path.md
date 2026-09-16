@@ -13,12 +13,13 @@ by `needs:`, so a failure stops the rest):
 1. **`spectral-openapi-check`** — lints the PR's changed OpenAPI files
    against the linked governance ruleset.
    - 🔴 **Red**: any error-severity rule violation (e.g. an `http://` server
-     URL, a missing `summary`). The other two gates are skipped.
+     URL, a missing `summary`). The other three gates are skipped.
    - 🟢 **Green**: zero errors (warnings/info don't block).
 2. **`breaking-changes-check`** — diffs each modified OpenAPI file against
    its version on the PR's base branch with `oasdiff`.
    - 🔴 **Red**: any breaking change (new required parameter, narrowed
-     constraint, removed field/operation). `contract-test` is skipped.
+     constraint, removed field/operation). `contract-test` and
+     `gateway-deploy-check` are skipped.
    - 🟢 **Green**: no breaking findings, or nothing to diff (new file, no
      OpenAPI change, or `workflow_dispatch`).
 3. **`contract-test`** — imports the PR branch's contract into Microcks and

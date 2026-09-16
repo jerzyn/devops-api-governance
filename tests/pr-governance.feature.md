@@ -198,7 +198,7 @@ Scenario: PR #3 — add a required parameter, blocked by BC gate, then relaxed
     # Microcks issues GET /orders/{orderId}?currency=PLN (from the example);
     # the sample-backend ignores unknown query params and returns the same
     # response shape, which matches the unchanged 200 schema.
-  And all three checks are green
+  And all four checks are green
 
   # --- merge -> catalog ---
   When I merge the PR into main

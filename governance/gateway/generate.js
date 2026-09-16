@@ -36,11 +36,13 @@ function buildEndpoints(contract, backendHost) {
       endpoints.push({
         endpoint: pathKey,
         method: method.toUpperCase(),
+        output_encoding: 'no-op',
         backend: [
           {
             url_pattern: pathKey,
             method: method.toUpperCase(),
             host: [backendHost],
+            encoding: 'no-op',
           },
         ],
       });
@@ -53,6 +55,11 @@ function generate(contractPath, basePath, backendHost) {
   const contract = loadContract(contractPath);
   const base = loadBaseConfig(basePath);
   const endpoints = buildEndpoints(contract, backendHost);
+  if (endpoints.length === 0) {
+    throw new Error(
+      'No operations found in contract — refusing to generate an empty gateway config'
+    );
+  }
   return { ...base, endpoints };
 }
 

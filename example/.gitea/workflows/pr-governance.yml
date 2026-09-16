@@ -296,9 +296,8 @@ jobs:
           node .governance-gateway/gateway/generate.js "${CONTRACT_FILE}" krakend.json
           echo "Generated krakend.json:"; cat krakend.json
 
-      # NOTE for implementer: verify the current KrakenD CE release tag at
-      # https://github.com/krakend/krakend-ce/releases before merging this
-      # job and adjust KRAKEND_VERSION if a newer stable tag exists.
+      # Pinned to 2.6.2, matching the krakend:2.6.2 image (see
+      # docker-compose.yml).
       - name: Install KrakenD CLI (pinned)
         shell: bash
         env:
@@ -314,9 +313,8 @@ jobs:
           install -m 0755 /tmp/usr/bin/krakend /usr/local/bin/krakend
           krakend version
 
-      # `krakend check -c <file>` alone is the confirmed base command; if the
-      # pinned version's `krakend check --help` offers a stricter lint mode,
-      # the implementer should add it here rather than guessing a flag name.
+      # `krakend check -c` is the validation this version provides; no
+      # stricter lint flag is in use.
       - name: Validate the generated config (fail on any error)
         shell: bash
         run: krakend check -c krakend.json

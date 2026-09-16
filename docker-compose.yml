@@ -179,7 +179,9 @@ services:
   krakend:
     # Docker's official image, NOT "krakend/krakend" (doesn't exist) and not
     # "krakend/krakend-ee" (that's the paid Enterprise image).
-    image: krakend:latest
+    # Pinned to match the CI job's KRAKEND_VERSION (pr-governance.yml) so a
+    # config validated by `krakend check` runs on the same engine version.
+    image: krakend:2.6.2
     container_name: krakend
     restart: unless-stopped
     profiles: ["gateway"]

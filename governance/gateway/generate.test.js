@@ -21,11 +21,13 @@ test('buildEndpoints emits one entry per operation, uppercase method, matching b
   assert.deepEqual(endpoints[0], {
     endpoint: '/orders/{orderId}',
     method: 'GET',
+    output_encoding: 'no-op',
     backend: [
       {
         url_pattern: '/orders/{orderId}',
         method: 'GET',
         host: ['http://sample-backend:8081'],
+        encoding: 'no-op',
       },
     ],
   });
@@ -64,6 +66,19 @@ test('buildEndpoints ignores non-method path-item keys (summary, description, pa
 test('buildEndpoints returns an empty array for a contract with no paths', () => {
   const endpoints = buildEndpoints({ paths: {} }, 'http://sample-backend:8081');
   assert.deepEqual(endpoints, []);
+});
+
+test('generate throws for a contract with no operations, rather than writing an empty config', () => {
+  const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'krakend-gen-'));
+  const contractPath = path.join(tmpDir, 'contract.yaml');
+  const basePath = path.join(tmpDir, 'base.json');
+  fs.writeFileSync(contractPath, ['paths:', '  /health:', '    summary: no methods here'].join('\n'));
+  fs.writeFileSync(basePath, JSON.stringify({ version: 3, name: 'Test Gateway', port: 8090 }));
+
+  assert.throws(
+    () => generate(contractPath, basePath, 'http://sample-backend:8081'),
+    /No operations found in contract/
+  );
 });
 
 test('generate merges endpoints into the base config, preserving base fields', () => {

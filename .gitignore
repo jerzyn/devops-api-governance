@@ -23,11 +23,14 @@ microcks-data/
 governance/gateway/node_modules/
 
 # Local Docker-Desktop-less dev override (e.g. Podman socket path bind for
-# gitea-seed/gitea-runner); docker compose auto-loads this file if present,
-# so keep it machine-local and never commit it.
+# gitea-seed/gitea-runner/krakend-deployer); docker compose auto-loads this
+# file if present, so keep it machine-local and never commit it.
 docker-compose.override.yml
 
 # Subagent-driven-development scratch workspace (ledgers, briefs, review
 # packages) - session-local working state, not project content.
 .superpowers/
 
+# Gateway generator's resolved lockfile - CI runs `npm install` (not
+# `npm ci`), so there's no reproducibility story that requires committing it.
+governance/gateway/package-lock.json

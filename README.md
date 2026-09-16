@@ -237,7 +237,7 @@ link to the Microcks mocks/tests.
 
 ## Roadmap status
 
-This demo originally stopped at design-time linting. All three roadmap
+This demo originally stopped at design-time linting. All four roadmap
 directions are now **implemented**:
 
 - ✅ **Central API catalog** — Backstage discovers contracts from the Gitea org.
@@ -252,9 +252,14 @@ directions are now **implemented**:
 
 ## Operational notes
 
-- **Docker socket**: `gitea-runner` and `gitea-seed` mount `/var/run/docker.sock`
-  (runner starts job containers; seed runs `gitea` CLI). Local-demo convenience,
-  not a hardened pattern.
+- **Docker socket**: `gitea-runner`, `gitea-seed`, and `krakend-deployer` mount
+  `/var/run/docker.sock` (runner starts job containers; seed runs `gitea` CLI;
+  the deployer restarts `krakend` with a freshly generated config). Local-demo
+  convenience, not a hardened pattern. `krakend-deployer`'s `/deploy` endpoint
+  is deliberately unauthenticated and reachable from anything on the compose
+  network, but its blast radius is narrow — write one config file, restart one
+  named container — narrower than the socket access job containers had before
+  an earlier fix removed it.
 - **Runner network**: `runner-config.yaml` puts CI job containers on
   `gitea-network` so checkout reaches `http://gitea:3000/`.
 - **Backstage config**: `governance/api-catalog/app-config.yaml` is mounted, so config changes
@@ -264,14 +269,14 @@ directions are now **implemented**:
 ## Stop / reset
 
 ```bash
-docker compose --profile contract --profile catalog down        # stop
-docker compose --profile contract --profile catalog down -v     # + drop seeded volumes
+docker compose --profile contract --profile catalog --profile gateway down        # stop
+docker compose --profile contract --profile catalog --profile gateway down -v     # + drop seeded volumes
 rm -rf gitea-data runner-data                                    # + drop Gitea/runner state
 ```
 
 ## Reproduce the demo
 
-This demo covers four topics. Below is how to run each one live. Full
+This demo covers five topics. Below is how to run each one live. Full
 PR-driven flows are in
 [`tests/pr-governance.feature.md`](tests/pr-governance.feature.md).
 
@@ -279,7 +284,7 @@ PR-driven flows are in
 it, never against this project):
 
 ```bash
-docker compose --profile contract --profile catalog up -d      # up + auto-seed
+docker compose --profile contract --profile catalog --profile gateway up -d      # up + auto-seed
 git clone http://demo:demo12345@localhost:3000/governance-demo/devops-api-governance.git
 ```
 
@@ -305,6 +310,14 @@ gate on a PR — drift goes red, in-sync goes green.
 clients. Open a PR with that change → the `breaking-changes-check` gate (oasdiff)
 runs and blocks it → **red**. Relax the change to stay compatible, push again →
 **green**.
+
+**Topic 5 — API Gateway.** The contract isn't just tested against the backend —
+it's deployed. Open a PR, and the `gateway-deploy-check` gate generates a
+KrakenD config from the contract, deploys it to a real KrakenD CE gateway, and
+re-runs the same Microcks test suite through the gateway (`:8090`) instead of
+the backend directly → **green** when the gateway routes and proxies
+transparently. Break the contract (e.g. an operation `krakend check` can't
+route) and the gate goes **red** before the gateway ever restarts.
 
 ## License
 
