@@ -116,7 +116,7 @@ A step-by-step walkthrough (green/red for each gate + merge→catalog) is in
 
 | Path | Purpose |
 |------|---------|
-| `docker-compose.yml` | All services + the seed services + profiles (`contract`, `catalog`). |
+| `docker-compose.yml` | All services + the seed services + profiles (`contract`, `catalog`, `gateway`). |
 | `scripts/` | `seed-gitea.sh`, `seed-microcks.sh` — orchestration run by the seed services. |
 | `runner-config.yaml` | Joins CI job containers to `gitea-network`. |
 | `tests/` | `pr-governance.feature.md` — BDD walkthrough of the PR loop. |
@@ -139,7 +139,7 @@ A step-by-step walkthrough (green/red for each gate + merge→catalog) is in
 | `contracts/orders-openapi.yaml` | The live OpenAPI contract (imported into Microcks). |
 | `catalog-info.yaml` | Backstage entities (API + Component + Group) discovered from Gitea. |
 | `sample-backend/` | Minimal provider-under-test (conformant, or drifting via `DRIFT=true`). |
-| `.gitea/workflows/pr-governance.yml` | One PR gate, three stages ordered via `needs:`: `spectral-openapi-check` (linked ruleset) → `breaking-changes-check` (oasdiff) → `contract-test` (Microcks). |
+| `.gitea/workflows/pr-governance.yml` | One PR gate, four stages ordered via `needs:`: `spectral-openapi-check` (linked ruleset) → `breaking-changes-check` (oasdiff) → `contract-test` (Microcks) → `gateway-deploy-check` (KrakenD). |
 
 ## Governance rules (Spectral)
 

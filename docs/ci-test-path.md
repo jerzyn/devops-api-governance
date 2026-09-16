@@ -37,7 +37,7 @@ by `needs:`, so a failure stops the rest):
 
 ## After merge
 
-Once all three gates are green and the PR merges to `main`, Backstage's
+Once all four gates are green and the PR merges to `main`, Backstage's
 Gitea provider picks up `catalog-info.yaml` from `main` and the
 `sample-orders-api` entity in the catalog reflects the new contract
 (possibly after a restart, if you don't want to wait for the provider's
