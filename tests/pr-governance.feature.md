@@ -250,6 +250,12 @@ red state on a sandbox PR (all of these are Spectral-clean):
 | 8  | oasdiff annotation | `::error::...new required \`query\` request parameter \`currency\`` (or other oasdiff rule ID) | breaking-changes-check CI log |
 | 9  | BC fix applied (Scenario 3) | All three gates GREEN | Gitea PR checks |
 | 10 | oasdiff version pinned | `oasdiff version 1.19.0` printed in the install step | breaking-changes-check CI log |
+| 11 | Gateway deploy (new Scenario 4) | Spectral/BC/contract-test GREEN, `gateway-deploy-check` deploys config and re-tests through KrakenD | Gitea PR checks + gateway-deploy-check CI log |
+
+> Scenario 4 (gateway deploy) is exercised in Task 5 of
+> `docs/superpowers/plans/2026-09-15-krakend-gateway.md`'s manual
+> verification step; a full scripted BDD scenario matching Scenarios 1-3's
+> format is a reasonable follow-up, not required for this gate to function.
 
 These map to the CI design in [`../docs/ci-fixes-scope.md`](../docs/ci-fixes-scope.md):
 linked ruleset, ordering (`needs:`), report URL, PR-branch contract, version-derive.

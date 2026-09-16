@@ -7,7 +7,7 @@ page is deliberately not a copy of it.
 
 ## The path
 
-A PR into `main` on the consumer repo runs three gates in order (each gated
+A PR into `main` on the consumer repo runs four gates in order (each gated
 by `needs:`, so a failure stops the rest):
 
 1. **`spectral-openapi-check`** — lints the PR's changed OpenAPI files
@@ -26,6 +26,14 @@ by `needs:`, so a failure stops the rest):
    - 🔴 **Red**: the backend's actual responses don't match the contract
      (drift, or a contract change the backend doesn't implement yet).
    - 🟢 **Green**: backend behavior matches the contract.
+4. **`gateway-deploy-check`** — generates a KrakenD config from the PR's
+   contract, deploys it to the running gateway, and re-runs the Microcks
+   test suite through the gateway instead of the backend.
+   - 🔴 **Red**: the generated config fails `krakend check`, or the
+     gateway-routed contract test fails (e.g. the gateway drops a header or
+     rewrites a path the backend then rejects).
+   - 🟢 **Green**: the config validates and the gateway-routed test suite
+     passes.
 
 ## After merge
 

@@ -46,7 +46,7 @@ rather than vendoring it. Details: [`docs/demo-isolation.md`](docs/demo-isolatio
 Requires Docker Desktop (Compose). From the repo root:
 
 ```bash
-docker compose --profile contract --profile catalog up -d
+docker compose --profile contract --profile catalog --profile gateway up -d
 ```
 
 That brings up everything **and seeds it** — no `.env`, no scripts, no manual
@@ -76,6 +76,7 @@ Endpoints:
 | Microcks | http://localhost:8080 | mocks + contract test results |
 | Backstage | http://localhost:7007 | API catalog (guest sign-in) |
 | sample-backend | http://localhost:8081 | provider under test |
+| KrakenD | http://localhost:8090 | API gateway routing to sample-backend |
 
 ## The demo loop
 
@@ -84,7 +85,7 @@ repo** (`example/` → Gitea `governance-demo/devops-api-governance`):
 
 1. Branch → edit `contracts/orders-openapi.yaml` and/or `sample-backend/` → open
    a PR into `main` in Gitea.
-2. Gitea Actions runs three gates **in order** (`pr-governance.yml`), each gated
+2. Gitea Actions runs four gates **in order** (`pr-governance.yml`), each gated
    by `needs:` so the next stage only runs if the previous one passed:
    - **Spectral** (`spectral-openapi-check`) — clones the governance repo for the
      ruleset, then lints the OpenAPI files changed in the PR, **fails on
@@ -98,6 +99,11 @@ repo** (`example/` → Gitea `governance-demo/devops-api-governance`):
    - **Microcks contract test** (`contract-test`) — imports the PR branch's
      contract and tests the running `sample-backend` against it via the Microcks
      REST API; **fails on contract drift**.
+   - **Gateway deploy** (`gateway-deploy-check`) — generates a KrakenD gateway
+     config from the PR's contract, deploys it to a running KrakenD instance,
+     and re-runs the Microcks test suite against the gateway instead of the
+     backend directly; **fails on any config-lint error or gateway-level
+     contract-test failure**.
 3. On merge, Backstage's Gitea provider discovers `catalog-info.yaml` from `main`
    and the API entity appears/updates in the catalog.
 
@@ -122,6 +128,7 @@ A step-by-step walkthrough (green/red for each gate + merge→catalog) is in
 | Path | Purpose |
 |------|---------|
 | `governance/spectral/` | `spectral-ruleset.yaml` + `spectral-functions/` + `examples/` — rules (policy as code), pushed to the `api-governance` Gitea repo and linked by consumer CI. |
+| `governance/gateway/` | `generate.js` (OpenAPI→KrakenD generator) + `krakend-base.json` + `deployer/` (sidecar that deploys generated configs to the running KrakenD instance) — the generator is pushed to the `api-governance` Gitea repo and linked by consumer CI; `deployer/` is platform-only, never cloned by consumer CI. |
 | `governance/api-guidelines/` | `docs/index.md` (the API design guidelines the rules encode) + `catalog-info.yaml` + `mkdocs.yml` — published to the `api-governance` Gitea repo and surfaced in Backstage as TechDocs. |
 | `governance/api-catalog/` | The Backstage app (committed source; builds entirely in Docker). |
 
@@ -239,6 +246,9 @@ directions are now **implemented**:
   `*openapi*.{yml,yaml}` vs the base branch fails the gate on breaking changes
   (new required parameters, narrowed types, removed response fields, removed
   operations, …). Aligns with `api-guidelines.md` semver/extension rules.
+- ✅ **API gateway (KrakenD)** — the PR's contract is deployed to a real
+  KrakenD CE gateway and re-tested through it before merge, closing the
+  loop from design-time lint through to a running, routable gateway.
 
 ## Operational notes
 
