@@ -1,6 +1,6 @@
 name: PR API governance
 
-# Single PR gate, three stages run in order (each gated by `needs:`):
+# Single PR gate, four stages run in order (each gated by `needs:`):
 #   1. spectral-openapi-check — design-time lint of PR-changed OpenAPI files.
 #      The governance ruleset is NOT vendored here; it is linked: the job clones
 #      the central governance repo at run time and lints against its ruleset.
@@ -11,10 +11,12 @@ name: PR API governance
 #   3. contract-test — runtime contract test of the running sample-backend
 #      against the PR's contract. Runs ONLY if the two gates above pass
 #      (don't contract-test a contract that fails lint or breaks consumers).
+#   4. gateway-deploy-check — generates a KrakenD config from the PR's
+#      contract, deploys it to the running KrakenD instance, and re-runs the
+#      same contract test through the gateway.
 #
-# Requires the "contract" compose profile up (microcks-uber + sample-backend) on
-# gitea-network:
-#   docker compose --profile contract up -d
+# Requires the "contract" and "gateway" compose profiles up on gitea-network:
+#   docker compose --profile contract --profile gateway up -d
 #
 # To demonstrate a failing contract gate, restart sample-backend with drift:
 #   SAMPLE_BACKEND_DRIFT=true docker compose --profile contract up -d sample-backend
