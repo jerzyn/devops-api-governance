@@ -1,240 +1,240 @@
 # General API Guidelines
-## [Podejście API First (api-peak:general1:2025-api-first)](#api-first)
+## [API First Approach (api-peak:general1:2025-api-first)](#api-first)
 
-Każdy **POWINIEN** przestrzegać zasady **API First**. Zasada API First jest rozszerzeniem zasady **design-first**. Dlatego rozwój API **POWINIEN** zawsze zaczynać się od projektu API bez żadnych wstępnych działań związanych z kodowaniem. Projekt API (np. opis, schema) jest **źródłem prawdy**, a nie implementacja API. Implementacja API **MUSI** zawsze być zgodna z konkretnym projektem API, który reprezentuje kontrakt między API a jego konsumentem.
-
----
+Everyone **SHOULD** follow the **API First** principle. The API First principle is an extension of the **design-first** principle. Therefore, API development **SHOULD** always start with the API design, without any preliminary coding activity. The API design (e.g. description, schema) is the **source of truth**, not the API implementation. The API implementation **MUST** always conform to the specific API design, which represents the contract between the API and its consumer.
 
 ---
 
-## [Język (api-peak:general2:2025-language)](#language)
+---
+
+## [Language (api-peak:general2:2025-language)](#language)
 
 TBD.
 
 ---
 
-## [Terminologia (api-peak:general3:2025-terminology)](#terminology)
+## [Terminology (api-peak:general3:2025-terminology)](#terminology)
 
-- **Specyfikacja API** - odnosi się do do formatu specyfikacji, takiego jak OpenAPI lub AsyncAPI, ale nie do dokumentu utworzonego przy użyciu takiej specyfikacji.
+- **API Specification** - refers to a specification format, such as OpenAPI or AsyncAPI, but not to a document created using such a specification.
 
-- **Dokument API/Opis API/Dokument Opisu API** - odnosi się do dokumentu opisującego projekt API przy użyciu specyfikacji takiej jak OpenAPI.
+- **API Document/API Description/API Description Document** - refers to a document describing an API design using a specification such as OpenAPI.
 
-- **Schema** - odnosi się do opisu modelu danych. Zazwyczaj jest tworzony w specyfikacji takiej jak JSON-Schema, Avro Schema lub Protobuff.
+- **Schema** - refers to a description of a data model. It is usually created using a specification such as JSON-Schema, Avro Schema, or Protobuf.
 
-- **Projekt API** - odnosi się do formalnego opisu API. Nie musi, lecz może, odnosić się do Dokumentu Opisu API.
+- **API Design** - refers to the formal description of an API. It does not have to, but may, refer to the API Description Document.
 
 ---
 
-## [Nowe i istniejące API (api-peak:general4:2025-new-existing-APIs)](#new-vs-existing)
+## [New and Existing APIs (api-peak:general4:2025-new-existing-APIs)](#new-vs-existing)
 
-Dla wszystkich nowo powstających API **MUSZĄ** być spełnione wszystkie [zasady API Guidelines](/) w wyszczególnionym zakresie (MUSI/POWINIEN/MOŻE)<!-- i [zasady projektowe API asynchornicznych]()-->.
+For all newly created APIs, all [API Guidelines rules](/) **MUST** be met within the specified scope (MUST/SHOULD/MAY)<!-- and [async API design rules]()-->.
 
-Dla już istniejących API, [zasady API Guidelines](/) **POWINNY** być spełnione.
+For already existing APIs, the [API Guidelines rules](/) **SHOULD** be met.
 
 ## [Semver (api-peak:general5:2025-semver)](#semver)
 
-API MUSI używać Semantic Versioning (SemVer) w formacie MAJOR.MINOR.PATCH jako jedynego dozwolonego oznaczania wersjonowania.
+The API **MUST** use Semantic Versioning (SemVer) in the MAJOR.MINOR.PATCH format as the only allowed versioning scheme.
 
-### Elementy wersji
+### Version Components
 
-- **MAJOR**: Inkrementowany przy wprowadzaniu zmian niekompatybilnych wstecz.
-- **MINOR**: Inkrementowany przy dodawaniu nowej funkcjonalności _potencjalnie_ kompatybilnej wstecz.
-- **PATCH**: Inkrementowany przy wprowadzaniu poprawek błędów kompatybilnych wstecz.
+- **MAJOR**: Incremented when introducing backward-incompatible changes.
+- **MINOR**: Incremented when adding new functionality that is _potentially_ backward compatible.
+- **PATCH**: Incremented when making backward-compatible bug fixes.
 
-> **Potencjalna wsteczna kompatybilność:** mówimy o **potencjalnej** kompatybilności wstecznej, ponieważ może zdarzyć się tak, że zmiany kompatybilne wstecz takie nie będą, np. ze względu na ścisłe ograniczenia klienta jak rozmiar wiadomości. Z tego powodu nie da się zagwarantować twardej kompatybilności wstecznej.
+> **Potential backward compatibility:** we speak of **potential** backward compatibility because it can happen that backward-compatible changes turn out not to be, e.g. due to strict client constraints such as message size. For this reason, hard backward compatibility cannot be guaranteed.
 
 ---
 
-## [Kontrakt (api-peak:general6:2025-contract)](#api-contract)
+## [Contract (api-peak:general6:2025-contract)](#api-contract)
 
-Zatwierdzony **projekt API**, reprezentowany przez jego **dokument API** lub schema, **MUSI** stanowić kontrakt między interesariuszami API, "providerami" i konsumentami. Aktualizacja odpowiedniego kontraktu (**projektu API**) **MUSI** być zaimplementowana w jego opisie i zatwierdzona przed wprowadzeniem jakichkolwiek zmian w implementacji API.
+An approved **API design**, represented by its **API document** or schema, **MUST** constitute the contract between API stakeholders, "providers", and consumers. An update to the corresponding contract (**API design**) **MUST** be implemented in its description and approved before any changes are made to the API implementation.
 
 <!-- 
 ---
 
-### Niezmienność
+### Immutability
 
-Po uzgodnieniu z interesariuszami, kontrakt **MUSI** zostać opublikowany w **rejestrze API**, aby uczynić go (tę wersję) stałym. Rejestr API działa jako centralne miejsce do przechowywania i dostępu do wszystkich opublikowanych API.-->
+Once agreed with stakeholders, the contract **MUST** be published in the **API registry** to make it (this version) permanent. The API registry acts as a central place to store and access all published APIs.-->
 
 ---
 
-## [Niezawodność (api-peak:general7:2025-robustness)](#robustness)
+## [Robustness (api-peak:general7:2025-robustness)](#robustness)
 
-Każda implementacja API i każdy konsument API **MUSI** przestrzegać **prawa Postela**:
+Every API implementation and every API consumer **MUST** follow **Postel's Law**:
 
-> Bądź konserwatywny w tym, co wysyłasz, bądź liberalny w tym, co akceptujesz.
+> Be conservative in what you send, be liberal in what you accept.
 > 
 > – [John Postel](https://en.wikipedia.org/wiki/Robustness_principle)
 
-Oznacza to, że należy wysyłać niezbędne minimum i być jak najbardziej tolerancyjnym podczas korzystania z innej usługi ([tolerancyjny czytelnik](https://martinfowler.com/bliki/TolerantReader.html)).
+This means sending the necessary minimum and being as tolerant as possible when using another service (the [tolerant reader](https://martinfowler.com/bliki/TolerantReader.html)).
 
 ---
 
-## [System Kontroli Wersji (api-peak:general8:2025-version-control)](#version-control)
+## [Version Control System (api-peak:general8:2025-version-control)](#version-control)
 
-Każdy projekt API **MUSI** być przechowywany w Systemie Kontroli Wersji (np. Bitbucket, GitHub). Tam, gdzie to możliwe, projekt API **POWINIEN** być przechowywany w tym samym repozytorium co implementacja API. W przypadku ścisłych zasad bezpieczeństwa związanych z dostępem do repozytorium zawierającego implementację API, kontrakt API **POWINIEN** być dostępny dla interesariuszy do wglądu w innym miejscu.
-
----
-
-## [Minimalna Powierzchnia API (api-peak:general9:2025-yagni)](#yagni)
-
-Każdy projekt API **MUSI** dążyć do minimalnej powierzchni API bez poświęcania wymagań produktowych. Projekt API **NIE POWINIEN** zawierać zbędnych zasobów, relacji, akcji lub danych. Projekt API **NIE POWINIEN** dodawać funkcjonalności, dopóki nie zostanie to uznane za konieczne (zasada [YAGNI](https://en.wikipedia.org/wiki/You_aren%27t_gonna_need_it)).
+Every API design **MUST** be stored in a Version Control System (e.g. Bitbucket, GitHub). Where possible, the API design **SHOULD** be stored in the same repository as the API implementation. In the case of strict security policies regarding access to the repository containing the API implementation, the API contract **SHOULD** be made available for stakeholders to review elsewhere.
 
 ---
 
-## [Zasady rozszerzania (api-peak:general10:2025-rules-of-extension)](#rules-of-extension)
+## [Minimal API Surface (api-peak:general9:2025-yagni)](#yagni)
 
-Każda modyfikacja istniejącego API **MUSI** unikać wprowadzania zmian łamiących zgodność i **MUSI** zachować wsteczną kompatybilność. W przypadku, gdy istnieje potrzeba złamania kompatybilności wstecznej, API **MUSI** również zmienić swoją wersję **major**.
+Every API design **MUST** strive for a minimal API surface without sacrificing product requirements. The API design **SHOULD NOT** include unnecessary resources, relationships, actions, or data. The API design **SHOULD NOT** add functionality until it is deemed necessary (the [YAGNI](https://en.wikipedia.org/wiki/You_aren%27t_gonna_need_it) principle).
 
-W szczególności, każda zmiana w API **MUSI** przestrzegać następujących Zasad Rozszerzania:
+---
 
-- **NIE MOŻNA** niczego usuwać (powiązane: [Zasada minimalnej powierzchni](https://en.wikipedia.org/wiki/YAGNI), [Zasada solidności](https://en.wikipedia.org/wiki/Robustness_principle))
-- **NIE MOŻNA** zmieniać reguł przetwarzania
-- **NIE MOŻNA** czynić opcjonalnych rzeczy wymaganymi
-- Wszystko, co dodajesz, **MUSI** być opcjonalne (powiązane: [Zasada solidności](https://en.wikipedia.org/wiki/Robustness_principle))
+## [Rules of Extensibility (api-peak:general10:2025-rules-of-extension)](#rules-of-extension)
 
-> UWAGA: Te zasady obejmują również zmianę nazw i identyfikatorów (URI). Nazwy i identyfikatory powinny być stabilne w czasie, włącznie z ich semantyką.
+Every modification of an existing API **MUST** avoid introducing breaking changes and **MUST** maintain backward compatibility. Where there is a need to break backward compatibility, the API **MUST** also change its **major** version.
+
+In particular, every change to the API **MUST** follow these Rules of Extensibility:
+
+- You **MUST NOT** remove anything (related: [Minimal Surface Principle](https://en.wikipedia.org/wiki/YAGNI), [Robustness Principle](https://en.wikipedia.org/wiki/Robustness_principle))
+- You **MUST NOT** change processing rules
+- You **MUST NOT** make optional things required
+- Anything you add **MUST** be optional (related: [Robustness Principle](https://en.wikipedia.org/wiki/Robustness_principle))
+
+> NOTE: These rules also cover renaming and changing identifiers (URIs). Names and identifiers should be stable over time, including their semantics.
 
 ---
 
 ## [JSON (api-peak:general11:2025-json)](#json)
 
-Każda wiadomość oparta na JSON **MUSI** być zgodna z następującymi zasadami:
+Every JSON-based message **MUST** conform to the following rules:
 
-- Wszystkie nazwy pól JSON **MUSZĄ** przestrzegać [Konwencji Nazewnictwa]()
-- Nazwy pól **MUSZĄ** składać się z alfanumerycznych znaków ASCII, podkreślenia (_) lub znaku dolara ($)
-- Pola logiczne **NIE MOGĄ** mieć wartości `null`
-- Pola z wartością `null` **POWINNY** być pomijane
-- Puste tablice i obiekty **NIE MOGĄ** być `null` (zamiast tego użyj `[]` lub `{}`)
-- Nazwy pól będących tablicami **POWINNY** być w liczbie mnogiej (np. `"orders": []`)
+- All JSON field names **MUST** follow the [Naming Conventions]()
+- Field names **MUST** consist of alphanumeric ASCII characters, underscore (_), or dollar sign ($)
+- Boolean fields **MUST NOT** have a `null` value
+- Fields with a `null` value **SHOULD** be omitted
+- Empty arrays and objects **MUST NOT** be `null` (use `[]` or `{}` instead)
+- Field names for arrays **SHOULD** be plural (e.g. `"orders": []`)
 
 <!--
-### Walidacja
+### Validation
 
-Wszystkie API **MUSZĄ** walidować swój payload w zapytaniach/odpowiedziach za pomocą JSON Schema dla zdefiniowanej struktury przed publikacją Kontraktu API.
+All APIs **MUST** validate their request/response payloads using a JSON Schema for the defined structure before publishing the API Contract.
 
-Publikacja schematu JSON odpowiadającego oczekiwanym payloadom w treściach żądań i odpowiedzi **POWINNA** być aktualizowana zgodnie z ewolucją API.
+The published JSON schema corresponding to the expected request and response body payloads **SHOULD** be updated as the API evolves.
 -->
 
 ---
 
-## [Jedno Źródło Prawdy (api-peak:general12:2025-single-source-of-truth)](#single-source-of-truth)
+## [Single Source of Truth (api-peak:general12:2025-single-source-of-truth)](#single-source-of-truth)
 <!--
-Azure API Center jest główną platformą wspierającą podejście API-first. Azure API Center **MUSI** być używany podczas projektowania API.
+Azure API Center is the primary platform supporting the API-first approach. Azure API Center **MUST** be used when designing an API.
 
-Każdy opis API **MUSI** być przechowywany w Azure API Center w ramach zespołu API Peak. -->
+Every API description **MUST** be stored in Azure API Center within the API Peak team. -->
 
-Pliki schematów definicji interfejsów, takie jak:
+Interface definition schema files, such as:
 
-- OpenAPI Specification(OAS)/Swagger
+- OpenAPI Specification (OAS)/Swagger
 - GraphQL Schema Definition Language (SDL)
 - Web Service Description Language (WSDL)
-- Avro Schema automatycznie
+- Avro Schema
 
-i im podobne, znajdujące się w repozytorium projektu **MUSZĄ** być jedynym źródłem prawdy dla definicji API.
+and similar, located in the project repository, **MUST** be the single source of truth for the API definition.
 
-<!-- Azure API Center **POWINIEN** być zasilany bezpośrednio z repozytorium projektu plikiem projektowym, takim jak 
+<!-- Azure API Center **SHOULD** be fed directly from the project repository with a design file, such as
 
-UWAGA: Azure API Center wspiera podejście API-first na wiele sposobów:
-Na przykład, waliduje poprawność opisu API oraz automatycznie generuje dokumentację API, co ułatwia dyskusję między interesariuszami. (Koniec z wymianą e-maili z opisem API między interesariuszami) -->
+NOTE: Azure API Center supports the API-first approach in many ways:
+For example, it validates the correctness of the API description and automatically generates API documentation, making it easier for stakeholders to discuss. (No more exchanging emails with the API description between stakeholders) -->
 
-# API Guidelines dla REST
+# REST API Guidelines
 
-Wytyczne REST API Peak definiują standardy i wskazówki dotyczące budowania interfejsów REST API w API Peak. Wytyczne te muszą być przestrzegane razem z Ogólnymi Wytycznymi Projektowymi API Peak.
+The API Peak REST guidelines define the standards and guidance for building REST API interfaces at API Peak. These guidelines must be followed together with the API Peak General API Design Guidelines.
 
 ## [OpenAPI Specification (api-peak:rest1:2025-openapi)](#open-api-specification)
 
-Każde API **MUSI** być opisane przy użyciu formatu opisu OpenAPI. Używany format OpenAPI **MUSI** być zgodny ze [specyfikacją OpenAPI (wcześniej znaną jako Swagger Specification) w wersji 3.x.y](https://github.com/OAI/OpenAPI-Specification/blob/main/versions/3.1.1.md). Jeśli to możliwe, format opisu API **POWINIEN** być zgodny ze specyfikacją 3.1.x, ze względu na pełną kompatybilność z formatem JSON-Schema.
+Every API **MUST** be described using the OpenAPI description format. The OpenAPI format used **MUST** conform to the [OpenAPI Specification (formerly known as the Swagger Specification), version 3.x.y](https://github.com/OAI/OpenAPI-Specification/blob/main/versions/3.1.1.md). Where possible, the API description format **SHOULD** conform to the 3.1.x specification, due to its full compatibility with the JSON-Schema format.
 
-### `info.version` w OpenAPI (api-peak:rest2:2025-openapi-version)
+### `info.version` in OpenAPI (api-peak:rest2:2025-openapi-version)
 
-Element `info.version` w dokumencie OpenAPI **MUSI** określać wersję dokumentu API. Ta wersja nie jest tym samym, co wersja API.
-
----
-
-## [Dojrzałość Projektowania API (api-peak:rest3:2025-design-maturity-wadmm)](#maturity-wadmm)
-
-> Jak zaprojektować API
-
-Każdy projekt API **MUSI** być zorientowany na zasoby ([Poziom 2 Web API Design Maturity Model](http://amundsen.com/talks/2016-11-apistrat-wadm/2016-11-apistrat-wadm.pdf)). Oznacza to, że projekt API **MUSI** opierać się na zasobach w stylu Web, relacjach między tymi zasobami oraz działaniach, które mogą być przez nie oferowane.
-
-Projekt API **POWINIEN** być zorientowany na funkcję użytkową ([Poziom 3 Modelu Dojrzałości Projektowania Web API](http://amundsen.com/talks/2016-11-apistrat-wadm/2016-11-apistrat-wadm.pdf)).
+The `info.version` element in the OpenAPI document **MUST** specify the version of the API document. This version is not the same as the API version.
 
 ---
 
-## [Dojrzałość Implementacji Projektu API (api-peak:rest4:2025-design-maturity-rmm)](#maturity-rmm)
+## [API Design Maturity (api-peak:rest3:2025-design-maturity-wadmm)](#maturity-wadmm)
 
-Każda implementacja projektu API korzystająca z protokołu HTTP **MUSI** używać odpowiedniej metody żądania HTTP ([Poziom 2 Modelu Dojrzałości Richardsona](https://martinfowler.com/articles/richardsonMaturityModel.html#level2)) do realizacji działania oferowanego przez zasób.
+> How to design an API
 
-Implementacja projektu API **POWINNA** zawierać kontrolki hypermedia (HATEOAS) ([Poziom 3 Modelu Dojrzałości Richardsona](https://martinfowler.com/articles/richardsonMaturityModel.html#level3)).
+Every API design **MUST** be resource-oriented ([Level 2 of the Web API Design Maturity Model](http://amundsen.com/talks/2016-11-apistrat-wadm/2016-11-apistrat-wadm.pdf)). This means the API design **MUST** be based on Web-style resources, the relationships between these resources, and the actions they may offer.
+
+The API design **SHOULD** be task-oriented ([Level 3 of the Web API Design Maturity Model](http://amundsen.com/talks/2016-11-apistrat-wadm/2016-11-apistrat-wadm.pdf)).
+
+---
+
+## [API Design Implementation Maturity (api-peak:rest4:2025-design-maturity-rmm)](#maturity-rmm)
+
+Every API design implementation using the HTTP protocol **MUST** use the appropriate HTTP request method ([Level 2 of the Richardson Maturity Model](https://martinfowler.com/articles/richardsonMaturityModel.html#level2)) to perform the action offered by the resource.
+
+The API design implementation **SHOULD** include hypermedia controls (HATEOAS) ([Level 3 of the Richardson Maturity Model](https://martinfowler.com/articles/richardsonMaturityModel.html#level3)).
 
 <!-- 
 ---
 
-## [Testowanie kontraktowe](#contract-testing)
+## [Contract testing](#contract-testing)
 
-Każda implementacja API REST **MUSI** być przetestowana względem swojego kontraktu, czyli projektu API w formacie OpenAPI.
+Every REST API implementation **MUST** be tested against its contract, i.e. the API design in OpenAPI format.
 -->
 ---
 
-## [Konwencje Nazewnictwa ](#naming-conventions)
+## [Naming Conventions](#naming-conventions)
 
-Poniższe konwencje nazewnictwa odnoszą się do formatu opisu API.
+The following naming conventions apply to the API description format.
 
-### [Ogólne Zasady Nazewnictwa (api-peak:rest5:2025-general-naming-conventions)](#general-naming-conventions)
+### [General Naming Rules (api-peak:rest5:2025-general-naming-conventions)](#general-naming-conventions)
 
-Każdy identyfikator **MUSI** być zapisany małymi literami.
+Every identifier **MUST** be written in lowercase.
 
-Identyfikator **NIE POWINIEN** zawierać akronimów biznesowych.
+An identifier **SHOULD NOT** contain business acronyms.
 
-Do oddzielania złożonych słów **MUSI** być używana konwencja `camelCase` (np. `itemIdentifier`).  
+The `camelCase` convention **MUST** be used to separate compound words (e.g. `itemIdentifier`).  
 
 ### [URI (api-peak:rest6:2025-uri-naming-conventions)](#uri-naming-conventions)  
 
-Każdy URI **MUSI** przestrzegać Ogólnych Zasad, z wyjątkiem konwencji `camelCase`. Zamiast tego, do oddzielania złożonych słów **MUSI** być używany łącznik (-) (konwencja `kebab-case`). Ponadto URI **NIE MOŻE** kończyć się ukośnikiem (/). <!-- a co z przykładami, gdy identyfikator zawiera /? -->
+Every URI **MUST** follow the General Rules, except for the `camelCase` convention. Instead, a hyphen (-) **MUST** be used to separate compound words (the `kebab-case` convention). In addition, a URI **MUST NOT** end with a slash (/). <!-- what about examples where the identifier contains a /? -->
 
-Rzeczowniki w liczbie mnogiej **POWINNY** być używane w URI, aby identyfikować kolekcje zasobów danych (np. `/orders`, `/products`).
+Plural nouns **SHOULD** be used in URIs to identify collections of data resources (e.g. `/orders`, `/products`).
 
-Pojedynczy zasób w kolekcji zasobów **MOŻE** istnieć bezpośrednio pod URI kolekcji (np. `/orders/{order_id}`).
+A single resource within a resource collection **MAY** exist directly under the collection's URI (e.g. `/orders/{order_id}`).
 
-<!-- jak adresować problem wielu bardzo długich identyfikatorów, limit w URI jest 1024 znaków -->
+<!-- how to address the problem of many very long identifiers, the URI limit is 1024 characters -->
 
-#### Przykład
+#### Example
 
-Poprawnie sformułowany URI:  
+A correctly formed URI:  
 
 ```text
 /system-orders/1234/author
 ```
 
-### [Parametry Zapytania i Fragmenty Ścieżki (api-peak:rest7:2025-paths-naming-conventions)](#parameters-paths-naming-conventions)  
+### [Query Parameters and Path Fragments (api-peak:rest7:2025-paths-naming-conventions)](#parameters-paths-naming-conventions)  
 
-Każdy parametr zapytania URI lub fragment **MUSI** przestrzegać Ogólnych Zasad. Dodatkowo **NIE MOGĄ** one kolidować z zastrzeżonymi nazwami parametrów zapytania, np `offset` dla stronicowania, lub parametrów zarezerwowanych przez używane.
+Every URI query parameter or fragment **MUST** follow the General Rules. In addition, they **MUST NOT** collide with reserved query parameter names, e.g. `offset` for pagination, or parameters reserved by whatever is in use.
 
-<!-- doprecyzować jakie są zastrzeżone parametry; czy sa zastrzeżone zawsze, czy jako konwencja/best practice -->
+<!-- clarify which parameters are reserved; are they always reserved, or just as a convention/best practice -->
 
-#### [Zmienne Szablonu URI (api-peak:rest8:2025-path-params-naming-conventions)](#path-params-naming-conventions)
+#### [URI Template Variables (api-peak:rest8:2025-path-params-naming-conventions)](#path-params-naming-conventions)
 
-Oprócz Ogólnych Zasad Nazewnictwa, nazwy zmiennych szablonu URI **MUSZĄ** być zgodne z [RFC6570](https://datatracker.ietf.org/doc/html/rfc6570#section-2.3). Oznacza to, że nazwy zmiennych mogą składać się wyłącznie z symboli `ALPHA / DIGIT / "_" / pct-encoded`.
+In addition to the General Naming Rules, URI template variable names **MUST** conform to [RFC6570](https://datatracker.ietf.org/doc/html/rfc6570#section-2.3). This means variable names may consist only of the symbols `ALPHA / DIGIT / "_" / pct-encoded`.
 
-<!-- Kiedy jest możliwość, aby w szablonach URI był pct-encoded? -->
+<!-- When is it possible for URI templates to be pct-encoded? -->
 
-> **UWAGA:** Zgodnie z RFC6570 znak łącznika (-) NIE jest dozwolonym znakiem dla nazw zmiennych szablonu URI.  
+> **NOTE:** According to RFC6570, the hyphen character (-) is NOT an allowed character for URI template variable names.  
 
-#### Przykład  
+#### Example  
 
-Poprawnie sformułowana zmienna szablonu URI:  
+A correctly formed URI template variable:  
 
 ```text
 /system-orders/{orderId}/author
 ```
 
-### [Format Pola Reprezentacji (api-peak:rest9:2025-representation-format-naming-conventions)](#representation-format-naming-conventions)
+### [Representation Field Format (api-peak:rest9:2025-representation-format-naming-conventions)](#representation-format-naming-conventions)
 
-Każde pole formatu reprezentacji **MUSI** być zgodne z Ogólnymi Zasadami Nazewnictwa.
+Every representation format field **MUST** conform to the General Naming Rules.
 
-#### Przykład
-Poprawnie sformułowana reprezentacja zasobu:  
+#### Example
+A correctly formed resource representation:  
 
 ```json
 {
@@ -252,13 +252,13 @@ Poprawnie sformułowana reprezentacja zasobu:
 }
 ```
 <!--
-### [Identyfikator Typu Relacji](#relation-type-naming-conventions)
+### [Relation Type Identifier](#relation-type-naming-conventions)
 
-Każdy niestandardowy identyfikator relacji **MUSI** być zapisany małymi literami, a słowa oddzielone łącznikiem (-).  
+Every custom relation identifier **MUST** be written in lowercase, with words separated by a hyphen (-).  
 
-#### Przykład
+#### Example
 
-Poprawnie sformułowana reprezentacja zasobu z niestandardową relacją fulfillment-provider:  
+A correctly formed resource representation with a custom fulfillment-provider relation:  
 
 ```json
 {
@@ -270,11 +270,11 @@ Poprawnie sformułowana reprezentacja zasobu z niestandardową relacją fulfillm
 }
 ```
 -->
-### [Nagłówki HTTP (api-peak:rest10:2025-headers-naming-conventions)](#headers-naming-conventions)
+### [HTTP Headers (api-peak:rest10:2025-headers-naming-conventions)](#headers-naming-conventions)
 
-Każdy nagłówek HTTP **POWINIEN** stosować konwencję `Hyphenated-Pascal-Case`. Niestandardowy nagłówek HTTP **NIE POWINIEN** zaczynać się od `X-` (zgodnie z [RFC6648](https://datatracker.ietf.org/doc/html/rfc6648)).
+Every HTTP header **SHOULD** use the `Hyphenated-Pascal-Case` convention. A custom HTTP header **SHOULD NOT** start with `X-` (per [RFC6648](https://datatracker.ietf.org/doc/html/rfc6648)).
 
-#### Przykład
+#### Example
 
 ```text
 Order-Metadata-Header: 42
@@ -282,13 +282,13 @@ Order-Metadata-Header: 42
 
 ---
 
-## [Opis API](#api-description)
+## [API Description](#api-description)
 
-### [Nazwa API (api-peak:rest11:2025-api-naming)](#api-naming) 
+### [API Name (api-peak:rest11:2025-api-naming)](#api-naming) 
 
-Każda nazwa API w dokumencie opisu API **MUSI** być zapisana w konwencji **Title Case**, czyli każdy wyraz **MUSI** zaczynać się od wielkiej litery. Ponadto, każda nazwa API **MUSI** kończyć się słowem `API`. Tytuł API **NIE POWINIEN** zawierać akronimów biznesowych i skrótów, np. `Ubezpieczenia GR API` lub `Szko Lik API`.
+Every API name in the API description document **MUST** be written in **Title Case**, meaning every word **MUST** start with a capital letter. In addition, every API name **MUST** end with the word `API`. The API title **SHOULD NOT** contain business acronyms or abbreviations, e.g. `Grp Ins API` or `Clm Sttlmt API`.
 
-#### Przykład
+#### Example
 
 ```yaml
 openapi: '3.1.0'
@@ -297,33 +297,33 @@ info:
   title: 'Customer Orders API'
 ```
 
-### [Nazwa Zasobu (api-peak:rest12:2025-resource-name)](#resource-name)
+### [Resource Name (api-peak:rest12:2025-resource-name)](#resource-name)
 
-Każdy zasób (endpoint) **MUSI** mieć nazwę (zdefiniowaną w polu `summary`). Nazwa zasobu **MUSI** być zapisana w **Title Case**, a słowa oddzielone spacją. Nazwa zasobu **NIE POWINNA** zawierać akronimów biznesowych i skrótów, np. `Lista GR` lub `Lista Ub`.
+Every resource (endpoint) **MUST** have a name (defined in the `summary` field). The resource name **MUST** be written in **Title Case**, with words separated by a space. The resource name **SHOULD NOT** contain business acronyms or abbreviations, e.g. `Grp List` or `Ins List`.
 
-#### Przykład
+#### Example
 
 ```yaml
 /orders:
   summary: List of Orders
 ```
 
-### [Nazwa operacji (api-peak:rest13:2025-operation-name)](#operation-name)
+### [Operation Name (api-peak:rest13:2025-operation-name)](#operation-name)
 
-Każda operacja (akcja) **MUSI** mieć nazwę (zdefiniowaną w polu `summary`). Nazwa akcji **MUSI** być zapisana w **Title Case**, a słowa oddzielone spacją. Nazwa operacji **NIE POWINNA** zawierać akronimów biznesowych i skrótów, np. `Uaktualnij listę GR` lub `Usuń Ub`.
+Every operation (action) **MUST** have a name (defined in the `summary` field). The action name **MUST** be written in **Title Case**, with words separated by a space. The operation name **SHOULD NOT** contain business acronyms or abbreviations, e.g. `Update Grp List` or `Delete Ins`.
 
-#### Przykład
+#### Example
 
 ```yaml
 get:
   summary: Retrieve List of Orders
 ```
 
-### [Opis operacji (api-peak:rest14:2025-operation-description)](#operation-description)
+### [Operation Description (api-peak:rest14:2025-operation-description)](#operation-description)
 
-Każda operacja (akcja) **POWINNA** mieć opis (zdefiniowaną w polu `description`). Każdy opis **POWINIEN** mieć długość przynajmniej 30 znaków. Opis **MOŻE** być w formacie Markdown.
+Every operation (action) **SHOULD** have a description (defined in the `description` field). Every description **SHOULD** be at least 30 characters long. The description **MAY** be in Markdown format.
 
-#### Przykład
+#### Example
 
 ```yaml
 get:
@@ -333,119 +333,119 @@ get:
 ```
 
 ---
-<!-- do sprawdzenia, dodać przykład -->
-## [Struktura URI (api-peak:rest15:2025-uri-structure)](#uri-structure)
+<!-- to verify, add example -->
+## [URI Structure (api-peak:rest15:2025-uri-structure)](#uri-structure)
 
-URI służy do wyrażania tożsamości zasobu. URI jest identyfikatorem i **NIE MOŻE** przekazywać żadnych innych informacji.
+The URI is used to express the identity of a resource. The URI is an identifier and **MUST NOT** convey any other information.
 
-W API Peak URI podlegają konwencjom nazewnictwa opisanym powyżej.
+At API Peak, URIs are subject to the naming conventions described above.
 
-Aby dowiedzieć się więcej na temat tej problematyki, zapoznaj się z dokumentem [RFC 7320: URI Design and Ownership](https://tools.ietf.org/html/rfc7320).
-<!-- do tąd -->
+To learn more about this topic, refer to [RFC 7320: URI Design and Ownership](https://tools.ietf.org/html/rfc7320).
+<!-- up to here -->
 ---
 
 ## [HTTP (api-peak:rest16:2025-http)](#http)
 
-Każde API **MUSI** obsługiwać co najmniej [HTTP/1.1](https://www.rfc-editor.org/rfc/rfc9112) i **MUSI** przestrzegać jego semantyki. <!-- API **MOŻE** obsługiwać HTTP/2 lub HTTP/3. (dodac linki) -->
+Every API **MUST** support at least [HTTP/1.1](https://www.rfc-editor.org/rfc/rfc9112) and **MUST** follow its semantics. <!-- The API **MAY** support HTTP/2 or HTTP/3. (add links) -->
 
 ### [HTTPS (api-peak:rest17:2025-https)](#https)
 
-Każde API **MUSI** wymagać bezpiecznych połączeń z użyciem [TLS w wersji przynajmniej 1.2](https://datatracker.ietf.org/doc/html/rfc5246). **MOŻE** używać [TLS 1.3](https://datatracker.ietf.org/doc/html/rfc8446). Oznacza to, że API korzystające z protokołu HTTP **MUSI** używać HTTPS.
+Every API **MUST** require secure connections using [TLS version 1.2 or later](https://datatracker.ietf.org/doc/html/rfc5246). It **MAY** use [TLS 1.3](https://datatracker.ietf.org/doc/html/rfc8446). This means that an API using the HTTP protocol **MUST** use HTTPS.
 
-Wszelkie żądania bez TLS **POWINNY** być ignorowane. W środowiskach HTTP, gdzie nie jest to możliwe, żądanie bez TLS **POWINNO** skutkować odpowiedzią `403 Forbidden`.
-
----
-
-## [Separacja Zagadnień (api-peak:rest18:2025-separation-of-concerns)](#separation-of-concerns)
-
-Każde API korzystające z HTTP **MUSI** ściśle przestrzegać separacji zagadnień w wiadomości HTTP:
-
-I. *Identyfikator zasobu (URI)* **POWINIEN** być używany wyłącznie do wskazania tożsamości <!-- docelowo MUSI -->
-II. *Metoda żądania HTTP* **MUSI** być używana do komunikowania semantyki działania (intencja i bezpieczeństwo)
-III. *Kod statusu odpowiedzi HTTP* **MUSI** być używany do przekazywania informacji o wyniku próby zrozumienia i spełnienia żądania
-IV. *Treść wiadomości HTTP* **MUSI** być używana do przesyłania zawartości wiadomości
-V. *Nagłówki wiadomości HTTP* **MUSZĄ** być używane do przesyłania metadanych o wiadomości i jej zawartości
-VI. *Parametr zapytania URI* **NIE POWINIEN** być używany do przesyłania metadanych
-
-### Przykłady
-
-Znajdują się na [stronie dobrych praktyk, w dziale "Separacja Zagadnień"](/best-practices#separation-of-concerns).
+Any requests without TLS **SHOULD** be ignored. In HTTP environments where this is not possible, a request without TLS **SHOULD** result in a `403 Forbidden` response.
 
 ---
 
-## [Metody zapytań (api-peak:rest19:2025-request-methods)](#request-methods)
+## [Separation of Concerns (api-peak:rest18:2025-separation-of-concerns)](#separation-of-concerns)
 
-Każde API **MUSI** używać poprawnych [metod HTTP](https://github.com/for-GET/know-your-http-well/blob/master/methods.md) dla każdej operacji.
+Every API using HTTP **MUST** strictly follow the separation of concerns in the HTTP message:
 
-Każdy użytkownik (_provider_, _konsument_, itd.) API **MUSI** rozumieć semantykę metody HTTP, której używa.
+I. The *resource identifier (URI)* **SHOULD** be used solely to indicate identity <!-- eventually MUST -->
+II. The *HTTP request method* **MUST** be used to communicate the semantics of the action (intent and safety)
+III. The *HTTP response status code* **MUST** be used to convey information about the outcome of the attempt to understand and fulfill the request
+IV. The *HTTP message body* **MUST** be used to transmit the message content
+V. *HTTP message headers* **MUST** be used to convey metadata about the message and its content
+VI. The *URI query parameter* **SHOULD NOT** be used to convey metadata
 
-Wszyscy **MUSZĄ** być zaznajomieni z semantyką ["powszechnych" metod żądań HTTP](https://github.com/for-GET/know-your-http-well/blob/master/methods.md#common): **DELETE**, **GET**, **HEAD**, **PUT**, **POST** oraz [**PATCH**](https://tools.ietf.org/html/rfc5789#section-2). Ponadto, każdy **MUSI** wiedzieć, które metody są [**bezpieczne**](/rest#safe-methods), [**idempotentne**](/rest#idempotency) i [**możliwe do buforowania**](/rest#cacheable-methods).
+### Examples
 
-### [Metody Bezpieczne](#safe-methods)
-
-Zgodnie ze specyfikacją HTTP, metody **GET** i **HEAD** powinny być używane wyłącznie do pobierania reprezentacji zasobów – nie aktualizują/usuwają zasobów na serwerze. Obie metody są uważane za „bezpieczne”. To pozwala agentom użytkownika na specjalne reprezentowanie innych metod, takich jak POST, PUT i DELETE, aby użytkownik był świadomy potencjalnie niebezpiecznego działania – mogą one aktualizować/usunąć zasób na serwerze i dlatego powinny być używane ostrożnie.
-
-### [Metody Idempotentne](#idempotency)
-
-Termin idempotentność opisuje operację, która da takie same wyniki przy jednokrotnym lub wielokrotnym wykonaniu. Jest to korzystna cecha w wielu sytuacjach, ponieważ oznacza, że transakcję można powtarzać lub próbować ponownie tyle razy, ile to konieczne, bez powodowania niezamierzonych skutków. W specyfikacji HTTP metody **GET**, **HEAD**, **PUT** i **DELETE** są uznawane za idempotentne. Inne metody **OPTIONS** i **TRACE** **NIE POWINNY** mieć skutków ubocznych, więc obie są również z natury idempotentne. **NIE MOŻNA** implementować metod HTTP z inną idempotentnością niż jest to zdefiniowane domyślnie.
-
-### [Metody Buforowalne](#cacheable-methods)
-
-Metody żądań są uważane za _buforowalne_ (ang. cacheable), jeśli możliwe i użyteczne jest odpowiedzenie na bieżące żądanie klienta przechowywaną odpowiedzią z wcześniejszego żądania. **GET** i **HEAD** są zdefiniowane jako buforowalne.
-
-#### Przykład 1
-
-```text
-GET /user/new Opis: Tworzy nowego użytkownika
-```
-
-Używanie GET do operacji niebezpiecznych i nieidempotentnych jest **niedopuszczalne**.
-
-#### Przykład 2
-
-```text
-POST /status Opis: Aktualizuje status prośby o zatwierdzenie użytkownika (na „Approved” lub „Rejected”)
-```
-
-Używanie metody POST do aktualizacji statusu jest **niedopuszczalne** (należy użyć PATCH).
-
-#### Przykład 3
-
-```text
-PUT /user Opis: Tworzy nowego użytkownika
-```
-
-Używanie metody PUT do tworzenia nowego zasobu jest ***niedopuszczalne*** (należy użyć POST).
-
-#### Przykład 4
-
-```text
-PUT: /user Opis: Aktualizuje niektóre szczegóły użytkownika
-```
-
-Używanie metody PUT do częściowej aktualizacji jest **niedopuszczalne** (należy użyć PATCH).
+These can be found on the [best practices page, in the "Separation of Concerns" section](/best-practices#separation-of-concerns).
 
 ---
 
-## [Kody Statusu Odpowiedzi (ang. Response Status Codes) (api-peak:rest20:2025-status-codes)](#status-codes)
+## [Request Methods (api-peak:rest19:2025-request-methods)](#request-methods)
 
-Każde API **MUSI** używać odpowiednich [kodów statusu HTTP](https://github.com/for-GET/know-your-http-well/blob/master/status-codes.md), aby komunikować wynik operacji żądania.
+Every API **MUST** use the correct [HTTP methods](https://github.com/for-GET/know-your-http-well/blob/master/methods.md) for each operation.
 
-Każdy projektant, wdrożeniowiec i użytkownik API **MUSI** rozumieć semantykę kodu statusu HTTP, którego używa.
-Wszyscy **POWINNI** być zaznajomieni z semantyką [_powszechnych_ kodów statusu HTTP](https://github.com/for-GET/know-your-http-well/blob/master/status-codes.md#common).
+Every API user (_provider_, _consumer_, etc.) **MUST** understand the semantics of the HTTP method they use.
 
-### [Używaj kodów 4xx lub 5xx do komunikowania błędów (api-peak:rest21:2025-error-codes)](#error-codes)
+Everyone **MUST** be familiar with the semantics of the ["common" HTTP request methods](https://github.com/for-GET/know-your-http-well/blob/master/methods.md#common): **DELETE**, **GET**, **HEAD**, **PUT**, **POST**, and [**PATCH**](https://tools.ietf.org/html/rfc5789#section-2). In addition, everyone **MUST** know which methods are [**safe**](/rest#safe-methods), [**idempotent**](/rest#idempotency), and [**cacheable**](/rest#cacheable-methods).
 
-Zakres `4xx` dotyczy błędów po stronie konsumenta/klienta API, podczas gdy zakres `5xx` dotyczy błędów w usłudze infrastruktury lub implementacji API.
+### [Safe Methods](#safe-methods)
 
-Żądanie:
+Per the HTTP specification, the **GET** and **HEAD** methods should be used solely to retrieve resource representations – they do not update/delete resources on the server. Both methods are considered "safe". This allows user agents to represent other methods, such as POST, PUT, and DELETE, specially, so the user is aware of a potentially unsafe action – these may update/delete a resource on the server and should therefore be used with caution.
+
+### [Idempotent Methods](#idempotency)
+
+The term idempotency describes an operation that produces the same results whether performed once or multiple times. This is a beneficial property in many situations, since it means a transaction can be repeated or retried as many times as necessary without causing unintended effects. In the HTTP specification, the **GET**, **HEAD**, **PUT**, and **DELETE** methods are considered idempotent. The other methods, **OPTIONS** and **TRACE**, **SHOULD NOT** have side effects, so both are also inherently idempotent. HTTP methods **MUST NOT** be implemented with idempotency different from what is defined by default.
+
+### [Cacheable Methods](#cacheable-methods)
+
+Request methods are considered _cacheable_ if it is possible and useful to respond to the current client request with a stored response from a previous request. **GET** and **HEAD** are defined as cacheable.
+
+#### Example 1
+
+```text
+GET /user/new Description: Creates a new user
+```
+
+Using GET for unsafe and non-idempotent operations is **not allowed**.
+
+#### Example 2
+
+```text
+POST /status Description: Updates the status of a user approval request (to "Approved" or "Rejected")
+```
+
+Using the POST method to update status is **not allowed** (PATCH should be used instead).
+
+#### Example 3
+
+```text
+PUT /user Description: Creates a new user
+```
+
+Using the PUT method to create a new resource is ***not allowed*** (POST should be used instead).
+
+#### Example 4
+
+```text
+PUT: /user Description: Updates some details of a user
+```
+
+Using the PUT method for a partial update is **not allowed** (PATCH should be used instead).
+
+---
+
+## [Response Status Codes (api-peak:rest20:2025-status-codes)](#status-codes)
+
+Every API **MUST** use the appropriate [HTTP status codes](https://github.com/for-GET/know-your-http-well/blob/master/status-codes.md) to communicate the outcome of a request operation.
+
+Every API designer, implementer, and user **MUST** understand the semantics of the HTTP status code they use.
+Everyone **SHOULD** be familiar with the semantics of the [_common_ HTTP status codes](https://github.com/for-GET/know-your-http-well/blob/master/status-codes.md#common).
+
+### [Use 4xx or 5xx Codes to Communicate Errors (api-peak:rest21:2025-error-codes)](#error-codes)
+
+The `4xx` range covers errors on the API consumer/client side, while the `5xx` range covers errors in the infrastructure service or API implementation.
+
+Request:
 
 ```text
 GET /orders/1234 HTTP/1.1
 ...
 ```
 
-zakończone odpowiedzią `200 OK`, gdy żądany zasób (zidentyfikowany przez URI żądania) nie został znaleziony:
+resulting in a `200 OK` response, when the requested resource (identified by the request URI) was not found:
 
 ```text
 HTTP/1.1 200 OK
@@ -458,32 +458,32 @@ Content-Type: application/json
 }
 ```
 
-jest ***niedopuszczalne***.
+is ***not allowed***.
 
-Zamiast tego powinno zostać zwrócone:
+Instead, the following should be returned:
 
 ```text
 HTTP/1.1 404 Not Found
 ...
 ```
 
-### Zalecana Lektura
+### Recommended Reading
 
-[Jak myśleć o kodach statusu HTTP](https://www.mnot.net/blog/2017/05/11/status_codes)
+[How to think about HTTP status codes](https://www.mnot.net/blog/2017/05/11/status_codes)
 
 ---
 
-## [Format Wiadomości](#message-format)
+## [Message Format](#message-format)
 
-### [Format Odpowiedzi na Błąd (api-peak:rest22:2025-problem-detail)](#problem-detail)
+### [Error Response Format (api-peak:rest22:2025-problem-detail)](#problem-detail)
 
-Format `application/problem+json` (Problem Detail) **MUSI** być używany do komunikowania szczegółów dotyczących błędu.
+The `application/problem+json` (Problem Detail) format **MUST** be used to communicate error details.
 
-Problem Detail jest przeznaczony do użycia z kodami statusu HTTP 4xx i 5xx. Problem Detail **NIE MOŻE** być używany z odpowiedziami o kodzie statusu 2xx.
+Problem Detail is intended for use with 4xx and 5xx HTTP status codes. Problem Detail **MUST NOT** be used with 2xx status code responses.
 
-Każda odpowiedź Problem Detail **MUSI** zawierać pola `title` i `detail`. Wartość `title` **NIE POWINNA** zmieniać się przy każdym wystąpieniu problemu, z wyjątkiem celów lokalizacyjnych (np. używając proaktywnej negocjacji zawartości).
+Every Problem Detail response **MUST** include the `title` and `detail` fields. The `title` value **SHOULD NOT** change with every occurrence of the problem, except for localization purposes (e.g. using proactive content negotiation).
 
-#### Przykład
+#### Example
 
 ```json
 {
@@ -492,11 +492,11 @@ Każda odpowiedź Problem Detail **MUSI** zawierać pola `title` i `detail`. War
 }
 ```
 
-> UWAGA: Pola `title` i `detail` **NIE POWINNY** być analizowane w celu określenia natury błędu. Zamiast tego **MUSI** być używane pole `type`.
+> NOTE: The `title` and `detail` fields **SHOULD NOT** be parsed to determine the nature of the error. The `type` field **MUST** be used instead.
 
-#### Pola Opcjonalne
+#### Optional Fields
 
-Każda odpowiedź Problem Detail powinna mieć pole `type` z identyfikatorem błędu. Ponadto **MOŻE** mieć pole `instance` z URI zasobu, którego dotyczy. Jeśli odpowiedź Problem Detail zawiera pole `status`, **MUSI** mieć tę samą wartość co kod Statusu HTTP odpowiedzi.
+Every Problem Detail response should have a `type` field with an error identifier. It **MAY** also have an `instance` field with the URI of the affected resource. If a Problem Detail response includes a `status` field, it **MUST** have the same value as the response's HTTP status code.
 
 ```json
 {
@@ -508,25 +508,25 @@ Każda odpowiedź Problem Detail powinna mieć pole `type` z identyfikatorem bł
 }
 ```
 
-> UWAGA: Pole `type` jest identyfikatorem i jako takie **MOŻE** być używane do oznaczania dodatkowych kodów błędów. Należy pamiętać, że identyfikator powinien być URI.
+> NOTE: The `type` field is an identifier and, as such, **MAY** be used to denote additional error codes. Keep in mind that the identifier should be a URI.
 
-#### Dodatkowe Pola
+#### Additional Fields
 
-Jeśli to konieczne, Problem Detail **MOŻE** zawierać dodatkowe pola, szczegóły znajdują się w [RFC9457](https://www.rfc-editor.org/rfc/rfc9457).
+If necessary, Problem Detail **MAY** include additional fields; see [RFC9457](https://www.rfc-editor.org/rfc/rfc9457) for details.
 
-### [Format Wiadomości Żądania (api-peak:rest23:2025-message-json)](#message-json)
+### [Request Message Format (api-peak:rest23:2025-message-json)](#message-json)
 
-Wiadomości żądania z treścią **MUSZĄ** obsługiwać format `application/json (JSON)`.
+Request messages with a body **MUST** support the `application/json` (JSON) format.
 
-## [Negocjacja Zawartości (ang. Content Negotiation) (api-peak:rest24:2025-content-negotiation)](#content-negotiation)
+## [Content Negotiation (api-peak:rest24:2025-content-negotiation)](#content-negotiation)
 
-Każde API **MUSI** implementować, a każdy Konsument API **MUSI** używać [negocjacji zawartości HTTP](https://tools.ietf.org/html/rfc7231#section-3.4), **gdy żądana jest reprezentacja zasobu**.
+Every API **MUST** implement, and every API Consumer **MUST** use, [HTTP content negotiation](https://tools.ietf.org/html/rfc7231#section-3.4) **when a resource representation is requested**.
 
-> UWAGA: Negocjacja zawartości odgrywa kluczową rolę w ewolucji API, zarządzaniu zmianami i wersjonowaniu.
+> NOTE: Content negotiation plays a key role in API evolution, change management, and versioning.
 
-#### Przykład
+#### Example
 
-Klient jest zaprogramowany do rozumienia semantyki formatu wiadomości `application/vnd.example.resource+json; version=2`. Klient żąda reprezentacji zasobu `/greeting` w pożądanym typie mediów (w tym jego wersji) od serwera:
+A client is programmed to understand the semantics of the message format `application/vnd.example.resource+json; version=2`. The client requests a representation of the `/greeting` resource in the desired media type (including its version) from the server:
 
 ```text
 GET /greeting HTTP/1.1
@@ -534,7 +534,7 @@ Accept: application/vnd.example.resource+json; version=2
 ...
 ```
 
-Serwer może dostarczyć tylko nowszą wersję żądanego typu mediów `version=2.1.3`. Jednakże, ponieważ nowsza wersja jest kompatybilna wstecz z żądaną wersją `version=2` (zobacz: [Zmiany i Wersjonowanie](./#zmiany-i-wersjonowanie)), może spełnić żądanie i odpowiada:
+The server may only have a newer version of the requested media type available, `version=2.1.3`. However, since the newer version is backward compatible with the requested `version=2` (see: [Changes and Versioning](./#changing-versioning)), it can fulfill the request and responds:
 
 ```text
 HTTP/1.1 200 OK
@@ -542,37 +542,37 @@ Content-Type: application/vnd.example.resource+json; version=2.1.3
 ...
 ```
 
-> UWAGA: Serwer, który nie ma dostępnej żądanej reprezentacji typu mediów, **MUSI** odpowiedzieć kodem statusu HTTP **406 Not Acceptable**.
+> NOTE: A server that does not have the requested media type representation available **MUST** respond with the HTTP status code **406 Not Acceptable**.
 
-> UWAGA: Serwer **MOŻE** mieć dostępne wiele opcji i **MOŻE** odpowiedzieć odpowiedzią **300 Multiple Choices**. W takim przypadku klient **POWINIEN** wybrać spośród przedstawionych opcji.
+> NOTE: A server **MAY** have multiple options available and **MAY** respond with **300 Multiple Choices**. In this case, the client **SHOULD** choose from the options presented.
 
-Więcej o negocjacji zawartości można przeczytać na stronie [MDN Content negotiation](https://developer.mozilla.org/en-US/docs/Web/HTTP/Content_negotiation).
+More on content negotiation can be found on the [MDN Content negotiation](https://developer.mozilla.org/en-US/docs/Web/HTTP/Content_negotiation) page.
 
 ---
 
-## [Typy Danych](#data-formats)
+## [Data Types](#data-formats)
 
-### [Format Daty i Czasu (api-peak:rest25:2025-date-time-format)](#date-time-format)
+### [Date and Time Format (api-peak:rest25:2025-date-time-format)](#date-time-format)
 
-Data i czas **MUSZĄ** zawsze być zgodne z formatem [ISO 8601](https://pl.wikipedia.org/wiki/ISO_8601), np.: `2017-06-21T14:07:17Z` (data i czas) lub `2017-06-21` (data)<!--, **MUSZĄ** używać UTC (bez przesunięć czasowych) - tu musimy ustalić jaką strefę czasową używamy. Czy jest to polska, UTC, itp. Pamietajmy, ze strefa czasowa zmienia sie w zaleznosci od tego czy mamy czas letni, czy zimowy (zimowy to nasza nominalna strefa czasowa UTC+1, natomiast letnia, to UTC+2)-->.
+Date and time **MUST** always conform to the [ISO 8601](https://en.wikipedia.org/wiki/ISO_8601) format, e.g.: `2017-06-21T14:07:17Z` (date and time) or `2017-06-21` (date)<!--, **MUST** use UTC (no time zone offsets) - we still need to decide which time zone to use. Is it Polish time, UTC, etc. Keep in mind that the time zone changes depending on daylight saving time (winter is our nominal UTC+1 zone, summer is UTC+2)-->.
 
-### [Format Czasu Trwania (api-peak:rest26:2025-duration-format)](#duration-format)
+### [Duration Format (api-peak:rest26:2025-duration-format)](#duration-format)
 
-Format czasu trwania **MUSI** być zgodny ze standardem [ISO 8601](https://pl.wikipedia.org/wiki/ISO_8601), np.: `P3Y6M4DT12H30M5S` (trzy lata, sześć miesięcy, cztery dni, dwanaście godzin, trzydzieści minut i pięć sekund).
+The duration format **MUST** conform to the [ISO 8601](https://en.wikipedia.org/wiki/ISO_8601) standard, e.g.: `P3Y6M4DT12H30M5S` (three years, six months, four days, twelve hours, thirty minutes, and five seconds).
 
-### [Format Przedziału Czasowego (api-peak:rest27:2025-timeframe-format)](#timeframe-format)
+### [Time Interval Format (api-peak:rest27:2025-timeframe-format)](#timeframe-format)
 
-Format przedziału czasowego **MUSI** być zgodny ze standardem [ISO 8601](https://pl.wikipedia.org/wiki/ISO_8601), np.: `2007-03-01T13:00:00Z/2008-05-11T15:30:00Z`.
+The time interval format **MUST** conform to the [ISO 8601](https://en.wikipedia.org/wiki/ISO_8601) standard, e.g.: `2007-03-01T13:00:00Z/2008-05-11T15:30:00Z`.
 
-### [Standardowe Znaczniki Czasowe (api-peak:rest28:2025-timestamps)](#timestamps)
+### [Standard Timestamps (api-peak:rest28:2025-timestamps)](#timestamps)
 
-Gdy to możliwe, reprezentacja zasobu **POWINNA** zawierać standardowe znaczniki czasowe:
+Where possible, the resource representation **SHOULD** include standard timestamps:
 
 - `createdAt`
 - `updatedAt`
 - `finishedAt`
 
-#### Przykład
+#### Example
 
 ```json
 {
@@ -583,27 +583,27 @@ Gdy to możliwe, reprezentacja zasobu **POWINNA** zawierać standardowe znacznik
 }
 ```
 
-### [Format Kodów Językowych (api-peak:rest29:2025-language-codes)](#language-codes)
+### [Language Code Format (api-peak:rest29:2025-language-codes)](#language-codes)
 
-Kody językowe **MUSZĄ** być zgodne z [ISO 639](https://en.wikipedia.org/wiki/List_of_ISO_639-1_codes), np.: `pl` dla polskiego.
+Language codes **MUST** conform to [ISO 639](https://en.wikipedia.org/wiki/List_of_ISO_639-1_codes), e.g.: `pl` for Polish.
 
-### [Format Kodów Krajów (api-peak:rest30:2025-country-codes)](#country-codes)
+### [Country Code Format (api-peak:rest30:2025-country-codes)](#country-codes)
 
-Kody krajów **MUSZĄ** być zgodne z [ISO 3166-1 alpha-2](https://en.wikipedia.org/wiki/ISO_3166-1_alpha-2), np.: `PL` dla Polski.
+Country codes **MUST** conform to [ISO 3166-1 alpha-2](https://en.wikipedia.org/wiki/ISO_3166-1_alpha-2), e.g.: `PL` for Poland.
 
-### [Format Waluty (api-peak:rest31:2025-currency-codes)](#currency-codes)
+### [Currency Format (api-peak:rest31:2025-currency-codes)](#currency-codes)
 
-Kody walut **MUSZĄ** być zgodne z [ISO 4217](https://en.wikipedia.org/wiki/ISO_4217), np.: `PLN` dla polskiego złotego.
+Currency codes **MUST** conform to [ISO 4217](https://en.wikipedia.org/wiki/ISO_4217), e.g.: `PLN` for the Polish złoty.
 
 ---
 
-## [Stronicowanie (api-peak:rest32:2025-pagination)](#pagination)
+## [Pagination (api-peak:rest32:2025-pagination)](#pagination)
 
-Zasób kolekcji **POWINIEN** udostępniać linki `first`, `last`, `next` i `prev` do nawigacji w obrębie kolekcji.
+A collection resource **SHOULD** provide `first`, `last`, `next`, and `prev` links for navigating within the collection.
 
-#### Przykład
+#### Example
 
-Kolekcja zamówień z użyciem linków nawigacyjnych kolekcji oraz parametrów zapytania `offset` i `limit`:
+An order collection using collection navigation links and the `offset` and `limit` query parameters:
 
 ```json
 {
@@ -628,15 +628,15 @@ Kolekcja zamówień z użyciem linków nawigacyjnych kolekcji oraz parametrów z
 
 ---
 
-## [Operacje Grupowe (Batch processing)](#batch-processing)
+## [Batch Operations (Batch processing)](#batch-processing)
 
-### [Przetwarzanie podobnych zasobów (api-peak:rest33:2025-collections)](#collections)
+### [Processing Similar Resources (api-peak:rest33:2025-collections)](#collections)
 
-Operacja, która musi przetwarzać kilka powiązanych zasobów w sposób wsadowy, **POWINNA** wykorzystywać zasób kolekcji z odpowiednią metodą HTTP. Podczas przetwarzania istniejących zasobów treść wiadomości żądania **MUSI** zawierać adresy URL odpowiednich zasobów, które są przetwarzane.
+An operation that must process several related resources in a batch **SHOULD** use a collection resource with the appropriate HTTP method. When processing existing resources, the request message body **MUST** include the URLs of the respective resources being processed.
 
-#### Przykład
+#### Example
 
-Tworzenie wielu zamówień jednocześnie
+Creating multiple orders at once
 
 ```json
 POST /orders
@@ -654,7 +654,7 @@ Content-Type: application/json
 }
 ```
 
-Uaktulnianie wielu zamówień na raz
+Updating multiple orders at once
 
 ```json
 PATCH /orders
@@ -678,32 +678,32 @@ Content-Type: application/json
 }
 ```
 
-### [Wyniki operacji grupowych (batch operations) (api-peak:rest34:2025-batch-operations-results)](#batch-operations-results)
+### [Batch Operation Results (api-peak:rest34:2025-batch-operations-results)](#batch-operations-results)
 
-Każda operacja grupowa **MUSI** być atomowa i traktowana tak samo, jak każda inna operacja.
+Every batch operation **MUST** be atomic and treated the same as any other operation.
 
-> Serwer musi implementować żądania zbiorcze jako atomowe. Jeśli żądanie dotyczy utworzenia dziesięciu adresów, serwer powinien utworzyć wszystkie dziesięć adresów przed zwróceniem kodu odpowiedzi oznaczającego sukces. Serwer nie powinien częściowo zatwierdzać zmian w przypadku niepowodzeń.
+> The server must implement batch requests as atomic. If a request is to create ten addresses, the server should create all ten addresses before returning a success response code. The server should not partially commit changes in the event of failures.
 
-### [NIE UŻYWAJ "POST Tunneling" (api-peak:rest35:2025-post-tunneling)](#post-tunneling)
+### [DO NOT USE "POST Tunneling" (api-peak:rest35:2025-post-tunneling)](#post-tunneling)
 
-Każde API **MUSI** unikać tunelowania wielu żądań HTTP w jednym żądaniu POST. Zamiast tego należy zapewnić dedykowany zasób aplikacyjny do przetwarzania żądań wsadowych.
+Every API **MUST** avoid tunneling multiple HTTP requests within a single POST request. Instead, a dedicated application resource should be provided for processing batch requests.
 
-### [Nieatomowe operacje grupowe (api-peak:rest36:2025-non-atomic-batch-operations)](#non-atomic-batch-operations)
+### [Non-Atomic Batch Operations (api-peak:rest36:2025-non-atomic-batch-operations)](#non-atomic-batch-operations)
 
-Operacje grupowe nieatomowe są zdecydowanie odradzane, ponieważ nakładają dodatkowe obciążenie i wprowadzają zamieszanie dla klienta. Trudno je konsumować, debugować, utrzymywać i rozwijać w dłuższym okresie czasu.
+Non-atomic batch operations are strongly discouraged, as they impose additional burden and introduce confusion for the client. They are hard to consume, debug, maintain, and evolve over the long term.
 
-Zaleca się podzielenie operacji nieatomowej na kilka operacji atomowych. Koszt kilku dodatkowych wywołań zostanie zrekompensowany przez czystszy projekt, większą przejrzystość i łatwiejsze utrzymanie.
+It is recommended to split a non-atomic operation into several atomic operations. The cost of a few extra calls will be offset by a cleaner design, greater clarity, and easier maintenance.
 
-Jednakże, jeśli taka operacja musi zostać udostępniona, operacja wsadowa nieatomowa **MUSI** spełniać następujące wytyczne:7
+However, if such an operation must be provided, a non-atomic batch operation **MUST** meet the following guidelines:
 
-- Operacja wsadowa nieatomowa **MUSI** zwrócić kod statusu sukcesu (np. `200 OK`) tylko wtedy, gdy każda z podoperacji zakończyła się powodzeniem.
-- Jeśli którakolwiek z podoperacji zakończy się niepowodzeniem, cała operacja wsadowa nieatomowa **MUSI** zwrócić odpowiedni kod statusu `4xx` lub `5xx`.
-- W przypadku błędu odpowiedź **MUSI** zawierać szczegóły problemu dla każdej podoperacji, która zakończyła się niepowodzeniem.
-- Klient **MUSI** być świadomy, że operacja jest nieatomowa i że nawet jeśli operacja jako całość zakończyła się niepowodzeniem, niektóre podoperacje mogły zostać pomyślnie przetworzone. Taka informacja **MUSI** być zawarta w odpowiedzi API.
+- A non-atomic batch operation **MUST** return a success status code (e.g. `200 OK`) only when every sub-operation has succeeded.
+- If any sub-operation fails, the entire non-atomic batch operation **MUST** return the appropriate `4xx` or `5xx` status code.
+- In the event of an error, the response **MUST** include problem details for every sub-operation that failed.
+- The client **MUST** be aware that the operation is non-atomic and that even if the operation as a whole failed, some sub-operations may have been processed successfully. This information **MUST** be included in the API response.
 
-#### Przykład
+#### Example
 
-Nieatomowe żądanie utworzenia czterech zamówień:
+A non-atomic request to create four orders:
 
 ```json
 POST /orders
@@ -727,7 +727,7 @@ Content-Type: application/json
 }
 ```
 
-Odpowiedź błędu:
+Error response:
 ```json
 HTTP/1.1 400 Bad Request
 Content-Type: application/problem+json
@@ -758,23 +758,23 @@ Content-Type: application/problem+json
 }
 ```
 
-Pole `processed` powinno zawierać wynik przetworzonych podoperacji tak, jakby zostały zwrócone w odpowiedzi `200 OK`.
+The `processed` field should contain the result of the processed sub-operations, as if they had been returned in a `200 OK` response.
 
 ---
 
-## [Zapytania wyszukiwania (api-peak:rest37:2025-filtering)](#filtering)
+## [Search Queries (api-peak:rest37:2025-filtering)](#filtering)
 
-Operacja wyszukiwania (filtrowania) w zasobie kolekcji **POWINNA** być zdefiniowana jako bezpieczna, idempotentna i możliwa do buforowania, dlatego należy używać metody HTTP **GET**.  
+A search (filtering) operation on a collection resource **SHOULD** be defined as safe, idempotent, and cacheable; therefore the **GET** HTTP method should be used.  
 
-Każdy parametr wyszukiwania **POWINIEN** być przekazywany w formie parametru zapytania (query parameter). W przypadku, gdy parametry wyszukiwania są wzajemnie wykluczające się lub wymagają obecności innego parametru, wyjaśnienie **MUSI** być częścią opisu operacji. 
+Every search parameter **SHOULD** be passed as a query parameter. Where search parameters are mutually exclusive or require the presence of another parameter, an explanation **MUST** be part of the operation description. 
 
-Gdy jest to korzystne (np. jeden z parametrów filtrowania jest używany częściej niż inne), **POWINNO** zostać udostępnione osobne zasoby dla konkretnego zapytania. W takim przypadku kluczowy parametr wyszukiwania **MOŻE** być przekazany w formie zmiennej ścieżki.
+When advantageous (e.g. one of the filtering parameters is used more often than others), a separate resource **SHOULD** be provided for the specific query. In that case, the key search parameter **MAY** be passed as a path variable.
 
-<!-- Dodać co w przypadku dużej ilości query params (limit jest 1024 znakow w uri) -->
+<!-- Add what to do in case of a large number of query params (the URI limit is 1024 characters) -->
 
-#### Przykład  
+#### Example  
 
-Kolekcja zamówień może być filtrowana według identyfikatora artykułu, który zawiera, lub według identyfikatora producenta artykułu. Te dwa parametry są wzajemnie wykluczające się i nie mogą być używane razem. Opis API dla takiego projektu powinien wyglądać następująco:  
+An order collection can be filtered by the id of an article it contains, or by the id of an article's manufacturer. These two parameters are mutually exclusive and cannot be used together. The API description for such a design should look as follows:  
 
 ```yaml
 paths:
@@ -814,9 +814,9 @@ paths:
           x-example: manufacturer_id_1
 ```  
 
-#### Przykład alternatywnego podejścia projektowego
+#### Example of an Alternative Design Approach
 
-Na podstawie powyższego przykładu udostępniamy filtrowanie zamówień według identyfikatora artykułu jako osobny zasób.  
+Based on the example above, we expose filtering of orders by article id as a separate resource.  
 
 ```yaml
 paths:
@@ -829,98 +829,98 @@ paths:
 
 ---
 
-## [Zmiany i Wersjonowanie](#changing-versioning)
+## [Changes and Versioning](#changing-versioning)
 
-### [Podstawowe zasady (api-peak:rest38:2025-basic-versioning)](#basic-versioning)
+### [Basic Rules (api-peak:rest38:2025-basic-versioning)](#basic-versioning)
 
-> "Fundamentalną zasadą jest to, że nie możesz psuć istniejących klientów, ponieważ nie wiesz, co implementują, i nie masz nad nimi kontroli. Dlatego musisz zmienić niekompatybilną zmianę w taką, która jest kompatybilna."  
+> "The fundamental rule is that you can't break existing clients, since you don't know what they implement, and you don't have control over them. So you must turn an incompatible change into a compatible one."  
 > – [Mark Nottingham](https://www.mnot.net/blog/2011/10/25/web_api_versioning_smackdown)
 
-Żadna zmiana w API **NIE MOŻE** powodować problemów z działaniem istniejących klientów.
+A change to the API **MUST NOT** cause problems with the operation of existing clients.
 
-Zmiany dotyczące:
+Changes to:
 
-1. Identyfikatora zasobu (nazwa zasobu / URI), w tym parametrów zapytania i ich semantyki.
-2. Metadanych zasobu (np. nagłówków HTTP).
-3. Akcji dostępnych dla zasobu (np. dostępnych metod HTTP).
-4. Relacji z innymi zasobami (np. linki).
-5. Formatu reprezentacji (np. treści żądań i odpowiedzi HTTP).
+1. The resource identifier (resource name / URI), including query parameters and their semantics.
+2. Resource metadata (e.g. HTTP headers).
+3. Actions available for the resource (e.g. available HTTP methods).
+4. Relationships with other resources (e.g. links).
+5. The representation format (e.g. HTTP request and response bodies).
 
-**MUSZĄ** być zgodne z zasadami rozszerzania.
+**MUST** conform to the Rules of Extensibility.
 
-### [Zasady rozszerzania (api-peak:general10:2025-rules-of-extension)](#rules-of-extending)
+### [Rules of Extensibility (api-peak:general10:2025-rules-of-extension)](#rules-of-extending)
 
-- **NIE MOŻNA** niczego usuwać (powiązane: [Zasada minimalnej powierzchni](https://en.wikipedia.org/wiki/YAGNI), [Zasada solidności](https://en.wikipedia.org/wiki/Robustness_principle))
-- **NIE MOŻNA** zmieniać reguł przetwarzania
-- **NIE MOŻNA** czynić opcjonalnych rzeczy wymaganymi
-- Wszystko, co dodajesz, **MUSI** być opcjonalne (powiązane: [Zasada solidności](https://en.wikipedia.org/wiki/Robustness_principle))
+- You **MUST NOT** remove anything (related: [Minimal Surface Principle](https://en.wikipedia.org/wiki/YAGNI), [Robustness Principle](https://en.wikipedia.org/wiki/Robustness_principle))
+- You **MUST NOT** change processing rules
+- You **MUST NOT** make optional things required
+- Anything you add **MUST** be optional (related: [Robustness Principle](https://en.wikipedia.org/wiki/Robustness_principle))
 
-### [Stabilność identyfikatorów (Brak wersjonowania URI) (api-peak:rest39:2025-id-stability)](#id-stability)
+### [Identifier Stability (No URI Versioning) (api-peak:rest39:2025-id-stability)](#id-stability)
 
-Zmiana **NIE MOŻE** wpływać na istniejące identyfikatory zasobów (nazwy / URI). Ponadto identyfikator zasobu **NIE POWINIEN** zawierać wersji semantycznej w celu przekazania wersji zasobu lub jego formatu reprezentacji.
+A change **MUST NOT** affect existing resource identifiers (names / URIs). In addition, a resource identifier **SHOULD NOT** contain a semantic version to convey the version of the resource or its representation format.
 
-> "Powód tworzenia prawdziwego REST API to uzyskanie możliwości ewolucji... 'v1' to środkowy palec dla klientów API i sygnał, że jest to RPC/HTTP, a nie REST."  
+> "The reason to create a true REST API is to gain the ability to evolve... 'v1' is a middle finger to your API's clients and a sign you're brewing a REST-like API over RPC/HTTP."  
 > – Roy T. Fielding
 
-#### Przykład
+#### Example
 
-Dodanie nowej akcji do istniejącego zasobu o identyfikatorze `/greeting` NIE zmienia jego identyfikatora na `/v2/greeting` (lub `/greeting-with-new-action` itp.).
+Adding a new action to an existing resource identified by `/greeting` does NOT change its identifier to `/v2/greeting` (or `/greeting-with-new-action`, etc.).
 
-### [Zmiany niekompatybilne wstecz (api-peak:rest40:2025-backwards-incompatibility)](#backwards-incompatibility)
+### [Backward-Incompatible Changes (api-peak:rest40:2025-backwards-incompatibility)](#backwards-incompatibility)
 
-Zmiana identyfikatora zasobu, metadanych zasobu, akcji zasobu lub relacji między zasobami, która **NIE MOŻE** być zgodna z zasadami rozszerzania, **MUSI** skutkować utworzeniem nowej wersji wariantu zasobu. Istniejący wariant zasobu **MUSI** zostać zachowany.
+A change to a resource identifier, resource metadata, resource action, or relationship between resources that cannot conform to the Rules of Extensibility **MUST** result in the creation of a new resource variant version. The existing resource variant **MUST** be preserved.
 
-Zmiana formatu reprezentacji **NIE POWINNA** skutkować utworzeniem nowego wariantu zasobu.
+A change to the representation format **SHOULD NOT** result in the creation of a new resource variant.
 
-#### Przykład  
+#### Example  
 
-Obecnie opcjonalny parametr zapytania `first` w istniejącym zasobie `/greeting?first=John&last=Appleseed` musi stać się wymagany. Ponieważ ta zmiana narusza trzecią zasadę rozszerzania i może powodować problemy z istniejącymi klientami, tworzony jest nowy wariant zasobu z innym URI: `/named-greeting?first=John&last=Appleseed`.
+The currently optional query parameter `first` in the existing resource `/greeting?first=John&last=Appleseed` must become required. Since this change violates the third Rule of Extensibility and may cause problems for existing clients, a new resource variant is created with a different URI: `/named-greeting?first=John&last=Appleseed`.
 
 
-### [Zmiany formatu reprezentacji (api-peak:rest41:2025-representation-format-change)](#representation-format-change)
+### [Representation Format Changes (api-peak:rest41:2025-representation-format-change)](#representation-format-change)
 
-Format reprezentacji to format serializacji (typ mediów) używany w treściach żądań i odpowiedzi HTTP, który zazwyczaj reprezentuje zasób lub jego część, ewentualnie z dodatkowymi kontrolkami hipermedialnymi.
+The representation format is the serialization format (media type) used in HTTP request and response bodies, which typically represents a resource or part of it, possibly with additional hypermedia controls.
 
-Jeśli zmiana **NIE MOŻE** być zgodna z zasadami rozszerzania, typ mediów formatu reprezentacji **MUSI** zostać zmieniony. Jeśli typ mediów został zmieniony, poprzedni typ mediów **MUSI** być dostępny poprzez negocjację treści (content negotiation).
+If a change cannot conform to the Rules of Extensibility, the representation format's media type **MUST** be changed. If the media type has been changed, the previous media type **MUST** remain available through content negotiation.
 
-Jeśli typ mediów zawiera parametr wersji, parametr ten **POWINIEN** być zgodny z wersjonowaniem semantycznym.
+If the media type includes a version parameter, that parameter **SHOULD** conform to semantic versioning.
 
-#### Przykład
+#### Example
 
-Typ mediów przed zmianą powodującą problemy:  
+Media type before the breaking change:  
 
 ```text
 application/vnd.example.resource+json; version=2
 ```
 
-Typ mediów po zmianie powodującej problemy:  
+Media type after the breaking change:  
 
 ```text
 application/vnd.example.resource+json; version=3
 ```
 
-> **UWAGA:** W przypadku ograniczeń technicznych związanych z wartościami nagłówków HTTP oddzielonymi średnikiem, wersja semantyczna **MOŻE** być zawarta w identyfikatorze typu mediów, np.:  
+> **NOTE:** In the case of technical constraints related to semicolon-separated HTTP header values, the semantic version **MAY** be included in the media type identifier, e.g.:  
 
 > ```
 > application/vnd.example.resource.v2+json
 > ```
 
-> Jednak preferowane jest użycie informacji o wersji oddzielonej średnikiem.
+> However, using semicolon-separated version information is preferred.
 
 
-### [Wersjonowanie opisu API (api-peak:rest42:2025-api-description-versioning)](#api-description-versioning)
+### [API Description Versioning (api-peak:rest42:2025-api-description-versioning)](#api-description-versioning)
 
-Opis API w formacie specyfikacji OpenAPI **MUSI** zawierać pole `version`. Pole `version` **MUSI** być zgodne z wersjonowaniem semantycznym:
+The API description in OpenAPI specification format **MUST** include a `version` field. The `version` field **MUST** conform to semantic versioning:
 
-- Zwiększaj wersję MAJOR przy wprowadzaniu niekompatybilnych zmian w API.
-- Zwiększaj wersję MINOR przy dodawaniu funkcjonalności w sposób kompatybilny wstecz.
-- Zwiększaj wersję PATCH przy poprawianiu błędów w sposób kompatybilny wstecz.
+- Increment the MAJOR version when introducing incompatible changes to the API.
+- Increment the MINOR version when adding functionality in a backward-compatible manner.
+- Increment the PATCH version when making backward-compatible bug fixes.
 
-Wersja opisu API **POWINNA** być aktualizowana odpowiednio do zmian projektowych API.
+The API description version **SHOULD** be updated in accordance with API design changes.
 
-#### Przykład
+#### Example
 
-Poniższy opis API:  
+The following API description:  
 
 ```yaml
 swagger: '2.0'
@@ -930,7 +930,7 @@ info:
   description: 'Inventory service API'
 ```
 
-Ma wersję MAJOR = 2, MINOR = 1 i PATCH = 3.
+Has MAJOR = 2, MINOR = 1, and PATCH = 3.
 
-### Zalecana lektura
+### Recommended Reading
 - [Evolving HTTP APIs](https://www.mnot.net/blog/2012/12/04/api-evolution)
