@@ -1,0 +1,80 @@
+name: PR API governance
+
+# Single PR gate (more are added as the pipeline matures):
+#   1. spectral-openapi-check — design-time lint of PR-changed OpenAPI files.
+#      The governance ruleset is NOT vendored here; it is linked: the job clones
+#      the central governance repo at run time and lints against its ruleset.
+
+on:
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
+
+env:
+  # Central governance repo (ruleset + custom Spectral functions). Linked, not
+  # vendored: the lint job clones it at run time. Anonymous clone (public repo).
+  GOVERNANCE_REPO: http://gitea:3000/governance-demo/api-governance.git
+
+jobs:
+  spectral-openapi-check:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout PR branch
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Install Spectral CLI
+        run: npm install -g @stoplight/spectral-cli
+
+      - name: Fetch governance ruleset (linked, not vendored)
+        shell: bash
+        run: |
+          set -e
+          # The "link" to central governance: clone the ruleset + its custom
+          # Spectral functions. functionsDir in the ruleset is relative, so the
+          # functions resolve from the clone.
+          rm -rf .governance
+          git clone --depth 1 "${GOVERNANCE_REPO}" .governance
+          echo "Linked governance ruleset:"; ls .governance/spectral-ruleset.yaml
+
+      - name: Find changed OpenAPI files
+        id: find_openapi
+        shell: bash
+        run: |
+          set -e
+          git fetch -q origin "${{ github.base_ref }}" || true
+          BASE="origin/${{ github.base_ref }}"
+          # Only lint OpenAPI files changed in this PR (added/modified), not the
+          # whole tree — so the intentionally-invalid example doesn't break
+          # unrelated PRs.
+          FILES=$(git diff --name-only --diff-filter=AM "${BASE}...HEAD" -- \
+            '*openapi*.yml' '*openapi*.yaml' 2>/dev/null || true)
+          if [ -z "$FILES" ]; then
+            echo "No changed OpenAPI files in this PR; skipping Spectral."
+            echo "has_files=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "Changed OpenAPI files:"; echo "$FILES"
+            echo "has_files=true" >> "$GITHUB_OUTPUT"
+            { echo "files<<EOF"; echo "$FILES"; echo "EOF"; } >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Run Spectral (fail on errors)
+        if: steps.find_openapi.outputs.has_files == 'true'
+        shell: bash
+        run: |
+          # No `|| true`: spectral exits non-zero on error-severity findings, so
+          # the job (gate) fails. A here-doc loop keeps the fail flag out of a
+          # pipe subshell.
+          FAIL=0
+          while IFS= read -r f; do
+            [ -z "$f" ] && continue
+            echo "::group::spectral $f"
+            spectral lint -r .governance/spectral-ruleset.yaml "$f" || FAIL=1
+            echo "::endgroup::"
+          done <<'EOF'
+          ${{ steps.find_openapi.outputs.files }}
+          EOF
+          exit $FAIL
