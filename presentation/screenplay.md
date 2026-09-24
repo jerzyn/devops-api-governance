@@ -46,18 +46,20 @@ Gitea keeps the history of earlier PRs and CI runs, so new PRs on camera are num
 1. Stack up (see appendix).
 2. `scripts/demo/prep-stage.sh goto 1` (run from the project directory; `reset` is an alias): Gitea `main` goes back to the Stage 1 starting state, open PRs are closed, leftover `feat/*` branches are deleted, the governance repo is synced, and the Backstage catalog is cleared.
 3. In the browser, **sign in to Gitea** at `http://localhost:3000/user/login` as `demo` / `demo12345`. Without a login the PR page shows "Sign in to…" and has no create or merge buttons.
-4. Make a fresh clone *after* the reset:
+4. Make a fresh clone *after* the reset, in its own folder and under its own name:
    ```bash
-   git clone http://demo:demo12345@localhost:3000/governance-demo/devops-api-governance.git
-   cd devops-api-governance
+   mkdir -p ~/demo && cd ~/demo
+   git clone http://demo:demo12345@localhost:3000/governance-demo/devops-api-governance.git orders-api
+   cd orders-api
    ```
+   The Gitea repo has the same name as this project (`devops-api-governance`), so never clone it under that name or inside the project directory: a clone in `~/projekty` collides with the project, and a `rm -rf` of that name would delete the project. `~/demo/orders-api` can't be confused with it, and its prompt on camera reads as the team's Orders API repo.
 
 ## Screen layout and windows
 
 Yes, have everything below open **before** you press record, so no recording starts with a blank browser or a login screen.
 
 - **Screen:** terminal on the left, browser on the right, both inside the recorded area. Terminal font ~18–20 pt and browser zoom ~125–150% (`Ctrl` `+`), so it is readable on a projector.
-- **Terminal 1 (recorded):** inside the fresh clone (`cd devops-api-governance`), `clear`ed. Only git commands and the stage-4 `curl` run here.
+- **Terminal 1 (recorded):** inside the fresh clone (`cd ~/demo/orders-api`), `clear`ed. Only git commands and the stage-4 `curl` run here.
 - **Terminal 2 (NOT recorded):** in the project directory `~/projekty/devops-api-governance`, for `prep-stage.sh` only. Keep it outside the recorded area (another workspace, or minimised).
 - **One terminal is enough** if you record every part as its own take (stop recording, run the prep, start again): `prep-stage.sh` works from any directory, e.g. `~/projekty/devops-api-governance/scripts/demo/prep-stage.sh stage2` typed inside the clone. **Two are better** for continuous takes, and needed for Stage 1, where `refresh-catalog` has to run right after your push while the recording keeps going. Two terminal *windows*, not two tabs of one window: tabs would show up in the recording.
 - **Browser:** one window with a few prepared tabs (listed per stage below). Already signed in to Gitea as `demo`. Bookmarks bar hidden. If Backstage shows a sign-in page, sign in as guest once beforehand.
@@ -84,9 +86,9 @@ Yes, have everything below open **before** you press record, so no recording sta
 After a `goto`:
 1. Delete your old clone and make a fresh one (`main` was force-pushed, and your local `feat/*` branches are stale):
    ```bash
-   rm -rf devops-api-governance
-   git clone http://demo:demo12345@localhost:3000/governance-demo/devops-api-governance.git
-   cd devops-api-governance
+   cd ~/demo && rm -rf orders-api
+   git clone http://demo:demo12345@localhost:3000/governance-demo/devops-api-governance.git orders-api
+   cd orders-api
    ```
 2. Run the step's prep command from the "Then run" column, and record.
 
