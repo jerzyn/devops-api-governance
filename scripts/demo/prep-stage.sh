@@ -41,6 +41,7 @@ GOV_REPO="api-governance"
 API="$GITEA/api/v1"
 REMOTE="http://$U:$P@localhost:3000/$ORG/$REPO.git"
 WF="$ROOT/scripts/demo/workflows"
+RD="$ROOT/scripts/demo/readmes"   # the repo README as it reads at each stage
 CONTRACT="contracts/orders-openapi.yaml"
 WORK="$(mktemp -d)"
 trap 'rm -rf "$WORK"' EXIT
@@ -52,13 +53,18 @@ use_workflow() {  # $1 = repo dir, $2 = workflow file
   cp "$2" "$1/.gitea/workflows/pr-governance.yml"
 }
 
-do_stage1() { cp -r "$ROOT/example/contracts" "$ROOT/example/catalog-info.yaml" "$1/"; }
+use_readme() { cp "$2" "$1/README.md"; }  # $1 = repo dir, $2 = README file
 
-do_stage2() { use_workflow "$1" "$WF/stage2-spectral.yml"; }
+do_stage1() {
+  cp -r "$ROOT/example/contracts" "$ROOT/example/catalog-info.yaml" "$1/"
+  use_readme "$1" "$RD/stage1.md"
+}
+
+do_stage2() { use_workflow "$1" "$WF/stage2-spectral.yml"; use_readme "$1" "$RD/stage2.md"; }
 do_stage2_red() { sed -i 's#url: https://api.example.com#url: http://orders.example.com#' "$1/$CONTRACT"; }
 do_stage2_fix() { sed -i 's#http://orders.example.com#https://orders.example.com#' "$1/$CONTRACT"; }
 
-do_stage3() { use_workflow "$1" "$WF/stage3-contract-test.yml"; }
+do_stage3() { use_workflow "$1" "$WF/stage3-contract-test.yml"; use_readme "$1" "$RD/stage3.md"; }
 # The contract promises a field the running backend doesn't return.
 do_stage3_red() {
   python3 - "$1/$CONTRACT" <<'EOF'
@@ -82,9 +88,9 @@ EOF
 }
 do_stage3_fix() { sed -i 's/required: \[orderId, isPaid, currency\]/required: [orderId, isPaid]/' "$1/$CONTRACT"; }
 
-do_stage4() { use_workflow "$1" "$WF/stage4-gateway.yml"; }
+do_stage4() { use_workflow "$1" "$WF/stage4-gateway.yml"; use_readme "$1" "$RD/stage4.md"; }
 
-do_stage5() { use_workflow "$1" "$ROOT/example/.gitea/workflows/pr-governance.yml"; }
+do_stage5() { use_workflow "$1" "$ROOT/example/.gitea/workflows/pr-governance.yml"; use_readme "$1" "$ROOT/example/README.md"; }
 do_stage5_red() {
   python3 - "$1/$CONTRACT" <<'EOF'
 import sys
@@ -186,6 +192,7 @@ push_state() {
   rm -rf "$d"; mkdir -p "$d"
   cp -a "$ROOT/example/." "$d/"
   rm -rf "$d/contracts" "$d/catalog-info.yaml" "$d/.gitea"
+  use_readme "$d" "$RD/stage0.md"
   for ((i = 0; i < $1; i++)); do
     for f in ${LAYERS[$i]}; do "$f" "$d"; done
   done

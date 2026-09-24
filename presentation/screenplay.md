@@ -22,7 +22,7 @@ Every step below was run end to end by a script that does exactly what you do: f
 
 Every stage follows the same pattern. Stages 2, 3 and 5 run it twice: **part 1** installs the new gate on a change that is fine (the gate goes green), **part 2** shows the gate catching a bad change (red, then a one-line fix, then green). Stages 1 and 4 have a single part.
 
-1. **Prep (off camera):** `scripts/demo/prep-stage.sh <step>` clones Gitea `main`, applies that step's change and pushes it as a branch (e.g. `feat/add-spectral-gate`). Nothing is typed from scratch on camera, and the red states are red every single time. Run it in a second terminal, before you start recording the step, and **only after the previous step's PR is merged**: the branch is cut from Gitea `main` at that moment.
+1. **Prep (off camera):** `scripts/demo/prep-stage.sh <step>` clones Gitea `main`, applies that step's change and pushes it as a branch (e.g. `feat/add-spectral-gate`). Nothing is typed from scratch on camera, and the red states are red every single time. Each stage's branch also updates the repo's `README.md`, so the Gitea repo home always describes the current state and visibly grows with the pipeline. Run it in a second terminal, before you start recording the step, and **only after the previous step's PR is merged**: the branch is cut from Gitea `main` at that moment.
 2. **Terminal, show the change:** `git fetch origin`, `git switch <branch>`, then show what it changes: `git diff origin/main -- <path>` (or `cat` for a new file). This is where the audience sees *what is being proposed*, so let it stay on screen for a beat.
 3. **Browser, PR and checks:** open the PR (`compare/main...<branch>` → **New Pull Request** → **Create Pull Request**) and let the checks run. Open a check's **Details** to show the one log line that matters (each stage names it). The gate's verdict is the payload of the recording.
 4. **Terminal, fix (red demos only):** one command edits the contract (`sed`), then `git commit -am` and `git push`. Pushing updates the same PR, so the checks re-run by themselves and go from red to green in the browser.
@@ -117,7 +117,7 @@ Repo: `http://localhost:3000/governance-demo/devops-api-governance`
 
 **On screen at the start:**
 - Terminal 1: fresh clone, `git status` clean, screen cleared.
-- Browser tab 1 (visible first): Gitea repo home. The file list shows only `sample-backend`, `README.md`, `.gitignore`. This is the "before".
+- Browser tab 1 (visible first): Gitea repo home. The file list shows only `sample-backend`, `README.md`, `.gitignore`, and the README below it says the same: only the backend exists, no contract, no catalog entry, no checks. This is the "before".
 - Browser tab 2: Backstage, left menu **APIs**. The list is empty, the other "before". Switch to it after the push.
 - Terminal 2 (off camera): `prep-stage.sh stage1` already run; `prep-stage.sh refresh-catalog` typed, not yet executed.
 
@@ -148,7 +148,7 @@ git push origin feat/add-orders-contract:main    # merge: fast-forward, no gate 
 
 **On screen at the start:**
 - Terminal 1: same clone, screen cleared.
-- Browser tab 1: Gitea repo home. It now lists `contracts/` and `catalog-info.yaml` (stage 1 is merged) and no `.gitea/` folder yet.
+- Browser tab 1: Gitea repo home. It now lists `contracts/` and `catalog-info.yaml` (stage 1 is merged), and the README describes them. No `.gitea/` folder yet.
 - Backstage and Microcks tabs: closed.
 - Terminal 2 (off camera): `stage2` already run. `stage2-red` **not yet**: run it after part 1 is merged.
 
@@ -205,7 +205,7 @@ git push
 
 **On screen at the start:**
 - Terminal 1: same clone, screen cleared.
-- Browser tab 1: Gitea repo home, now with the `.gitea/` folder (spectral gate merged).
+- Browser tab 1: Gitea repo home, now with the `.gitea/` folder (spectral gate merged); the README lists one gate.
 - Browser tab 2 (optional): Microcks `localhost:8080`, only if you want to show the test detail page in part 2. Otherwise open it from the CI log link at that moment.
 - Terminal 2 (off camera): `stage3` already run. `stage3-red` **not yet**: run it after part 1 is merged.
 
@@ -323,7 +323,7 @@ git diff origin/main -- contracts/               # new required param
 
 **Browser:**
 1. Open the PR (`compare/main...feat/orders-require-channel`). spectral goes green, then **breaking-changes-check goes red**.
-2. contract-test and gateway-deploy-check show as **skipped (grey)**, because their `needs:` isn't satisfied. Point at that.
+2. contract-test and gateway-deploy-check show as **skipped (grey)**, because their `needs:` isn't satisfied. For the first few seconds after the red result they read "Blocked by required conditions" and only then turn to "Skipped": wait for it, then point at that.
 3. **Details** on breaking-changes-check → expand **Run oasdiff breaking (fail on breaking changes)**. Zoom on:
    `error [new-required-request-parameter] … added the new required query request parameter channel`
 
