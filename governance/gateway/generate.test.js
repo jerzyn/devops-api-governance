@@ -16,7 +16,7 @@ test('buildEndpoints emits one entry per operation, uppercase method, matching b
       },
     },
   };
-  const endpoints = buildEndpoints(contract, 'http://sample-backend:8081');
+  const endpoints = buildEndpoints(contract, 'http://backend:8081');
   assert.equal(endpoints.length, 1);
   assert.deepEqual(endpoints[0], {
     endpoint: '/orders/{orderId}',
@@ -26,7 +26,7 @@ test('buildEndpoints emits one entry per operation, uppercase method, matching b
       {
         url_pattern: '/orders/{orderId}',
         method: 'GET',
-        host: ['http://sample-backend:8081'],
+        host: ['http://backend:8081'],
         encoding: 'no-op',
       },
     ],
@@ -42,7 +42,7 @@ test('buildEndpoints emits multiple entries for multiple methods on the same pat
       },
     },
   };
-  const endpoints = buildEndpoints(contract, 'http://sample-backend:8081');
+  const endpoints = buildEndpoints(contract, 'http://backend:8081');
   assert.equal(endpoints.length, 2);
   assert.deepEqual(endpoints.map((e) => e.method).sort(), ['GET', 'POST']);
 });
@@ -58,13 +58,13 @@ test('buildEndpoints ignores non-method path-item keys (summary, description, pa
       },
     },
   };
-  const endpoints = buildEndpoints(contract, 'http://sample-backend:8081');
+  const endpoints = buildEndpoints(contract, 'http://backend:8081');
   assert.equal(endpoints.length, 1);
   assert.equal(endpoints[0].method, 'GET');
 });
 
 test('buildEndpoints returns an empty array for a contract with no paths', () => {
-  const endpoints = buildEndpoints({ paths: {} }, 'http://sample-backend:8081');
+  const endpoints = buildEndpoints({ paths: {} }, 'http://backend:8081');
   assert.deepEqual(endpoints, []);
 });
 
@@ -76,7 +76,7 @@ test('generate throws for a contract with no operations, rather than writing an 
   fs.writeFileSync(basePath, JSON.stringify({ version: 3, name: 'Test Gateway', port: 8090 }));
 
   assert.throws(
-    () => generate(contractPath, basePath, 'http://sample-backend:8081'),
+    () => generate(contractPath, basePath, 'http://backend:8081'),
     /No operations found in contract/
   );
 });
@@ -91,7 +91,7 @@ test('generate merges endpoints into the base config, preserving base fields', (
   );
   fs.writeFileSync(basePath, JSON.stringify({ version: 3, name: 'Test Gateway', port: 8090 }));
 
-  const config = generate(contractPath, basePath, 'http://sample-backend:8081');
+  const config = generate(contractPath, basePath, 'http://backend:8081');
 
   assert.equal(config.version, 3);
   assert.equal(config.name, 'Test Gateway');

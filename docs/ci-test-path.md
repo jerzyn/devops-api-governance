@@ -23,7 +23,7 @@ by `needs:`, so a failure stops the rest):
    - 🟢 **Green**: no breaking findings, or nothing to diff (new file, no
      OpenAPI change, or `workflow_dispatch`).
 3. **`contract-test`** — imports the PR branch's contract into Microcks and
-   runtime-tests the running `sample-backend` against it.
+   runtime-tests the running `backend` against it.
    - 🔴 **Red**: the backend's actual responses don't match the contract
      (drift, or a contract change the backend doesn't implement yet).
    - 🟢 **Green**: backend behavior matches the contract.
@@ -40,7 +40,7 @@ by `needs:`, so a failure stops the rest):
 
 Once all four gates are green and the PR merges to `main`, Backstage's
 Gitea provider picks up `catalog-info.yaml` from `main` and the
-`sample-orders-api` entity in the catalog reflects the new contract
+`orders-api` entity in the catalog reflects the new contract
 (possibly after a restart, if you don't want to wait for the provider's
 refresh interval).
 

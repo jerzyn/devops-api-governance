@@ -14,7 +14,7 @@ Every step below was run end to end by a script that does exactly what you do: f
 
 | Stage | Adds | Key shot (what the audience should remember) |
 |---|---|---|
-| 1 | Catalog | `sample-orders-api` appears in Backstage after a merge. No CI yet. |
+| 1 | Catalog | `orders-api` appears in Backstage after a merge. No CI yet. |
 | 2 | Spectral | Red check with the exact rule ID `api-peak:rest17:2025-https-required`. One-line fix turns it green. |
 | 3 | Contract test (Microcks) | The contract promises a field the running backend doesn't return. contract-test catches it (`currency' not found`). |
 | 4 | API gateway (KrakenD) | `curl` through the gateway goes from 404 (no routes yet) to 200 after the merge, with the generated `krakend.json` in the CI log. |
@@ -113,19 +113,19 @@ Repo: `http://localhost:3000/governance-demo/devops-api-governance`
 
 **Narrative:** "The team already has an API contract, but you can't govern what you can't see. One `catalog-info.yaml` makes the API visible to the whole org."
 
-**Starting state:** Gitea `main` has `sample-backend/` and the OpenAPI contract `contracts/orders-openapi.yaml` (plus `README.md`, `.gitignore`). It has no `catalog-info.yaml` and no workflow. Backstage lists no APIs.
+**Starting state:** Gitea `main` has `backend/` and the OpenAPI contract `contracts/orders-openapi.yaml` (plus `README.md`, `.gitignore`). It has no `catalog-info.yaml` and no workflow. Backstage lists no APIs.
 
 **Prep:** `scripts/demo/prep-stage.sh stage1` pushes branch `feat/add-catalog-entry`. It adds `catalog-info.yaml` (and updates the README to mention it).
 
 **On screen at the start:**
 - Terminal 1: fresh clone, `git status` clean, screen cleared.
-- Browser tab 1 (visible first): Gitea repo home. The file list shows `contracts/`, `sample-backend/`, `README.md`, `.gitignore`, and the README below it says the same: the contract and the backend exist, no catalog entry, no checks. This is the "before".
+- Browser tab 1 (visible first): Gitea repo home. The file list shows `contracts/`, `backend/`, `README.md`, `.gitignore`, and the README below it says the same: the contract and the backend exist, no catalog entry, no checks. This is the "before".
 - Browser tab 2: Backstage, left menu **APIs**. The list is empty, the other "before". Switch to it after the push.
 - Terminal 2 (off camera): `prep-stage.sh stage1` already run; `prep-stage.sh refresh-catalog` typed, not yet executed.
 
 **Terminal:**
 ```bash
-ls                                               # contracts/ and sample-backend/, no catalog-info.yaml
+ls                                               # contracts/ and backend/, no catalog-info.yaml
 git fetch origin
 git switch feat/add-catalog-entry
 cat catalog-info.yaml                            # show what gets registered
@@ -134,7 +134,7 @@ git push origin feat/add-catalog-entry:main      # merge: fast-forward, no gate 
 
 **Browser:**
 1. Right after the push: `scripts/demo/prep-stage.sh refresh-catalog`. Backstage's Gitea provider only rescans every **30 minutes**, so this triggers a rescan; the API is listed after ~5–7s. Run it from a second terminal (or cut those seconds from the video).
-2. Open Backstage → **APIs** → `sample-orders-api`.
+2. Open Backstage → **APIs** → `orders-api`.
 3. Show the **Definition** tab (the rendered contract that was already in the repo) and the owner.
 
 **Duration:** ~30s after cutting.
@@ -356,15 +356,17 @@ About **8–10 minutes** of raw footage. Stages 1–2 are good candidates to spe
 - Gitea `localhost:3000` (demo/demo12345)
 - Microcks `:8080`
 - Backstage `:7007`
-- sample-backend `:8081`
+- backend `:8081`
 - KrakenD `:8090`
 
 **Run `prep-stage.sh reset` after every `podman-compose up`.** Anything that depends on the one-shot `gitea-seed` service re-runs it, and the seed force-pushes the full repo onto Gitea `main`, wiping the stage state. `backstage` depends on it. Never run it mid-demo.
+
+**CI needs the internet.** Every job clones `actions/checkout` from github.com, and the jobs download spectral-cli (npm), oasdiff and the KrakenD CLI (GitHub releases). A flaky connection shows up as a check that fails before any step ran (`connection reset by peer` in the log), not as a real red result. Check your connection before recording. If a check fails that way, use the **Re-run** button on the run page, or push an empty commit: `git commit --allow-empty -m retry && git push`.
 
 **Backstage:**
 - `prep-stage.sh refresh-catalog` triggers the Gitea provider's scheduled task through the catalog's scheduler endpoint (`/api/catalog/.backstage/scheduler/v1/tasks/gitea-provider:local:refresh/trigger`, guest token). It rescans in a few seconds, without touching any container.
 - **Never `podman start` / `podman restart` / `podman-compose up` for `backstage`.** It starts its dependency `gitea-seed`, which force-pushes the full repo over Gitea `main` and wipes the stage state (the full four-gate workflow would suddenly appear on `main` during Stage 1).
 
-**sample-backend can't be recreated while `krakend` runs** (podman: "has dependent containers"). That's why Stage 3's red demo changes the contract instead of toggling the backend's `DRIFT` mode: `DRIFT` is only read at startup.
+**backend can't be recreated while `krakend` runs** (podman: "has dependent containers"). That's why Stage 3's red demo changes the contract instead of toggling the backend's `DRIFT` mode: `DRIFT` is only read at startup.
 
 **Recording format (open item, not solved yet):** clips must be smooth, continuous video, not a slideshow. `gif_creator` is frame-sampled, and converting its GIF to MP4 still looks like a slideshow. This needs a real screen recorder (Spectacle or OBS, both installed) running while the browser is driven. Wayland needs a one-time portal approval. If you record the whole demo solo, one continuous screen recording (terminal and browser side by side) also avoids any merging of separate clips.

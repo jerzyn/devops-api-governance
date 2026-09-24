@@ -49,7 +49,7 @@ seed_repo() {
 }
 
 echo "==> push consumer repo: /repo -> '$ORG/$REPO' main"
-seed_repo /repo "$REPO" "Consumer repo: Sample Orders API (contract + backend)"
+seed_repo /repo "$REPO" "Consumer repo: Orders API (contract + backend)"
 
 echo "==> push governance repo: lean policy -> '$ORG/$GOV_REPO' main"
 # The consumer CI only needs the policy (ruleset + custom functions + the

@@ -3,14 +3,14 @@
 apiVersion: backstage.io/v1alpha1
 kind: API
 metadata:
-  name: sample-orders-api
-  description: Sample Orders API governed by the Spectral ruleset and Microcks.
+  name: orders-api
+  description: Orders API governed by the Spectral ruleset and Microcks.
   tags:
     - openapi
     - orders
   links:
     - url: http://localhost:8081
-      title: Sample backend (local demo provider)
+      title: Backend (local demo provider)
     # Microcks links (the auto-sync provider is incompatible with this Backstage
     # line, so the mock + tests are surfaced as plain links instead).
     - url: http://localhost:8080/#/services
@@ -26,14 +26,14 @@ spec:
 apiVersion: backstage.io/v1alpha1
 kind: Component
 metadata:
-  name: sample-backend
-  description: Minimal provider-under-test implementing the Sample Orders API.
+  name: backend
+  description: Minimal provider-under-test implementing the Orders API.
 spec:
   type: service
   lifecycle: experimental
   owner: group:default/platform-team
   providesApis:
-    - sample-orders-api
+    - orders-api
 ---
 apiVersion: backstage.io/v1alpha1
 kind: Group

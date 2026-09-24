@@ -35,7 +35,7 @@ entirely once a PR is mid-review.
 
 ## Version-derive, not hardcoded
 
-The Microcks `serviceId` needs a version (`"Sample Orders API:1.0.0"`, say).
+The Microcks `serviceId` needs a version (`"Orders API:1.0.0"`, say).
 Instead of hardcoding that version, the workflow reads it out of the
 checked-out contract's `info.version` at run time. A PR that bumps the
 version doesn't silently start testing against a stale, nonexistent service

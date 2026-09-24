@@ -1,4 +1,4 @@
-# Sample Orders API — consumer repo (starting template)
+# Orders API — consumer repo (starting template)
 
 This is the **product/consumer repository**: the API contract, its catalog
 entry, and the backend implementation. It is the unit a product team owns and
@@ -13,7 +13,7 @@ governed API repo.
 |------|---------|
 | `contracts/orders-openapi.yaml` | The OpenAPI contract (source of truth for the API). |
 | `catalog-info.yaml` | Backstage entities (API + Component + Group), discovered from Gitea. |
-| `sample-backend/` | The provider implementation tested against the contract. |
+| `backend/` | The provider implementation tested against the contract. |
 | `.gitea/workflows/pr-governance.yml` | PR gate: Spectral lint → backward-compat check → Microcks contract test → KrakenD gateway deploy. |
 
 ## Governance is linked, not vendored
@@ -25,7 +25,7 @@ governance context; this repo only carries the API.
 
 ## PR loop
 
-1. Branch, edit `contracts/orders-openapi.yaml` and/or `sample-backend/`.
+1. Branch, edit `contracts/orders-openapi.yaml` and/or `backend/`.
 2. Push, open a PR into `main` in Gitea (`http://localhost:3000`, `demo` / `demo12345`).
 3. Gitea Actions runs `pr-governance.yml`, four gates in order (each gated by
    `needs:`, so a failure stops the rest):
@@ -35,7 +35,7 @@ governance context; this repo only carries the API.
      base branch with `oasdiff`; fails on any breaking change (new required
      parameter, narrowed constraint, removed field/operation).
    - **contract-test** — imports this PR's contract into Microcks and tests the
-     running `sample-backend` against it; fails on drift.
+     running `backend` against it; fails on drift.
    - **gateway-deploy-check** — generates a KrakenD gateway config from this
      PR's contract, deploys it to a running KrakenD instance, and re-runs the
      same Microcks test suite through the gateway instead of directly against

@@ -12,7 +12,7 @@ const CONTAINER_ENGINE = process.env.CONTAINER_ENGINE || 'docker';
 
 const DEFAULT_CONFIG = {
   version: 3,
-  name: 'Sample Orders API Gateway (uninitialized)',
+  name: 'Orders API Gateway (uninitialized)',
   port: 8090,
   timeout: '5s',
   cache_ttl: '0s',
