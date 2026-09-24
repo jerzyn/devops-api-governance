@@ -15,8 +15,9 @@
 #   prep-stage.sh stage5-red       feat/orders-require-channel
 #
 # Rollback: put Gitea main, Backstage and the KrakenD gateway in the state right
-# BEFORE a step is recorded. Closes open PRs and deletes feat/* branches. Afterwards make a
-# fresh clone (main is force-pushed) and run the step's prep command.
+# BEFORE a step is recorded, and push that step's branch (goto closes open PRs and
+# deletes all feat/* branches, so it re-creates the one you need). Afterwards make a
+# fresh clone (main is force-pushed).
 #   prep-stage.sh goto 1           start of stage 1 (nothing merged; same as reset)
 #   prep-stage.sh goto 2           start of stage 2 part 1 (stage 1 merged)
 #   prep-stage.sh goto 2-red       start of stage 2 part 2 (spectral gate merged)
@@ -282,6 +283,30 @@ sync_gateway() {
   fi
 }
 
+# What each prep step pushes: the branch you check out on camera.
+prep_step() {
+  case "$1" in
+    stage1)     make_branch feat/add-orders-contract "Add Orders API contract and register it in the catalog" do_stage1 ;;
+    stage2)     make_branch feat/add-spectral-gate "Add spectral-openapi-check gate" do_stage2 ;;
+    stage2-red) make_branch feat/orders-server-url "Move Orders API to orders.example.com" do_stage2_red ;;
+    stage3)     make_branch feat/add-contract-test-gate "Add contract-test gate (Microcks)" do_stage3 ;;
+    stage3-red) make_branch feat/orders-currency "Add currency to the order response" do_stage3_red ;;
+    stage4)     make_branch feat/add-gateway-gate "Add gateway-deploy-check gate (KrakenD)" do_stage4 ;;
+    stage5)     make_branch feat/add-backwards-compat-gate "Insert breaking-changes-check between lint and contract-test" do_stage5 ;;
+    stage5-red) make_branch feat/orders-require-channel "Require sales channel when reading an order" do_stage5_red ;;
+    *) return 1 ;;
+  esac
+}
+
+# The step that is recorded from each goto state.
+step_at() {
+  case "$1" in
+    1) echo stage1 ;; 2) echo stage2 ;; 2-red) echo stage2-red ;; 3) echo stage3 ;;
+    3-red) echo stage3-red ;; 4) echo stage4 ;; 5) echo stage5 ;; 5-red) echo stage5-red ;;
+    *) echo "" ;;
+  esac
+}
+
 goto() {
   local target="${1:-}" k
   k="$(layers_before "$target")" || { echo "unknown target '$target'; see the usage at the top of $0" >&2; exit 1; }
@@ -296,20 +321,19 @@ goto() {
     wait_for_api 40 || { echo "sample-orders-api never appeared in Backstage" >&2; exit 1; }
     echo "backstage lists sample-orders-api"
   fi
-  echo "ready: start of '$target'. Make a fresh clone (main was force-pushed), then run this stage's prep command."
+  local step; step="$(step_at "$target")"
+  if [ -n "$step" ]; then
+    prep_step "$step"
+    echo "ready: start of '$target', and its branch is pushed. Make a fresh clone (main was force-pushed) and record."
+  else
+    echo "ready: '$target' (everything merged; nothing left to record)."
+  fi
 }
 
 case "${1:-}" in
   goto) goto "${2:-}" ;;
   reset) goto 1 ;;
   refresh-catalog) refresh_catalog ;;
-  stage1)     make_branch feat/add-orders-contract "Add Orders API contract and register it in the catalog" do_stage1 ;;
-  stage2)     make_branch feat/add-spectral-gate "Add spectral-openapi-check gate" do_stage2 ;;
-  stage2-red) make_branch feat/orders-server-url "Move Orders API to orders.example.com" do_stage2_red ;;
-  stage3)     make_branch feat/add-contract-test-gate "Add contract-test gate (Microcks)" do_stage3 ;;
-  stage3-red) make_branch feat/orders-currency "Add currency to the order response" do_stage3_red ;;
-  stage4)     make_branch feat/add-gateway-gate "Add gateway-deploy-check gate (KrakenD)" do_stage4 ;;
-  stage5)     make_branch feat/add-backwards-compat-gate "Insert breaking-changes-check between lint and contract-test" do_stage5 ;;
-  stage5-red) make_branch feat/orders-require-channel "Require sales channel when reading an order" do_stage5_red ;;
+  stage1|stage2|stage2-red|stage3|stage3-red|stage4|stage5|stage5-red) prep_step "$1" ;;
   *) sed -n '2,34p' "$0"; exit 1 ;;
 esac

@@ -22,7 +22,7 @@ Every step below was run end to end by a script that does exactly what you do: f
 
 Every stage follows the same pattern. Stages 2, 3 and 5 run it twice: **part 1** installs the new gate on a change that is fine (the gate goes green), **part 2** shows the gate catching a bad change (red, then a one-line fix, then green). Stages 1 and 4 have a single part.
 
-1. **Prep (off camera):** `scripts/demo/prep-stage.sh <step>` clones Gitea `main`, applies that step's change and pushes it as a branch (e.g. `feat/add-spectral-gate`). Nothing is typed from scratch on camera, and the red states are red every single time. Each stage's branch also updates the repo's `README.md`, so the Gitea repo home always describes the current state and visibly grows with the pipeline. Run it in a second terminal, before you start recording the step, and **only after the previous step's PR is merged**: the branch is cut from Gitea `main` at that moment.
+1. **Prep (off camera):** `scripts/demo/prep-stage.sh <step>` clones Gitea `main`, applies that step's change and pushes it as a branch (e.g. `feat/add-spectral-gate`). Nothing is typed from scratch on camera, and the red states are red every single time. Each stage's branch also updates the repo's `README.md`, so the Gitea repo home always describes the current state and visibly grows with the pipeline. (After a `goto` it is already done for the step you are about to record.) Run it in a second terminal, before you start recording the step, and **only after the previous step's PR is merged**: the branch is cut from Gitea `main` at that moment.
 2. **Terminal, show the change:** `git fetch origin`, `git switch <branch>`, then show what it changes: `git diff origin/main -- <path>` (or `cat` for a new file). This is where the audience sees *what is being proposed*, so let it stay on screen for a beat.
 3. **Browser, PR and checks:** open the PR (`compare/main...<branch>` → **New Pull Request** → **Create Pull Request**) and let the checks run. Open a check's **Details** to show the one log line that matters (each stage names it). The gate's verdict is the payload of the recording.
 4. **Terminal, fix (red demos only):** one command edits the contract (`sed`), then `git commit -am` and `git push`. Pushing updates the same PR, so the checks re-run by themselves and go from red to green in the browser.
@@ -39,12 +39,12 @@ If a take goes wrong, don't redo the earlier stages: use `prep-stage.sh goto <ta
 
 ## Before recording
 
-The environment is ready when: 7 containers run (all from `devops-api-governance`), Gitea `main` is at the Stage 1 starting state, there are no open PRs, Backstage lists no APIs, and `feat/add-orders-contract` is on the remote. `prep-stage.sh goto 1` and `prep-stage.sh stage1` produce exactly that.
+The environment is ready when: 7 containers run (all from `devops-api-governance`), Gitea `main` is at the Stage 1 starting state, there are no open PRs, Backstage lists no APIs, and `feat/add-orders-contract` is on the remote. `prep-stage.sh goto 1` produces exactly that (it pushes the Stage 1 branch itself).
 
 Gitea keeps the history of earlier PRs and CI runs, so new PRs on camera are numbered from #33 up (not #1) and the Actions tab lists old runs. The screenplay only ever opens a PR by URL, so this rarely shows.
 
 1. Stack up (see appendix).
-2. `scripts/demo/prep-stage.sh goto 1` (run from the project directory; `reset` is an alias): Gitea `main` goes back to the Stage 1 starting state, open PRs are closed, leftover `feat/*` branches are deleted, the governance repo is synced, and the Backstage catalog is cleared.
+2. `scripts/demo/prep-stage.sh goto 1` (run from the project directory; `reset` is an alias): Gitea `main` goes back to the Stage 1 starting state, open PRs are closed, **all** `feat/*` branches are deleted, the governance repo is synced, the Backstage catalog is cleared, and the branch for Stage 1 (`feat/add-orders-contract`) is pushed. Nothing else to run before the clone.
 3. In the browser, **sign in to Gitea** at `http://localhost:3000/user/login` as `demo` / `demo12345`. Without a login the PR page shows "Sign in to…" and has no create or merge buttons.
 4. Make a fresh clone *after* the reset, in its own folder and under its own name:
    ```bash
@@ -69,9 +69,11 @@ Yes, have everything below open **before** you press record, so no recording sta
 
 ## Retakes: roll back to any stage
 
-`scripts/demo/prep-stage.sh goto <target>` puts Gitea `main`, the Backstage catalog and the KrakenD gateway in the state right **before** that step is recorded (the gateway has no routes until Stage 4 is merged). It replays every earlier stage's changes onto `main` (including the merged fixes), closes open PRs and deletes `feat/*` branches. It doesn't need CI and takes ~10s.
+`scripts/demo/prep-stage.sh goto <target>` puts Gitea `main`, the Backstage catalog and the KrakenD gateway in the state right **before** that step is recorded (the gateway has no routes until Stage 4 is merged). It replays every earlier stage's changes onto `main` (including the merged fixes), closes open PRs, deletes all `feat/*` branches and **pushes the branch of the step you are about to record**. It doesn't need CI and takes ~10s.
 
-| Target | State: what is already merged | Then run |
+Because `goto` deletes every `feat/*` branch, always let it push the branch (it does). If you delete or lose one some other way, re-push it with `prep-stage.sh <step>`; the git error you get otherwise is `fatal: invalid reference: feat/...`.
+
+| Target | State: what is already merged | Branch `goto` pushes (= `prep-stage.sh <step>`) |
 |---|---|---|
 | `goto 1` | nothing | `stage1` |
 | `goto 2` | stage 1 (contract + catalog; API is in Backstage) | `stage2` |
@@ -90,7 +92,7 @@ After a `goto`:
    git clone http://demo:demo12345@localhost:3000/governance-demo/devops-api-governance.git orders-api
    cd orders-api
    ```
-2. Run the step's prep command from the "Then run" column, and record.
+2. Record. The step's branch is already on the remote.
 
 Every retake target was verified: the resulting repo state, plus the real red/green CI result for `3-red` (contract-test fails) and `5-red` (breaking-changes-check fails, the rest skipped).
 
