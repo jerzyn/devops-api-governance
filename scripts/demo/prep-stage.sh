@@ -14,8 +14,8 @@
 #   prep-stage.sh stage5           feat/add-backwards-compat-gate
 #   prep-stage.sh stage5-red       feat/orders-require-channel
 #
-# Rollback: put Gitea main + Backstage in the state right BEFORE a step is
-# recorded. Closes open PRs and deletes feat/* branches. Afterwards make a
+# Rollback: put Gitea main, Backstage and the KrakenD gateway in the state right
+# BEFORE a step is recorded. Closes open PRs and deletes feat/* branches. Afterwards make a
 # fresh clone (main is force-pushed) and run the step's prep command.
 #   prep-stage.sh goto 1           start of stage 1 (nothing merged; same as reset)
 #   prep-stage.sh goto 2           start of stage 2 part 1 (stage 1 merged)
@@ -240,6 +240,41 @@ refresh_catalog() {
   fi
 }
 
+# KrakenD keeps the config CI last deployed, so it must be put back in step
+# with the stage: until the gateway gate is merged the gateway has no routes
+# (404); afterwards it serves the contract. Posts to the deployer sidecar,
+# which writes the config and restarts krakend.
+gateway_deploy() {  # $1 = krakend.json
+  podman exec krakend-deployer wget -qO- --header 'Content-Type: application/json' \
+    --post-data "$(cat "$1")" http://localhost:9000/deploy >/dev/null
+  for i in $(seq 1 30); do
+    [ "$(curl -s -o /dev/null -w '%{http_code}' http://localhost:8090/orders/1)" != 000 ] && return 0
+    sleep 1
+  done
+  echo "gateway did not come back after the deploy" >&2; exit 1
+}
+
+# $1 = layers merged so far (layer 6 is the gateway gate); reads $WORK/base
+sync_gateway() {
+  if [ "$1" -ge 6 ]; then
+    local g="$WORK/gw"
+    mkdir -p "$g"
+    cp "$ROOT/governance/gateway/generate.js" "$ROOT/governance/gateway/package.json" \
+       "$ROOT/governance/gateway/krakend-base.json" "$g/"
+    (cd "$g" && npm install --silent --no-audit --no-fund >/dev/null 2>&1)
+    node "$g/generate.js" "$WORK/base/$CONTRACT" "$g/krakend.json" >/dev/null
+    gateway_deploy "$g/krakend.json"
+    [ "$(curl -s -o /dev/null -w '%{http_code}' http://localhost:8090/orders/123)" = 200 ] \
+      || { echo "gateway should serve /orders/123 but doesn't" >&2; exit 1; }
+    echo "gateway serves /orders/{orderId}"
+  else
+    gateway_deploy "$ROOT/governance/gateway/krakend-base.json"
+    [ "$(curl -s -o /dev/null -w '%{http_code}' http://localhost:8090/orders/123)" = 404 ] \
+      || { echo "gateway should have no routes yet but answers" >&2; exit 1; }
+    echo "gateway has no routes yet (404)"
+  fi
+}
+
 goto() {
   local target="${1:-}" k
   k="$(layers_before "$target")" || { echo "unknown target '$target'; see the usage at the top of $0" >&2; exit 1; }
@@ -247,6 +282,7 @@ goto() {
   push_state "$k"
   sync_governance_repo
   delete_repo_entities
+  sync_gateway "$k"
   trigger_refresh
   if [ "$k" -ge 1 ]; then
     # Stage 1 is already merged in this state, so Backstage must list the API.
