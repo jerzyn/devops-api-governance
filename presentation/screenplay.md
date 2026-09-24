@@ -17,7 +17,7 @@ Every step below was run end to end by a script that does exactly what you do: f
 | 1 | Catalog | `sample-orders-api` appears in Backstage after a merge. No CI yet. |
 | 2 | Spectral | Red check with the exact rule ID `api-peak:rest17:2025-https-required`. One-line fix turns it green. |
 | 3 | Contract test (Microcks) | The contract promises a field the running backend doesn't return. contract-test catches it (`currency' not found`). |
-| 4 | API gateway (KrakenD) | Generated `krakend.json` in the CI log, and a real `curl` through the gateway. |
+| 4 | API gateway (KrakenD) | `curl` through the gateway goes from 404 (no routes yet) to 200 after the merge, with the generated `krakend.json` in the CI log. |
 | 5 | Backwards compatibility (oasdiff) | `new-required-request-parameter` goes red, and downstream gates show as skipped (grey). Making it optional turns everything green. |
 
 Every stage follows the same pattern. Stages 2, 3 and 5 run it twice: **part 1** installs the new gate on a change that is fine (the gate goes green), **part 2** shows the gate catching a bad change (red, then a one-line fix, then green). Stages 1 and 4 have a single part.
@@ -67,7 +67,7 @@ Yes, have everything below open **before** you press record, so no recording sta
 
 ## Retakes: roll back to any stage
 
-`scripts/demo/prep-stage.sh goto <target>` puts Gitea `main` and the Backstage catalog in the state right **before** that step is recorded. It replays every earlier stage's changes onto `main` (including the merged fixes), closes open PRs and deletes `feat/*` branches. It doesn't need CI and takes ~10s.
+`scripts/demo/prep-stage.sh goto <target>` puts Gitea `main`, the Backstage catalog and the KrakenD gateway in the state right **before** that step is recorded (the gateway has no routes until Stage 4 is merged). It replays every earlier stage's changes onto `main` (including the merged fixes), closes open PRs and deletes `feat/*` branches. It doesn't need CI and takes ~10s.
 
 | Target | State: what is already merged | Then run |
 |---|---|---|
@@ -254,13 +254,14 @@ git push
 **Prep:** `prep-stage.sh stage4` pushes branch `feat/add-gateway-gate`. It adds the `gateway-deploy-check` job (`needs: contract-test`).
 
 **On screen at the start:**
-- Terminal 1: same clone, screen cleared. It also runs the two `curl` commands at the end.
+- Terminal 1: same clone, screen cleared. It also runs the `curl` commands (before the PR and at the end).
 - Browser tab 1: Gitea repo home. Nothing else is needed.
 - Terminal 2 (off camera): `stage4` already run.
-- The KrakenD container is always running and keeps the config CI last deployed. So `curl localhost:8090/orders/123` already answers before this PR. The proof for this stage is the CI log (`Generated krakend.json`, the deploy step), with the `curl` matching the backend as the finishing shot.
+- The KrakenD container is running with **no routes**: `curl -i http://localhost:8090/orders/123` returns `404`. `prep-stage.sh goto` (1 to 4) puts it in that state. This is the "before" of the stage.
 
 **Terminal:**
 ```bash
+curl -i http://localhost:8090/orders/123         # before: the gateway has no routes, 404
 git fetch origin
 git switch feat/add-gateway-gate
 git diff origin/main -- .gitea/workflows/        # show the new job
@@ -273,8 +274,8 @@ git diff origin/main -- .gitea/workflows/        # show the new job
 
 **Terminal (proof it's live):**
 ```bash
-curl -s http://localhost:8090/orders/123     # through KrakenD
-curl -s http://localhost:8081/orders/123     # straight to the backend: identical
+curl -i http://localhost:8090/orders/123     # after: 200, through KrakenD
+curl -s http://localhost:8081/orders/123     # straight to the backend: identical body
 ```
 
 **Duration:** ~80s for the CI run (spectral ~25s, then contract-test ~20s, then gateway ~30s), measured.
