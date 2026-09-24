@@ -361,6 +361,8 @@ About **8–10 minutes** of raw footage. Stages 1–2 are good candidates to spe
 
 **Run `prep-stage.sh reset` after every `podman-compose up`.** Anything that depends on the one-shot `gitea-seed` service re-runs it, and the seed force-pushes the full repo onto Gitea `main`, wiping the stage state. `backstage` depends on it. Never run it mid-demo.
 
+**CI needs the internet.** Every job clones `actions/checkout` from github.com, and the jobs download spectral-cli (npm), oasdiff and the KrakenD CLI (GitHub releases). A flaky connection shows up as a check that fails before any step ran (`connection reset by peer` in the log), not as a real red result. Check your connection before recording. If a check fails that way, use the **Re-run** button on the run page, or push an empty commit: `git commit --allow-empty -m retry && git push`.
+
 **Backstage:**
 - `prep-stage.sh refresh-catalog` triggers the Gitea provider's scheduled task through the catalog's scheduler endpoint (`/api/catalog/.backstage/scheduler/v1/tasks/gitea-provider:local:refresh/trigger`, guest token). It rescans in a few seconds, without touching any container.
 - **Never `podman start` / `podman restart` / `podman-compose up` for `backstage`.** It starts its dependency `gitea-seed`, which force-pushes the full repo over Gitea `main` and wipes the stage state (the full four-gate workflow would suddenly appear on `main` during Stage 1).
