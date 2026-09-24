@@ -39,12 +39,12 @@ If a take goes wrong, don't redo the earlier stages: use `prep-stage.sh goto <ta
 
 ## Before recording
 
-The environment is ready when: 7 containers run (all from `devops-api-governance`), Gitea `main` is at the Stage 1 starting state, there are no open PRs, Backstage lists no APIs, and `feat/add-orders-contract` is on the remote. `prep-stage.sh goto 1` produces exactly that (it pushes the Stage 1 branch itself).
+The environment is ready when: 7 containers run (all from `devops-api-governance`), Gitea `main` is at the Stage 1 starting state, there are no open PRs, Backstage lists no APIs, and `feat/add-catalog-entry` is on the remote. `prep-stage.sh goto 1` produces exactly that (it pushes the Stage 1 branch itself).
 
 Gitea keeps the history of earlier PRs and CI runs, so new PRs on camera are numbered from #33 up (not #1) and the Actions tab lists old runs. The screenplay only ever opens a PR by URL, so this rarely shows.
 
 1. Stack up (see appendix).
-2. `scripts/demo/prep-stage.sh goto 1` (run from the project directory; `reset` is an alias): Gitea `main` goes back to the Stage 1 starting state, open PRs are closed, **all** `feat/*` branches are deleted, the governance repo is synced, the Backstage catalog is cleared, and the branch for Stage 1 (`feat/add-orders-contract`) is pushed. Nothing else to run before the clone.
+2. `scripts/demo/prep-stage.sh goto 1` (run from the project directory; `reset` is an alias): Gitea `main` goes back to the Stage 1 starting state, open PRs are closed, **all** `feat/*` branches are deleted, the governance repo is synced, the Backstage catalog is cleared, and the branch for Stage 1 (`feat/add-catalog-entry`) is pushed. Nothing else to run before the clone.
 3. In the browser, **sign in to Gitea** at `http://localhost:3000/user/login` as `demo` / `demo12345`. Without a login the PR page shows "Sign in to…" and has no create or merge buttons.
 4. Make a fresh clone *after* the reset, in its own folder and under its own name:
    ```bash
@@ -76,7 +76,7 @@ Because `goto` deletes every `feat/*` branch, always let it push the branch (it 
 | Target | State: what is already merged | Branch `goto` pushes (= `prep-stage.sh <step>`) |
 |---|---|---|
 | `goto 1` | nothing | `stage1` |
-| `goto 2` | stage 1 (contract + catalog; API is in Backstage) | `stage2` |
+| `goto 2` | stage 1 (catalog entry; the API is in Backstage) | `stage2` |
 | `goto 2-red` | + spectral gate | `stage2-red` |
 | `goto 3` | + stage 2 fix (server URL is now `https://orders.example.com`) | `stage3` |
 | `goto 3-red` | + contract-test gate | `stage3-red` |
@@ -109,32 +109,33 @@ Repo: `http://localhost:3000/governance-demo/devops-api-governance`
 
 ---
 
-## Stage 1 — Contract + Catalog
+## Stage 1 — Catalog (the contract already exists)
 
-**Narrative:** "You can't govern what you can't see. One `catalog-info.yaml` makes an API visible to the whole org."
+**Narrative:** "The team already has an API contract, but you can't govern what you can't see. One `catalog-info.yaml` makes the API visible to the whole org."
 
-**Starting state:** Gitea `main` has only `sample-backend/`, `README.md` and `.gitignore`. It has no `contracts/`, no `catalog-info.yaml` and no workflow. Backstage lists no APIs.
+**Starting state:** Gitea `main` has `sample-backend/` and the OpenAPI contract `contracts/orders-openapi.yaml` (plus `README.md`, `.gitignore`). It has no `catalog-info.yaml` and no workflow. Backstage lists no APIs.
 
-**Prep:** `scripts/demo/prep-stage.sh stage1` pushes branch `feat/add-orders-contract`, containing `contracts/orders-openapi.yaml` and `catalog-info.yaml`.
+**Prep:** `scripts/demo/prep-stage.sh stage1` pushes branch `feat/add-catalog-entry`. It adds `catalog-info.yaml` (and updates the README to mention it).
 
 **On screen at the start:**
 - Terminal 1: fresh clone, `git status` clean, screen cleared.
-- Browser tab 1 (visible first): Gitea repo home. The file list shows only `sample-backend`, `README.md`, `.gitignore`, and the README below it says the same: only the backend exists, no contract, no catalog entry, no checks. This is the "before".
+- Browser tab 1 (visible first): Gitea repo home. The file list shows `contracts/`, `sample-backend/`, `README.md`, `.gitignore`, and the README below it says the same: the contract and the backend exist, no catalog entry, no checks. This is the "before".
 - Browser tab 2: Backstage, left menu **APIs**. The list is empty, the other "before". Switch to it after the push.
 - Terminal 2 (off camera): `prep-stage.sh stage1` already run; `prep-stage.sh refresh-catalog` typed, not yet executed.
 
 **Terminal:**
 ```bash
+ls                                               # contracts/ and sample-backend/, no catalog-info.yaml
 git fetch origin
-git switch feat/add-orders-contract
+git switch feat/add-catalog-entry
 cat catalog-info.yaml                            # show what gets registered
-git push origin feat/add-orders-contract:main    # merge: fast-forward, no gate exists yet
+git push origin feat/add-catalog-entry:main      # merge: fast-forward, no gate exists yet
 ```
 
 **Browser:**
 1. Right after the push: `scripts/demo/prep-stage.sh refresh-catalog`. Backstage's Gitea provider only rescans every **30 minutes**, so this triggers a rescan; the API is listed after ~5–7s. Run it from a second terminal (or cut those seconds from the video).
 2. Open Backstage → **APIs** → `sample-orders-api`.
-3. Show the **Definition** tab (rendered contract) and the owner.
+3. Show the **Definition** tab (the rendered contract that was already in the repo) and the owner.
 
 **Duration:** ~30s after cutting.
 

@@ -5,7 +5,7 @@
 # any stage for a retake. Run from anywhere on the host, stack already up.
 #
 # Branches to push (each is what you check out on camera):
-#   prep-stage.sh stage1           feat/add-orders-contract
+#   prep-stage.sh stage1           feat/add-catalog-entry
 #   prep-stage.sh stage2           feat/add-spectral-gate
 #   prep-stage.sh stage2-red       feat/orders-server-url
 #   prep-stage.sh stage3           feat/add-contract-test-gate
@@ -57,7 +57,7 @@ use_workflow() {  # $1 = repo dir, $2 = workflow file
 use_readme() { cp "$2" "$1/README.md"; }  # $1 = repo dir, $2 = README file
 
 do_stage1() {
-  cp -r "$ROOT/example/contracts" "$ROOT/example/catalog-info.yaml" "$1/"
+  cp "$ROOT/example/catalog-info.yaml" "$1/"
   use_readme "$1" "$RD/stage1.md"
 }
 
@@ -113,7 +113,7 @@ do_stage5_fix() { sed -i '/name: channel/,/required:/ s/required: true/required:
 
 # What lands on main, in order. "goto" replays the first N of these.
 LAYERS=(
-  "do_stage1"                       # 1  stage 1: contract + catalog entry
+  "do_stage1"                       # 1  stage 1: catalog entry
   "do_stage2"                       # 2  stage 2 part 1: spectral gate
   "do_stage2_red do_stage2_fix"     # 3  stage 2 part 2: http -> https fix merged
   "do_stage3"                       # 4  stage 3 part 1: contract-test gate
@@ -186,13 +186,13 @@ cleanup_gitea() {
   done
 }
 
-# Consumer template minus contract, catalog entry and workflow, plus the first
-# $1 layers, pushed as a fresh root commit onto Gitea main.
+# Consumer template minus the catalog entry and the workflow (backend + contract
+# remain), plus the first $1 layers, pushed as a fresh root commit onto Gitea main.
 push_state() {
   local d="$WORK/base"
   rm -rf "$d"; mkdir -p "$d"
   cp -a "$ROOT/example/." "$d/"
-  rm -rf "$d/contracts" "$d/catalog-info.yaml" "$d/.gitea"
+  rm -rf "$d/catalog-info.yaml" "$d/.gitea"
   use_readme "$d" "$RD/stage0.md"
   for ((i = 0; i < $1; i++)); do
     for f in ${LAYERS[$i]}; do "$f" "$d"; done
@@ -286,7 +286,7 @@ sync_gateway() {
 # What each prep step pushes: the branch you check out on camera.
 prep_step() {
   case "$1" in
-    stage1)     make_branch feat/add-orders-contract "Add Orders API contract and register it in the catalog" do_stage1 ;;
+    stage1)     make_branch feat/add-catalog-entry "Register the Orders API in the catalog" do_stage1 ;;
     stage2)     make_branch feat/add-spectral-gate "Add spectral-openapi-check gate" do_stage2 ;;
     stage2-red) make_branch feat/orders-server-url "Move Orders API to orders.example.com" do_stage2_red ;;
     stage3)     make_branch feat/add-contract-test-gate "Add contract-test gate (Microcks)" do_stage3 ;;
