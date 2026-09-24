@@ -75,15 +75,15 @@ Endpoints:
 | Gitea | http://localhost:3000 | login `demo` / `demo12345` |
 | Microcks | http://localhost:8080 | mocks + contract test results |
 | Backstage | http://localhost:7007 | API catalog (guest sign-in) |
-| sample-backend | http://localhost:8081 | provider under test |
-| KrakenD | http://localhost:8090 | API gateway routing to sample-backend |
+| backend | http://localhost:8081 | provider under test |
+| KrakenD | http://localhost:8090 | API gateway routing to the backend |
 
 ## The demo loop
 
 After the stack is up, governance runs through pull requests **in the consumer
 repo** (`example/` → Gitea `governance-demo/devops-api-governance`):
 
-1. Branch → edit `contracts/orders-openapi.yaml` and/or `sample-backend/` → open
+1. Branch → edit `contracts/orders-openapi.yaml` and/or `backend/` → open
    a PR into `main` in Gitea.
 2. Gitea Actions runs four gates **in order** (`pr-governance.yml`), each gated
    by `needs:` so the next stage only runs if the previous one passed:
@@ -97,7 +97,7 @@ repo** (`example/` → Gitea `governance-demo/devops-api-governance`):
      Brand-new files (no baseline) and identical-content edits are skipped;
      the whole job is skipped on `workflow_dispatch` (no PR base ref).
    - **Microcks contract test** (`contract-test`) — imports the PR branch's
-     contract and tests the running `sample-backend` against it via the Microcks
+     contract and tests the running `backend` against it via the Microcks
      REST API; **fails on contract drift**.
    - **Gateway deploy** (`gateway-deploy-check`) — generates a KrakenD gateway
      config from the PR's contract, deploys it to a running KrakenD instance,
@@ -138,7 +138,7 @@ A step-by-step walkthrough (green/red for each gate + merge→catalog) is in
 |------|---------|
 | `contracts/orders-openapi.yaml` | The live OpenAPI contract (imported into Microcks). |
 | `catalog-info.yaml` | Backstage entities (API + Component + Group) discovered from Gitea. |
-| `sample-backend/` | Minimal provider-under-test (conformant, or drifting via `DRIFT=true`). |
+| `backend/` | Minimal provider-under-test (conformant, or drifting via `DRIFT=true`). |
 | `.gitea/workflows/pr-governance.yml` | One PR gate, four stages ordered via `needs:`: `spectral-openapi-check` (linked ruleset) → `breaking-changes-check` (oasdiff) → `contract-test` (Microcks) → `gateway-deploy-check` (KrakenD). |
 
 ## Governance rules (Spectral)
@@ -210,14 +210,14 @@ oasdiff breaking --fail-on ERR \
 
 ## Contract testing
 
-`sample-backend` implements the Sample Orders API contract. To prove the gate:
+`backend` implements the Orders API contract. To prove the gate:
 
 ```bash
 # Conformant -> contract test passes (green).
 # Drift -> contract test fails (red):
-SAMPLE_BACKEND_DRIFT=true docker compose --profile contract up -d sample-backend
+BACKEND_DRIFT=true docker compose --profile contract up -d backend
 # ...open a PR... then restore:
-SAMPLE_BACKEND_DRIFT=false docker compose --profile contract up -d sample-backend
+BACKEND_DRIFT=false docker compose --profile contract up -d backend
 ```
 
 Microcks uber is all-in-one (no Keycloak, embedded in-memory Mongo), so imported
@@ -289,10 +289,10 @@ git clone http://demo:demo12345@localhost:3000/governance-demo/devops-api-govern
 ```
 
 Endpoints: Gitea `:3000` (`demo`/`demo12345`) · Microcks `:8080` · Backstage
-`:7007` (guest) · sample-backend `:8081`.
+`:7007` (guest) · backend `:8081`.
 
 **Topic 1 — API Catalog.** One `catalog-info.yaml` makes an API org-wide visible.
-Backstage → **APIs** shows `sample-orders-api`, auto-discovered from Gitea; its
+Backstage → **APIs** shows `orders-api`, auto-discovered from Gitea; its
 **Definition** tab has the rendered contract + owner + docs.
 
 **Topic 2 — Guidelines as Code.** The guidelines live in the catalog (Backstage →
@@ -302,7 +302,7 @@ consumer repo, branch, break a rule (e.g. server URL `http://` instead of
 **red**, with rule · file · line. Fix it, push again → **green**.
 
 **Topic 3 — Mocking & Contract Testing.** Microcks serves a live mock from the
-spec (Microcks UI → `Sample Orders API`) and tests the running backend for drift.
+spec (Microcks UI → `Orders API`) and tests the running backend for drift.
 Run the contract test from the Microcks UI, or let it run as the `contract-test`
 gate on a PR — drift goes red, in-sync goes green.
 

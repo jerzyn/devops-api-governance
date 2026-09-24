@@ -199,7 +199,7 @@ push_state() {
   done
   git -C "$d" init -q
   git -C "$d" -c user.name=seed -c user.email=seed@example.com add -A
-  git -C "$d" -c user.name=seed -c user.email=seed@example.com commit -q -m "Consumer repo: Sample Orders API"
+  git -C "$d" -c user.name=seed -c user.email=seed@example.com commit -q -m "Consumer repo: Orders API"
   git -C "$d" push -q -f "$REMOTE" HEAD:main
   echo "pushed state with $1 of ${#LAYERS[@]} layers to $REPO main"
 }
@@ -228,7 +228,7 @@ trigger_refresh() {
 catalog_has_api() {
   local t; t="$(backstage_token)" || return 1
   curl -sf -H "Authorization: Bearer $t" "http://localhost:7007/api/catalog/entities?filter=kind=api" \
-    | python3 -c "import json,sys; sys.exit(0 if any(e['metadata']['name']=='sample-orders-api' for e in json.load(sys.stdin)) else 1)"
+    | python3 -c "import json,sys; sys.exit(0 if any(e['metadata']['name']=='orders-api' for e in json.load(sys.stdin)) else 1)"
 }
 
 wait_for_api() {  # $1 = attempts, 3s apart
@@ -242,9 +242,9 @@ wait_for_api() {  # $1 = attempts, 3s apart
 refresh_catalog() {
   trigger_refresh
   if wait_for_api 15; then
-    echo "backstage lists sample-orders-api"
+    echo "backstage lists orders-api"
   else
-    echo "sample-orders-api not listed yet (is catalog-info.yaml on Gitea main?)"
+    echo "orders-api not listed yet (is catalog-info.yaml on Gitea main?)"
   fi
 }
 
@@ -318,8 +318,8 @@ goto() {
   trigger_refresh
   if [ "$k" -ge 1 ]; then
     # Stage 1 is already merged in this state, so Backstage must list the API.
-    wait_for_api 40 || { echo "sample-orders-api never appeared in Backstage" >&2; exit 1; }
-    echo "backstage lists sample-orders-api"
+    wait_for_api 40 || { echo "orders-api never appeared in Backstage" >&2; exit 1; }
+    echo "backstage lists orders-api"
   fi
   local step; step="$(step_at "$target")"
   if [ -n "$step" ]; then

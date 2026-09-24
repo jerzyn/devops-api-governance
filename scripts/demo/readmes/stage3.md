@@ -1,4 +1,4 @@
-# Sample Orders API — consumer repo
+# Orders API — consumer repo
 
 This is the **product/consumer repository**: the API contract, its catalog
 entry, and the backend implementation. It is the unit a product team owns and
@@ -10,7 +10,7 @@ opens pull requests against.
 |------|---------|
 | `contracts/orders-openapi.yaml` | The OpenAPI contract (source of truth for the API). |
 | `catalog-info.yaml` | Backstage entities (API + Component + Group), discovered from Gitea. |
-| `sample-backend/` | The provider implementation tested against the contract. |
+| `backend/` | The provider implementation tested against the contract. |
 | `.gitea/workflows/pr-governance.yml` | PR gate: Spectral lint → Microcks contract test. |
 
 ## Governance is linked, not vendored
@@ -22,12 +22,12 @@ governance context; this repo only carries the API.
 
 ## PR loop
 
-1. Branch, edit `contracts/orders-openapi.yaml` and/or `sample-backend/`.
+1. Branch, edit `contracts/orders-openapi.yaml` and/or `backend/`.
 2. Push, open a PR into `main` in Gitea (`http://localhost:3000`, `demo` / `demo12345`).
 3. Gitea Actions runs `pr-governance.yml`, two gates in order (each gated by
    `needs:`, so a failure stops the rest):
    - **spectral-openapi-check** — lints PR-changed OpenAPI files against the
      linked governance ruleset; fails on error-severity findings.
    - **contract-test** — imports this PR's contract into Microcks and tests the
-     running `sample-backend` against it; fails on drift.
+     running `backend` against it; fails on drift.
 4. Merge → Backstage re-discovers `catalog-info.yaml` and updates the API entity.

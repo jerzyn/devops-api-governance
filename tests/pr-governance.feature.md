@@ -28,7 +28,7 @@ Background:
     | Gitea          | http://localhost:3000 | demo / demo12345     |
     | Microcks       | http://localhost:8080 | mocks + test results |
     | Backstage      | http://localhost:7007 | guest sign-in        |
-    | sample-backend | http://localhost:8081 | provider under test  |
+    | backend | http://localhost:8081 | provider under test  |
   And I clone the consumer repo to work on it:
     """
     git clone http://demo:demo12345@localhost:3000/governance-demo/devops-api-governance.git
@@ -45,7 +45,7 @@ Background:
 > when done (`git push origin --delete <branch>`), and re-run `gitea-seed` to
 > reset the consumer repo to the template.
 
-The consumer repo ships seeded with the Sample Orders API (`GET /orders/{orderId}`)
+The consumer repo ships seeded with the Orders API (`GET /orders/{orderId}`)
 and a conformant backend. Each scenario opens a PR against it.
 
 ---
@@ -95,7 +95,7 @@ Scenario: PR #1 — tighten the contract, fix lint, fix drift, merge
   # --- merge -> catalog ---
   When I merge the PR into main
   Then Backstage's Gitea provider discovers catalog-info.yaml from main
-  And the API "sample-orders-api" shows the updated contract
+  And the API "orders-api" shows the updated contract
     # (restart backstage to force re-discovery if you don't want to wait)
 ```
 
@@ -103,7 +103,7 @@ Scenario: PR #1 — tighten the contract, fix lint, fix drift, merge
 - Spectral red: the `http://` server URL trips an error-severity rule.
 - Microcks red — two easy ways:
   - tighten the PR's contract (above): proves the **PR branch** contract is used.
-  - or drift the provider: `SAMPLE_BACKEND_DRIFT=true docker compose --profile contract up -d --force-recreate sample-backend` (restore with `false`).
+  - or drift the provider: `BACKEND_DRIFT=true docker compose --profile contract up -d --force-recreate backend` (restore with `false`).
 
 ---
 
@@ -129,20 +129,20 @@ Scenario: PR #2 — bump to 1.1.0 and add GET /orders
     #   GET /orders -> "Expecting 200 but got 404"
 
   # --- implement, rebuild, GREEN ---
-  When I add GET /orders to sample-backend, commit, and rebuild the provider:
+  When I add GET /orders to the backend, commit, and rebuild the provider:
     """
-    docker compose --profile contract up -d --build --force-recreate sample-backend
+    docker compose --profile contract up -d --build --force-recreate backend
     """
   Then "contract-test" PASSES (re-run the PR job after the rebuild)
   And both checks are green
 
   # --- merge -> catalog shows the new version ---
   When I merge the PR into main
-  Then Backstage shows sample-orders-api at version 1.1.0 with paths
+  Then Backstage shows orders-api at version 1.1.0 with paths
        /orders and /orders/{orderId}
 ```
 
-> Note: `sample-backend` is built from `example/sample-backend`, and the contract
+> Note: `backend` is built from `example/backend`, and the contract
 > test targets the **running** container. After changing the backend, rebuild +
 > force-recreate it, then re-run the PR's CI job so it tests the new build.
 
@@ -196,7 +196,7 @@ Scenario: PR #3 — add a required parameter, blocked by BC gate, then relaxed
     # oasdiff exit 0; no BC findings reported.
   And "contract-test" now runs and PASSES
     # Microcks issues GET /orders/{orderId}?currency=PLN (from the example);
-    # the sample-backend ignores unknown query params and returns the same
+    # the backend ignores unknown query params and returns the same
     # response shape, which matches the unchanged 200 schema.
   And all four checks are green
 

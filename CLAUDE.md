@@ -39,7 +39,7 @@ being asked.
 - Default workflow: write a failing test first, write the minimal code to
   make it pass, then refactor. Applies especially to:
   - `governance/spectral/spectral-functions/*.js` (custom Spectral functions)
-  - `example/sample-backend/server.js` behavior
+  - `example/backend/server.js` behavior
   - any new CI logic in `example/.gitea/workflows/pr-governance.yml`
 - If a piece has no practical unit-test seam (e.g. Docker Compose wiring),
   say so and fall back to a manual/documented verification step instead of

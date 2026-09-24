@@ -1,8 +1,8 @@
 'use strict';
 
 /**
- * Minimal sample backend used as the "provider under test" for Microcks
- * contract testing. Implements the Sample Orders API contract from
+ * Minimal backend used as the "provider under test" for Microcks
+ * contract testing. Implements the Orders API contract from
  * examples/openapi-valid.yaml:
  *
  *   GET /orders/{orderId}
@@ -78,6 +78,6 @@ const server = http.createServer((req, res) => {
 server.listen(PORT, () => {
   // eslint-disable-next-line no-console
   console.log(
-    `sample-backend listening on :${PORT} (DRIFT=${DRIFT ? 'true' : 'false'})`
+    `backend listening on :${PORT} (DRIFT=${DRIFT ? 'true' : 'false'})`
   );
 });

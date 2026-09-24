@@ -96,18 +96,18 @@ services:
       - seed-state:/seed:ro
 
   # --- Track B: contract testing stack (profile: contract) ---------------------
-  # Minimal provider-under-test implementing the Sample Orders API contract.
-  sample-backend:
+  # Minimal provider-under-test implementing the Orders API contract.
+  backend:
     # Built from the example subrepo so backend edits during a test scenario
     # take effect here without touching the project repo.
-    build: ./example/sample-backend
-    container_name: sample-backend
+    build: ./example/backend
+    container_name: backend
     restart: unless-stopped
     profiles: ["contract"]
     environment:
       - PORT=8081
       # Set DRIFT=true to serve contract-violating responses (test should FAIL).
-      - DRIFT=${SAMPLE_BACKEND_DRIFT:-false}
+      - DRIFT=${BACKEND_DRIFT:-false}
     ports:
       - "8081:8081"
 
@@ -170,7 +170,7 @@ services:
       - "7007:7007"
 
   # --- Track C: API gateway (profile: gateway) --------------------------------
-  # KrakenD CE - real gateway routing to sample-backend. Config is generated
+  # KrakenD CE - real gateway routing to the backend. Config is generated
   # from the OpenAPI contract by governance/gateway/generate.js and deployed
   # via krakend-deployer: KrakenD CE has no hot-reload/admin API, and job
   # containers were deliberately stripped of docker/podman socket access
@@ -191,7 +191,7 @@ services:
     restart: unless-stopped
     profiles: ["gateway"]
     depends_on:
-      sample-backend:
+      backend:
         condition: service_started
       # krakend-deployer bootstraps the shared volume's krakend.json on its
       # own startup - without waiting for its healthcheck, krakend can start

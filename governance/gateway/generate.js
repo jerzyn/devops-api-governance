@@ -69,7 +69,7 @@ function main() {
     console.error('Usage: node generate.js <contract.yaml> <output.json> [backendHost]');
     process.exit(1);
   }
-  const backendHost = backendHostArg || 'http://sample-backend:8081';
+  const backendHost = backendHostArg || 'http://backend:8081';
   const basePath = path.join(__dirname, 'krakend-base.json');
   const config = generate(contractPath, basePath, backendHost);
   fs.writeFileSync(outputPath, JSON.stringify(config, null, 2));

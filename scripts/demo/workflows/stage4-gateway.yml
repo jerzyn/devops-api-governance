@@ -4,7 +4,7 @@ name: PR API governance
 #   1. spectral-openapi-check — design-time lint of PR-changed OpenAPI files.
 #      The governance ruleset is NOT vendored here; it is linked: the job clones
 #      the central governance repo at run time and lints against its ruleset.
-#   2. contract-test — runtime contract test of the running sample-backend
+#   2. contract-test — runtime contract test of the running backend
 #      against the PR's contract. Runs ONLY if the gate above passes.
 #   3. gateway-deploy-check — generates a KrakenD config from the PR's
 #      contract, deploys it to a running KrakenD instance, and re-runs the
@@ -13,8 +13,8 @@ name: PR API governance
 # Requires the "contract" and "gateway" compose profiles up:
 #   docker compose --profile contract --profile gateway up -d
 #
-# To demonstrate a failing contract gate, restart sample-backend with drift:
-#   SAMPLE_BACKEND_DRIFT=true docker compose --profile contract up -d sample-backend
+# To demonstrate a failing contract gate, restart the backend with drift:
+#   BACKEND_DRIFT=true docker compose --profile contract up -d backend
 
 on:
   pull_request:
@@ -31,11 +31,11 @@ env:
   # Human-facing base for report links printed to the CI log. The internal
   # hostname is unreachable from a browser; the host publishes 8080.
   MICROCKS_PUBLIC_URL: http://localhost:8080
-  TEST_ENDPOINT: http://sample-backend:8081
+  TEST_ENDPOINT: http://backend:8081
   # Service name part of the Microcks serviceId; the version part is derived
   # from the contract at runtime (see "Run contract test") so bumping
   # info.version does not break the hardcoded reference.
-  API_TITLE: "Sample Orders API"
+  API_TITLE: "Orders API"
   CONTRACT_FILE: contracts/orders-openapi.yaml
   # Server-to-server: job container -> krakend on gitea-network.
   GATEWAY_URL: http://krakend:8090
