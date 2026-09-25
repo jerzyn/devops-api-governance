@@ -8,6 +8,8 @@ Two parts happen in every stage:
 
 Between steps there is one off-camera command, always the same: `scripts/demo/prep-stage.sh next`.
 
+**While recording, use `cue-card.md`**: the same steps on one page (commands to paste, clicks, one line to say). This file explains them.
+
 Every step below was run end to end by `scripts/demo/rehearse.sh`: every command from this page in a throwaway clone, real PRs, real CI, every red/fix loop and every `goto` target. Durations are measured from that run.
 
 ## Run of show
@@ -51,7 +53,7 @@ If a take goes wrong, don't redo the earlier stages: use `prep-stage.sh goto <ta
 3. `scripts/demo/prep-stage.sh goto 1` (if you didn't run `fresh-gitea.sh`): Gitea `main` goes back to the Stage 1 starting state, open PRs are closed, all `feat/*` branches on Gitea are deleted, the governance repo is synced, the Backstage catalog is cleared, the gateway has no routes, and a **fresh demo clone** is made at `~/demo/orders-api` with the Stage 1 branch in it (not pushed).
 4. In the browser, **sign in to Gitea** at `http://localhost:3000/user/login` as `demo` / `demo12345`. Without a login the PR page shows "Sign in to…" and has no create or merge buttons.
 5. In the recording terminal: `source ~/projekty/devops-api-governance/scripts/demo/demo-shell.sh`. It `cd`s into the clone, sets a short prompt that shows the current branch (`orders-api (main) $`), makes long output page only when it doesn't fit, and clears the screen.
-6. Check: `scripts/demo/prep-stage.sh status` says "0 of 8 steps merged" and that the Stage 1 branch is already prepared.
+6. Check: `scripts/demo/prep-stage.sh preflight`. It checks the stack, the runner and CI image, Gitea (state, no open PRs), Backstage, the gateway, the Microcks mock, the guidelines page and the demo clone, and ends with `READY: record …` or a list of problems with the command that fixes each. It works at any stage, so run it before every take.
 
 The Gitea repo has the same name as this project (`devops-api-governance`), so never clone it under that name or inside the project directory: a clone in `~/projekty` collides with the project, and a `rm -rf` of that name would delete it. `~/demo/orders-api` can't be confused with it. `goto` only ever deletes a folder that is a clone of the demo repo, and refuses otherwise.
 
@@ -68,7 +70,7 @@ Have everything below open **before** you press record, so no recording starts w
 
 ## Retakes: roll back to any stage
 
-`scripts/demo/prep-stage.sh goto <target>` puts Gitea `main`, the Backstage catalog and the KrakenD gateway in the state right **before** that step is recorded (the gateway has no routes until Stage 4 is merged). It replays every earlier stage's changes onto `main` (including the merged fixes), closes open PRs, deletes all `feat/*` branches on Gitea, loads the state's contract into Microcks (so the mock matches), builds the guidelines page in Backstage (so it never shows "building" on camera), makes a fresh demo clone and prepares the branch of the step you are about to record in it (local, not pushed). No CI needed, ~10 s.
+`scripts/demo/prep-stage.sh goto <target>` puts Gitea `main`, the Backstage catalog and the KrakenD gateway in the state right **before** that step is recorded (the gateway has no routes until Stage 4 is merged). It replays every earlier stage's changes onto `main` (including the merged fixes), closes open PRs, deletes all `feat/*` branches on Gitea, loads the state's contract into Microcks (so the mock matches), builds the guidelines page in Backstage (so it never shows "building" on camera), makes a fresh demo clone and prepares the branch of the step you are about to record in it (local, not pushed). No CI needed, ~10 s. If the aborted take's CI is still running, `goto` first waits for it to finish (a late job would redeploy the gateway or reload the mock after the reset); that can add a minute or two.
 
 | Target | State: what is already merged | Branch prepared in the clone |
 |---|---|---|
