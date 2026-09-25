@@ -3,10 +3,10 @@ info:
   title: Orders API
   version: 1.0.0
   description: |
-    Microcks-ready contract for the Orders API. Mirrors
-    examples/openapi-valid.yaml but adds request/response examples so Microcks
-    can derive mocks and contract test cases. Keep this in sync with the
-    canonical example and with the backend implementation.
+    Access to customer orders. Look up an order by its identifier and check
+    whether it has been paid.
+
+    Errors are returned as `application/problem+json` (RFC 9457).
   license:
     name: MIT
     url: https://example.com/license
