@@ -77,11 +77,12 @@ push_branch() {
   on_remote "$1" && ok "git push -u origin $1" || bad "push $1"
 }
 # The next prep runs while the presenter is still on the merged branch.
-prep_keeps_checkout() {  # $1 = step
-  local before; before=$(git -C "$CL" branch --show-current)
-  prep "$1"
-  [ "$(git -C "$CL" branch --show-current)" = "$before" ] && ok "prep $1 left the checkout on $before" || bad "prep $1 switched the checkout"
-  [ "$(git -C "$CL" rev-parse main)" = "$(git ls-remote "$REMOTE" refs/heads/main | cut -f1)" ] && ok "prep $1 updated local main to Gitea main" || bad "local main not updated"
+prep_keeps_checkout() {  # $1 = the step `next` must pick
+  local before out; before=$(git -C "$CL" branch --show-current)
+  out=$(DEMO_CLONE="$CL" "$PREP" next 2>&1); echo "$out" | grep -E "Next:|rror|refus|cannot|already"
+  echo "$out" | grep -q "^Next: $1," && ok "next picked $1" || bad "next did not pick $1"
+  [ "$(git -C "$CL" branch --show-current)" = "$before" ] && ok "next left the checkout on $before" || bad "next switched the checkout"
+  [ "$(git -C "$CL" rev-parse main)" = "$(git ls-remote "$REMOTE" refs/heads/main | cut -f1)" ] && ok "next updated local main to Gitea main" || bad "local main not updated"
 }
 
 SEED0=$(seed_started); T0=$SECONDS
@@ -100,9 +101,9 @@ git -C "$CL" diff --name-only main | grep -qx catalog-info.yaml && ok "branch ad
 push_branch feat/add-catalog-entry
 N=$(open_pr feat/add-catalog-entry "Register the Orders API in the catalog"); sleep 3
 [ -z "$(curl -s "${C[@]}" $A/commits/$(head_sha $N)/statuses | python3 -c 'import json,sys; print(len(json.load(sys.stdin)) or "")')" ] && ok "no checks on the stage 1 PR" || bad "stage 1 PR has checks"
-merge_pr $N
-"$PREP" refresh-catalog >/dev/null 2>&1
-[ "$(api_listed)" = orders-api ] && ok "Backstage lists orders-api" || bad "API not in Backstage: $(api_listed)"
+merge_pr $N; t0=$SECONDS
+for i in $(seq 1 60); do [ "$(api_listed)" = orders-api ] && break; sleep 1; done
+[ "$(api_listed)" = orders-api ] && ok "Backstage lists orders-api $((SECONDS-t0))s after the merge, no manual refresh" || bad "API not in Backstage after 60s: $(api_listed)"
 [ "$(main_files)" = ".gitignore,README.md,backend,catalog-info.yaml,contracts" ] && ok "main not reseeded by refresh-catalog" || bad "main after refresh: $(main_files)"
 snap after1
 
@@ -119,15 +120,20 @@ grep -q "one gate" "$W/snap-after2a/README.md" && ok "README: one gate" || bad "
 sec "2b. Stage 2 part 2"
 prep_keeps_checkout stage2-red
 take_branch feat/orders-server-url
-git -C "$CL" diff main -- contracts/ | grep -q '^+.*http://orders.example.com' && ok "diff shows http URL" || bad "diff"
+git -C "$CL" diff main -- contracts/ | grep -q '^+.*http://orders.api-peak.com' && ok "diff shows http URL" || bad "diff"
 push_branch feat/orders-server-url
 N=$(open_pr feat/orders-server-url "Move Orders API to orders.example.com"); ci $N
 [ "$CI_STATE" = failure ] && has failure spectral-openapi-check && ok "spectral RED" || bad "expected red"
-job_log spectral-openapi-check | grep -q 'api-peak:rest17:2025-https-required' && ok "log: rest17:2025-https-required" || bad "rule id"
+L=$(job_log spectral-openapi-check)
+echo "$L" | grep -q 'api-peak:rest17:2025-https-required' && ok "log: rest17:2025-https-required" || bad "rule id"
+echo "$L" | grep -q '1 problem (1 error, 0 warnings, 0 infos, 0 hints)' && ok "Spectral reports exactly one problem" || bad "Spectral reports more than the rest17 error"
+echo "$L" | grep -q 'cloning https://github.com' && bad "CI still downloads from github.com" || ok "no download from github.com (checkout is plain git)"
+echo "$L" | grep -qE 'added [0-9]+ packages' && bad "CI still npm-installs Spectral" || ok "Spectral preinstalled in the CI image"
 OLD=$(head_sha $N)
-sed -i 's#http://orders.example.com#https://orders.example.com#' "$CL/contracts/orders-openapi.yaml"
+sed -i 's#http://orders.api-peak.com#https://orders.api-peak.com#' "$CL/contracts/orders-openapi.yaml"
 git -C "$CL" commit -qam "Use HTTPS server URL"; git -C "$CL" push -q 2>&1 | grep -v '^remote'
 ci $N "$OLD"; [ "$CI_STATE" = success ] && ok "green after fix" || bad "after fix"
+job_log spectral-openapi-check | grep -q 'No results with a severity' && ok "Spectral: no findings on the fixed contract" || bad "Spectral still reports findings"
 merge_pr $N; snap after2b
 
 sec "3a. Stage 3 part 1"
@@ -161,7 +167,9 @@ git -C "$CL" diff main -- .gitea/ | grep -q '^+  gateway-deploy-check:' && ok "d
 push_branch feat/add-gateway-gate
 N=$(open_pr feat/add-gateway-gate "Add gateway-deploy-check gate (KrakenD)"); ci $N
 [ "$CI_STATE" = success ] && [ "$(n_success)" = 3 ] && ok "three gates green" || bad "4 CI"
-job_log gateway-deploy-check | grep -q 'Generated krakend.json' && ok "log: Generated krakend.json" || bad "krakend log"
+L=$(job_log gateway-deploy-check)
+echo "$L" | grep -q 'Generated krakend.json' && ok "log: Generated krakend.json" || bad "krakend log"
+echo "$L" | grep -qE 'added [0-9]+ packages|krakend.tgz.*100' && bad "CI still downloads gateway tools" || ok "gateway tools preinstalled"
 merge_pr $N
 G=$(curl -s localhost:8090/orders/123); D=$(curl -s localhost:8081/orders/123)
 [ "$(gw)" = 200 ] && [ "$G" = "$D" ] && ok "gateway 200, same body as backend" || bad "gateway '$G' vs backend '$D'"
@@ -192,15 +200,20 @@ merge_pr $N; snap after5b
 
 sec "6. goto <target> equals the real walk-through"
 GC="$W/gclone"
-for pair in "2 after1 feat/add-spectral-gate" "2-red after2a feat/orders-server-url" "3 after2b feat/add-contract-test-gate" \
-            "3-red after3a feat/orders-currency" "4 after3b feat/add-gateway-gate" "5 after4 feat/add-backwards-compat-gate" \
-            "5-red after5a feat/orders-require-channel" "end after5b -"; do
+for pair in "2 after1 feat/add-spectral-gate stage2" "2-red after2a feat/orders-server-url stage2-red" \
+            "3 after2b feat/add-contract-test-gate stage3" "3-red after3a feat/orders-currency stage3-red" \
+            "4 after3b feat/add-gateway-gate stage4" "5 after4 feat/add-backwards-compat-gate stage5" \
+            "5-red after5a feat/orders-require-channel stage5-red" "end after5b - -"; do
   set -- $pair
   DEMO_CLONE="$GC" "$PREP" goto "$1" 2>&1 | grep -E "rror|refus|never|should|cannot"
   snap "goto-$1"
   diff -r "$W/snap-$2" "$W/snap-goto-$1" >/dev/null && ok "goto $1 == state after '$2'" || bad "goto $1 differs from '$2'"
   if [ "$3" != - ]; then
     git -C "$GC" show-ref --verify -q "refs/heads/$3" && ! on_remote "$3" && ok "goto $1: $3 local only" || bad "goto $1: branch $3 not local-only"
+    st=$(DEMO_CLONE="$GC" "$PREP" status 2>&1)
+    echo "$st" | grep -q "^Next: $4, branch $3." && echo "$st" | grep -q "already prepared" && ok "status after goto $1: next is $4, already prepared" || bad "status after goto $1: $st"
+  else
+    DEMO_CLONE="$GC" "$PREP" status 2>&1 | grep -q "Everything is merged" && ok "status after goto end: everything merged" || bad "status after goto end"
   fi
 done
 
