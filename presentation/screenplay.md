@@ -8,7 +8,7 @@ Two parts happen in every stage:
 
 Off-camera prep (before each stage) is a single command: `scripts/demo/prep-stage.sh <step>`.
 
-Every step below was run end to end by a script that does exactly what you do: fresh clone, every command from this page, real CI. It covers all five stages, every red/fix loop, and every `goto` target (each one is compared with the state a real walk-through produces). Durations are measured from that run (whole walk-through: ~10 min of wall-clock, including 10 CI runs).
+Every step below was run end to end by `scripts/demo/rehearse.sh`, which does exactly what you do: every command from this page in a throwaway clone, real PRs, real CI. Run it yourself before the recording day to confirm the stack (~15 min; it leaves the demo at `end`, so run `goto 1` afterwards). It covers all five stages, every red/fix loop, and every `goto` target (each one is compared with the state a real walk-through produces). Durations are measured from that run (whole walk-through: ~10 min of wall-clock, including 10 CI runs).
 
 ## Run of show
 
@@ -22,16 +22,16 @@ Every step below was run end to end by a script that does exactly what you do: f
 
 Every stage follows the same pattern. Stages 2, 3 and 5 run it twice: **part 1** installs the new gate on a change that is fine (the gate goes green), **part 2** shows the gate catching a bad change (red, then a one-line fix, then green). Stages 1 and 4 have a single part.
 
-1. **Prep (off camera):** `scripts/demo/prep-stage.sh <step>` clones Gitea `main`, applies that step's change and pushes it as a branch (e.g. `feat/add-spectral-gate`). Nothing is typed from scratch on camera, and the red states are red every single time. Each stage's branch also updates the repo's `README.md`, so the Gitea repo home always describes the current state and visibly grows with the pipeline. (After a `goto` it is already done for the step you are about to record.) Run it in a second terminal, before you start recording the step, and **only after the previous step's PR is merged**: the branch is cut from Gitea `main` at that moment.
-2. **Terminal, show the change:** `git fetch origin`, `git switch <branch>`, then show what it changes: `git diff origin/main -- <path>` (or `cat` for a new file). This is where the audience sees *what is being proposed*, so let it stay on screen for a beat.
+1. **Prep (off camera):** `scripts/demo/prep-stage.sh <step>` creates that step's branch (e.g. `feat/add-spectral-gate`) **in your demo clone**, committed but **not pushed**. It first brings the clone's `main` up to Gitea `main`, and it doesn't touch what your terminal has checked out, so you can run it while the recording terminal sits in the clone. Nothing is typed from scratch on camera, and the red states are red every single time. Each stage's branch also updates the repo's `README.md`, so the Gitea repo home always describes the current state and visibly grows with the pipeline. (After a `goto` it is already done for the step you are about to record.) Run it in a second terminal, before you start recording the step, and **only after the previous step's PR is merged**: the branch is cut from Gitea `main` at that moment.
+2. **Terminal, show the change and push it:** `git switch <branch>`, show what it changes (`git diff main -- <path>`, or `cat` for a new file), then `git push -u origin <branch>`. The diff is where the audience sees *what is being proposed*, so let it stay on screen for a beat. The push is the developer handing the change over: it looks like normal local work, with no `git fetch` and no branches appearing from the server.
 3. **Browser, PR and checks:** open the PR (`compare/main...<branch>` → **New Pull Request** → **Create Pull Request**) and let the checks run. Open a check's **Details** to show the one log line that matters (each stage names it). The gate's verdict is the payload of the recording.
-4. **Terminal, fix (red demos only):** one command edits the contract (`sed`), then `git commit -am` and `git push`. Pushing updates the same PR, so the checks re-run by themselves and go from red to green in the browser.
+4. **Terminal, fix (red demos only):** one command edits the contract (`sed`), then `git commit -am` and `git push` (the `-u` from step 2 lets a plain `git push` work). Pushing updates the same PR, so the checks re-run by themselves and go from red to green in the browser.
 5. **Browser, merge:** click **Create merge commit**. `main` now contains this step, and the next step starts from that. (Stage 1 has a PR too, but no checks run on it: no gate exists yet.)
 
 Three things to keep in mind:
-- You can keep the same clone for the whole walk-through (`git fetch` picks up each new branch). Make a new one only after a `goto`.
-- A plain `git push` does not open a PR in Gitea. PRs are always opened in the browser. You never push the stage branch yourself: the prep script already did.
-- Diff against `origin/main`, not `main`. Your local `main` stays at clone time; `origin/main` moves with every merge (`git fetch` updates it).
+- Keep the same clone (`~/demo/orders-api`) for the whole walk-through. Each prep command adds the next branch to it. `goto` replaces it with a fresh one.
+- A `git push` does not open a PR in Gitea (the "Create a new pull request" line it prints is only a hint). PRs are always opened in the browser.
+- `git diff main` is right because the prep command updates your local `main` to Gitea `main` just before creating the branch. No `git fetch` or `origin/main` on camera.
 
 If a take goes wrong, don't redo the earlier stages: use `prep-stage.sh goto <target>` (see "Retakes").
 
@@ -44,7 +44,7 @@ The environment is ready when: 7 containers run (all from `devops-api-governance
 Gitea keeps the history of earlier PRs and CI runs, so new PRs on camera are numbered from #33 up (not #1) and the Actions tab lists old runs. The screenplay only ever opens a PR by URL, so this rarely shows.
 
 1. Stack up (see appendix).
-2. `scripts/demo/prep-stage.sh goto 1` (run from the project directory; `reset` is an alias): Gitea `main` goes back to the Stage 1 starting state, open PRs are closed, **all** `feat/*` branches are deleted, the governance repo is synced, the Backstage catalog is cleared, and a **fresh demo clone** is made at `~/demo/orders-api`, with the Stage 1 branch `feat/add-catalog-entry` committed in it but **not pushed** (you push it on camera). Nothing else to run.
+2. `scripts/demo/prep-stage.sh goto 1` (run from the project directory; `reset` is an alias): Gitea `main` goes back to the Stage 1 starting state, open PRs are closed, **all** `feat/*` branches are deleted, the governance repo is synced, the Backstage catalog is cleared, and a **fresh demo clone** is made at `~/demo/orders-api`, with the Stage 1 branch `feat/add-catalog-entry` committed in it but **not pushed** (you push it on camera, like every stage's branch). Nothing else to run.
 3. In the browser, **sign in to Gitea** at `http://localhost:3000/user/login` as `demo` / `demo12345`. Without a login the PR page shows "Sign in to…" and has no create or merge buttons.
 4. `cd ~/demo/orders-api` (again, if your terminal was inside the old clone: `goto` replaces the folder). It is a clone of the Gitea repo in its own folder and under its own name.
 
@@ -65,13 +65,13 @@ Yes, have everything below open **before** you press record, so no recording sta
 
 ## Retakes: roll back to any stage
 
-`scripts/demo/prep-stage.sh goto <target>` puts Gitea `main`, the Backstage catalog and the KrakenD gateway in the state right **before** that step is recorded (the gateway has no routes until Stage 4 is merged). It replays every earlier stage's changes onto `main` (including the merged fixes), closes open PRs, deletes all `feat/*` branches and **pushes the branch of the step you are about to record**. It doesn't need CI and takes ~10s.
+`scripts/demo/prep-stage.sh goto <target>` puts Gitea `main`, the Backstage catalog and the KrakenD gateway in the state right **before** that step is recorded (the gateway has no routes until Stage 4 is merged). It replays every earlier stage's changes onto `main` (including the merged fixes), closes open PRs, deletes all `feat/*` branches on Gitea, makes a fresh demo clone and **prepares the branch of the step you are about to record** in it (local, not pushed). It doesn't need CI and takes ~10s.
 
-Because `goto` deletes every `feat/*` branch, always let it push the branch (it does). If you delete or lose one some other way, re-push it with `prep-stage.sh <step>`; the git error you get otherwise is `fatal: invalid reference: feat/...`.
+If a step's branch is missing from your clone (`fatal: invalid reference: feat/...` on `git switch`), run that step's prep command: `prep-stage.sh <step>`. It refuses if Gitea already has a branch of that name from an earlier take; use `goto` then.
 
-| Target | State: what is already merged | Branch `goto` pushes (= `prep-stage.sh <step>`) |
+| Target | State: what is already merged | Branch `goto` prepares in the clone (= `prep-stage.sh <step>`) |
 |---|---|---|
-| `goto 1` | nothing | `stage1` (**local only**, in the demo clone: you push it) |
+| `goto 1` | nothing | `stage1` |
 | `goto 2` | stage 1 (catalog entry; the API is in Backstage) | `stage2` |
 | `goto 2-red` | + spectral gate | `stage2-red` |
 | `goto 3` | + stage 2 fix (server URL is now `https://orders.example.com`) | `stage3` |
@@ -81,7 +81,7 @@ Because `goto` deletes every `feat/*` branch, always let it push the branch (it 
 | `goto 5-red` | + backwards-compat gate (all four gates) | `stage5-red` |
 | `goto end` | everything, incl. optional `channel` | (final state) |
 
-After a `goto`, `cd ~/demo/orders-api` (again, if your terminal was inside the old clone). `goto` has already made a fresh clone there (`main` was force-pushed, so an old clone would be stale) and prepared the step's branch: pushed to Gitea for every step except Stage 1, whose branch is local only.
+After a `goto`, `cd ~/demo/orders-api` (again, if your terminal was inside the old clone). `goto` has already made a fresh clone there (`main` was force-pushed, so an old clone would be stale) and prepared the step's branch in it: committed, **not pushed** (you push it on camera, same as in a normal take).
 Then record.
 
 Every retake target was verified: the resulting repo state, plus the real red/green CI result for `3-red` (contract-test fails) and `5-red` (breaking-changes-check fails, the rest skipped).
@@ -118,7 +118,7 @@ Repo: `http://localhost:3000/governance-demo/devops-api-governance`
 ls                                               # contracts/ and backend/, no catalog-info.yaml
 git switch feat/add-catalog-entry                # local branch, already committed
 cat catalog-info.yaml                            # show what gets registered
-git push origin feat/add-catalog-entry           # the branch goes to Gitea
+git push -u origin feat/add-catalog-entry        # hand the change over: the branch goes to Gitea
 ```
 
 **Browser:**
@@ -137,7 +137,7 @@ git push origin feat/add-catalog-entry           # the branch goes to Gitea
 
 **Part 1: install the gate.**
 
-**Prep:** `prep-stage.sh stage2` pushes branch `feat/add-spectral-gate`. It adds `.gitea/workflows/pr-governance.yml` with only the `spectral-openapi-check` job.
+**Prep:** `prep-stage.sh stage2` creates branch `feat/add-spectral-gate` in your demo clone (committed, not pushed). It adds `.gitea/workflows/pr-governance.yml` with only the `spectral-openapi-check` job.
 
 **On screen at the start:**
 - Terminal 1: same clone, screen cleared.
@@ -147,9 +147,9 @@ git push origin feat/add-catalog-entry           # the branch goes to Gitea
 
 **Terminal:**
 ```bash
-git fetch origin
 git switch feat/add-spectral-gate
 cat .gitea/workflows/pr-governance.yml           # show the new gate
+git push -u origin feat/add-spectral-gate        # hand the change over: the branch goes to Gitea
 ```
 
 **Browser:**
@@ -160,13 +160,13 @@ This PR doesn't touch any OpenAPI file, so Spectral logs "skipping" and passes. 
 
 **Part 2: the gate catches something.**
 
-**Prep:** `prep-stage.sh stage2-red` pushes branch `feat/orders-server-url`. It moves the server URL to `http://orders.example.com`. Run it **after** part 1 is merged: it is cut from Gitea `main`, which must already contain the gate, or the PR gets no CI.
+**Prep:** `prep-stage.sh stage2-red` creates branch `feat/orders-server-url` in your demo clone (committed, not pushed). It moves the server URL to `http://orders.example.com`. Run it **after** part 1 is merged: it is cut from Gitea `main`, which must already contain the gate, or the PR gets no CI.
 
 **Terminal:**
 ```bash
-git fetch origin
 git switch feat/orders-server-url
-git diff origin/main -- contracts/               # https://api.example.com -> http://orders.example.com
+git diff main -- contracts/                      # https://api.example.com -> http://orders.example.com
+git push -u origin feat/orders-server-url        # hand the change over: the branch goes to Gitea
 ```
 
 **Browser:**
@@ -194,7 +194,7 @@ git push
 
 **Part 1: install the gate.**
 
-**Prep:** `prep-stage.sh stage3` pushes branch `feat/add-contract-test-gate`. It adds the `contract-test` job (`needs: spectral-openapi-check`).
+**Prep:** `prep-stage.sh stage3` creates branch `feat/add-contract-test-gate` in your demo clone (committed, not pushed). It adds the `contract-test` job (`needs: spectral-openapi-check`).
 
 **On screen at the start:**
 - Terminal 1: same clone, screen cleared.
@@ -204,9 +204,9 @@ git push
 
 **Terminal:**
 ```bash
-git fetch origin
 git switch feat/add-contract-test-gate
-git diff origin/main -- .gitea/workflows/        # show the new job
+git diff main -- .gitea/workflows/               # show the new job
+git push -u origin feat/add-contract-test-gate   # hand the change over: the branch goes to Gitea
 ```
 
 **Browser:**
@@ -215,13 +215,13 @@ git diff origin/main -- .gitea/workflows/        # show the new job
 
 **Part 2: the contract promises more than the code delivers.**
 
-**Prep:** `prep-stage.sh stage3-red` pushes branch `feat/orders-currency`. It adds a **required** `currency` field to the order response. The running backend doesn't return it. Run it **after** part 1 is merged (it is cut from Gitea `main`).
+**Prep:** `prep-stage.sh stage3-red` creates branch `feat/orders-currency` in your demo clone (committed, not pushed). It adds a **required** `currency` field to the order response. The running backend doesn't return it. Run it **after** part 1 is merged (it is cut from Gitea `main`).
 
 **Terminal:**
 ```bash
-git fetch origin
 git switch feat/orders-currency
-git diff origin/main -- contracts/               # new required field: currency
+git diff main -- contracts/                      # new required field: currency
+git push -u origin feat/orders-currency          # hand the change over: the branch goes to Gitea
 ```
 
 **Browser:**
@@ -246,7 +246,7 @@ git push
 
 **Narrative:** "Now expose it for real, and prove the gateway didn't change anything."
 
-**Prep:** `prep-stage.sh stage4` pushes branch `feat/add-gateway-gate`. It adds the `gateway-deploy-check` job (`needs: contract-test`).
+**Prep:** `prep-stage.sh stage4` creates branch `feat/add-gateway-gate` in your demo clone (committed, not pushed). It adds the `gateway-deploy-check` job (`needs: contract-test`).
 
 **On screen at the start:**
 - Terminal 1: same clone, screen cleared. It also runs the `curl` commands (before the PR and at the end).
@@ -257,9 +257,9 @@ git push
 **Terminal:**
 ```bash
 curl -i http://localhost:8090/orders/123         # before: the gateway has no routes, 404
-git fetch origin
 git switch feat/add-gateway-gate
-git diff origin/main -- .gitea/workflows/        # show the new job
+git diff main -- .gitea/workflows/               # show the new job
+git push -u origin feat/add-gateway-gate         # hand the change over: the branch goes to Gitea
 ```
 
 **Browser:**
@@ -283,7 +283,7 @@ curl -s http://localhost:8081/orders/123     # straight to the backend: identica
 
 **Part 1: install the gate.**
 
-**Prep:** `prep-stage.sh stage5` pushes branch `feat/add-backwards-compat-gate`. It inserts `breaking-changes-check` **between** spectral and contract-test, and repoints contract-test's `needs:` to it. This branch equals the project's real current pipeline.
+**Prep:** `prep-stage.sh stage5` creates branch `feat/add-backwards-compat-gate` in your demo clone (committed, not pushed). It inserts `breaking-changes-check` **between** spectral and contract-test, and repoints contract-test's `needs:` to it. This branch equals the project's real current pipeline.
 
 **On screen at the start:**
 - Terminal 1: same clone, screen cleared.
@@ -292,9 +292,9 @@ curl -s http://localhost:8081/orders/123     # straight to the backend: identica
 
 **Terminal:**
 ```bash
-git fetch origin
 git switch feat/add-backwards-compat-gate
-git diff origin/main -- .gitea/workflows/        # new job in the middle + repointed needs:
+git diff main -- .gitea/workflows/               # new job in the middle + repointed needs:
+git push -u origin feat/add-backwards-compat-gate # hand the change over: the branch goes to Gitea
 ```
 
 **Browser:**
@@ -305,13 +305,13 @@ Say this out loud: "We insert this gate right after lint and before the runtime 
 
 **Part 2: the gate catches a breaking change.**
 
-**Prep:** `prep-stage.sh stage5-red` pushes branch `feat/orders-require-channel`. It adds a new **required** query parameter `channel` to `GET /orders/{orderId}`. Run it **after** part 1 is merged (it is cut from Gitea `main`).
+**Prep:** `prep-stage.sh stage5-red` creates branch `feat/orders-require-channel` in your demo clone (committed, not pushed). It adds a new **required** query parameter `channel` to `GET /orders/{orderId}`. Run it **after** part 1 is merged (it is cut from Gitea `main`).
 
 **Terminal:**
 ```bash
-git fetch origin
 git switch feat/orders-require-channel
-git diff origin/main -- contracts/               # new required param
+git diff main -- contracts/                      # new required param
+git push -u origin feat/orders-require-channel   # hand the change over: the branch goes to Gitea
 ```
 
 **Browser:**
