@@ -34,7 +34,7 @@ case "${1:-}" in
     d="${2:?usage: video.sh cards <dir>}"; mkdir -p "$d"
     card "$d/card1.mp4" "Stage 1: Catalog" "One catalog-info.yaml makes the API visible" "Pipeline: no gates yet"
     card "$d/card2.mp4" "Stage 2: Guidelines as code" "Spectral lints every contract change" "Pipeline: Spectral"
-    card "$d/card3.mp4" "Stage 3: Contract testing" "Microcks checks the running backend" "Pipeline: Spectral → Contract test"
+    card "$d/card3.mp4" "Stage 3: Mocks & contract testing" "Microcks: a live mock from the contract, then a test of the backend" "Pipeline: Spectral → Contract test (+ mock)"
     card "$d/card4.mp4" "Stage 4: API gateway" "KrakenD, generated from the contract" "Pipeline: Spectral → Contract test → Gateway"
     card "$d/card5.mp4" "Stage 5: Backwards compatibility" "oasdiff blocks breaking changes" "Pipeline: Spectral → Backwards compat → Contract test → Gateway"
     ls -1 "$d"/card*.mp4 ;;

@@ -15,8 +15,8 @@ Every step below was run end to end by `scripts/demo/rehearse.sh`: every command
 | Stage | Adds | Key shot (what the audience should remember) |
 |---|---|---|
 | 1 | Catalog | Merge a `catalog-info.yaml`, and `orders-api` appears in Backstage by itself. No CI yet. |
-| 2 | Spectral | Red check with exactly one finding: `api-peak:rest17:2025-https-required`. One-line fix turns it green. |
-| 3 | Contract test (Microcks) | The contract promises a field the running backend doesn't return. contract-test catches it (`currency' not found`). |
+| 2 | Spectral | Red check with exactly one finding, `api-peak:rest17:2025-https-required`, whose link opens the rule in the API catalog: the guidelines live in Backstage. One-line fix turns it green. |
+| 3 | Mocks + contract test (Microcks) | The pushed contract is a live mock at once; then the mock returns a `currency` the running backend doesn't, and contract-test catches it (`currency' not found`). |
 | 4 | API gateway (KrakenD) | `curl` through the gateway goes from 404 (no routes yet) to 200 after the merge, with the generated `krakend.json` in the CI log. |
 | 5 | Backwards compatibility (oasdiff) | `new-required-request-parameter` goes red, and downstream gates show as skipped (grey). Making it optional turns everything green. |
 
@@ -63,12 +63,12 @@ Have everything below open **before** you press record, so no recording starts w
 - **Terminal 1 (recorded):** `demo-shell.sh` sourced, in `~/demo/orders-api`. Only git commands and the stage-4 `curl` run here. `clear` before each step.
 - **Terminal 2 (NOT recorded):** `~/projekty/devops-api-governance`, only for `scripts/demo/prep-stage.sh next`. Keep it outside the recorded area (another workspace, or minimised). If you record every part as its own take, one terminal is enough: stop recording, run `next` there, start again.
 - **Browser:** one window with a few prepared tabs (listed per stage below). Signed in to Gitea as `demo`. Bookmarks bar hidden. If Backstage shows a sign-in page, sign in as guest once beforehand.
-- **Tabs only for what a stage shows:** Backstage is used in Stage 1 only, Microcks at most in Stage 3. Close them in the other stages so nothing distracts.
+- **Tabs only for what a stage shows:** Backstage in Stages 1 and 2 (the catalog, then the guidelines in it), Microcks at most in Stage 3. Close them in the other stages so nothing distracts.
 - **Not running / not visible:** the older `devops-driven-governance` stack (same container names and ports), desktop notifications, other windows.
 
 ## Retakes: roll back to any stage
 
-`scripts/demo/prep-stage.sh goto <target>` puts Gitea `main`, the Backstage catalog and the KrakenD gateway in the state right **before** that step is recorded (the gateway has no routes until Stage 4 is merged). It replays every earlier stage's changes onto `main` (including the merged fixes), closes open PRs, deletes all `feat/*` branches on Gitea, makes a fresh demo clone and prepares the branch of the step you are about to record in it (local, not pushed). No CI needed, ~10 s.
+`scripts/demo/prep-stage.sh goto <target>` puts Gitea `main`, the Backstage catalog and the KrakenD gateway in the state right **before** that step is recorded (the gateway has no routes until Stage 4 is merged). It replays every earlier stage's changes onto `main` (including the merged fixes), closes open PRs, deletes all `feat/*` branches on Gitea, loads the state's contract into Microcks (so the mock matches), builds the guidelines page in Backstage (so it never shows "building" on camera), makes a fresh demo clone and prepares the branch of the step you are about to record in it (local, not pushed). No CI needed, ~10 s.
 
 | Target | State: what is already merged | Branch prepared in the clone |
 |---|---|---|
@@ -96,6 +96,8 @@ Repo: `http://localhost:3000/governance-demo/devops-api-governance`
 - **Read a job's log:** **Details** next to a check, then click a step row (e.g. "Run Spectral (fail on errors)") to expand it.
 - **Merge:** when all checks are green, **Create merge commit** at the bottom of the Conversation tab, then confirm.
 - **Backstage:** `http://localhost:7007`. Left menu **APIs**, then the API's name.
+- **API guidelines in the catalog:** `http://localhost:7007/docs/default/component/api-guidelines` (Backstage → **Docs** → **API Guidelines**). Every Spectral error links to its rule on this page.
+- **Mock:** `http://localhost:8080/rest/Orders+API/1.0.0/orders/123` returns the contract's example.
 - **Microcks:** `http://localhost:8080`. Test results are linked from the CI log (`Details: http://localhost:8080/#/tests/…`).
 
 ---
@@ -139,7 +141,7 @@ git push -u origin feat/add-catalog-entry        # hand the change over: the bra
 **On screen at the start:**
 - Terminal 1: same clone, screen cleared.
 - Browser tab 1: Gitea repo home. It now lists `contracts/` and `catalog-info.yaml` (stage 1 is merged), and the README describes them. No `.gitea/` folder yet.
-- Backstage and Microcks tabs: closed.
+- Browser tab 2: Backstage, left open from Stage 1 (it is needed again in part 2). Microcks tab closed.
 - Terminal 2 (off camera): `next` already run.
 
 **Terminal:**
@@ -166,7 +168,7 @@ git push -u origin feat/orders-server-url        # hand the change over: the bra
 1. Open the PR (`compare/main...feat/orders-server-url`). `spectral-openapi-check` goes **red**.
 2. **Details** → expand **Run Spectral (fail on errors)**. The contract is otherwise clean, so this is the only finding:
    `error api-peak:rest17:2025-https-required server.url MUST use HTTPS.` and `✖ 1 problem (1 error, 0 warnings, 0 infos, 0 hints)`.
-   The line below the error links to the guideline.
+3. **Guidelines live in the catalog.** The line under the error is the rule's link, `http://localhost:7007/docs/default/component/api-guidelines/#https-api-peakrest172025-https`. Open it (click it, or copy it into the Backstage tab): Backstage opens the **API Guidelines** page at the HTTPS rule. Say: "same rule for humans and for CI, one source of truth, and the CI error points right at it."
 
 **Terminal (fix):**
 ```bash
@@ -181,16 +183,17 @@ git push
 
 ---
 
-## Stage 3 — Contract testing (Microcks)
+## Stage 3 — Mocks & contract testing (Microcks)
 
-**Narrative:** "A contract is a promise. This proves the running code keeps it."
+**Narrative:** "A contract is a promise. Push it, and partners get a live mock at once. Then CI proves the running code keeps it."
 
 **Part 1: install the gate.** Branch `feat/add-contract-test-gate` adds the `contract-test` job (`needs: spectral-openapi-check`).
 
 **On screen at the start:**
 - Terminal 1: same clone, screen cleared.
 - Browser tab 1: Gitea repo home, now with the `.gitea/` folder (spectral gate merged); the README lists one gate.
-- Browser tab 2 (optional): Microcks `localhost:8080`, only if you want to show the test detail page in part 2.
+- Browser tab 2 (optional): Microcks `localhost:8080`, to show the mocked service in part 1 and the test detail page in part 2.
+- Backstage tab: closed.
 - Terminal 2 (off camera): `next` already run.
 
 **Terminal:**
@@ -201,8 +204,15 @@ git push -u origin feat/add-contract-test-gate   # hand the change over: the bra
 ```
 
 **Browser:**
-1. Open the PR (`compare/main...feat/add-contract-test-gate`). **Files changed**: the new `contract-test` job, after spectral.
+1. Open the PR (`compare/main...feat/add-contract-test-gate`). **Files changed**: the new `contract-test` job, after spectral. It first imports the contract into Microcks, then tests the running backend against it.
 2. spectral and contract-test go green. Cut the wait. Merge.
+
+**Terminal (Q1: integrate before it exists?):** the contract is also a live mock. Partners can call it today.
+```bash
+# the mock Microcks serves from the contract's example
+curl -s http://localhost:8080/rest/Orders+API/1.0.0/orders/123
+```
+`{"orderId":"123","isPaid":true}`. Optional: in the Microcks tab, open **APIs | Services** → **Orders API 1.0.0** to show the same operation and its example.
 
 **Part 2: the contract promises more than the code delivers.** Run `next`. Branch `feat/orders-currency` adds a **required** `currency` field to the order response. The running backend doesn't return it.
 
@@ -217,6 +227,15 @@ git push -u origin feat/orders-currency          # hand the change over: the bra
 1. Open the PR (`compare/main...feat/orders-currency`). spectral goes green (the contract is valid), then **contract-test goes red**.
 2. **Details** on contract-test → expand **Run contract test**. Microcks reports `currency' not found`: the running backend doesn't keep the promise.
 3. Optional: open the `Details: http://localhost:8080/#/tests/…` link from that log to show the test in Microcks.
+
+**Terminal (Q2: does the code match the contract?):** the CI job loaded the PR's contract into Microcks, so the mock already speaks the new version. The real backend doesn't.
+```bash
+# the mock, from the PR's contract: has currency
+curl -s http://localhost:8080/rest/Orders+API/1.0.0/orders/123
+# the running backend: no currency
+curl -s http://localhost:8081/orders/123
+```
+`{"orderId":"123","isPaid":true,"currency":"PLN"}` next to `{"orderId":"123","isPaid":true}`: that difference is exactly what the red check says.
 
 **Terminal (fix):** say it out loud: "Contract first: we don't promise what the code doesn't deliver yet. We keep `currency` in the contract but optional; once the backend returns it, we make it required."
 ```bash
