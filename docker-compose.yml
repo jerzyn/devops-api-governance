@@ -63,7 +63,7 @@ services:
       # Seed scripts are orchestration, kept at the repo root (not governance).
       - ./scripts:/scripts:ro
       - seed-state:/seed
-      - /var/run/docker.sock:/var/run/docker.sock
+      - ${DOCKER_SOCK:-/var/run/docker.sock}:/var/run/docker.sock
     command: >
       sh -c "apk add --no-cache git curl >/dev/null && sh /scripts/seed-gitea.sh"
 
@@ -102,7 +102,7 @@ services:
       # Config: job containers use gitea-network so checkout can reach Gitea
       - ./runner-config.yaml:/config.yaml:ro
       # Give runner access to host Docker (simpler for local demo)
-      - /var/run/docker.sock:/var/run/docker.sock
+      - ${DOCKER_SOCK:-/var/run/docker.sock}:/var/run/docker.sock
       # Shared seed state (runner registration token)
       - seed-state:/seed:ro
 
@@ -227,7 +227,7 @@ services:
     profiles: ["gateway"]
     volumes:
       - krakend-config:/shared
-      - /var/run/docker.sock:/var/run/docker.sock
+      - ${DOCKER_SOCK:-/var/run/docker.sock}:/var/run/docker.sock
     healthcheck:
       test: ["CMD", "wget", "-qO-", "http://localhost:9000/health"]
       interval: 5s
