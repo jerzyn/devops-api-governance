@@ -1,9 +1,18 @@
 # act_runner config: job containers join gitea-network so checkout can reach
 # Gitea at http://gitea:3000/. Mounted read-only by the gitea-runner service.
+runner:
+  # Overrides the labels stored at registration. Jobs run in the CI image
+  # (ci-image/Dockerfile, built by the ci-image compose service), which has
+  # Spectral, oasdiff, the KrakenD CLI and js-yaml preinstalled.
+  labels:
+    - "ubuntu-latest:docker://localhost/devops-api-governance-ci:latest"
 container:
   network: gitea-network
-  # None of the three PR-governance jobs run docker themselves (npm, git, curl
-  # only) - don't mount the host docker socket into job/service containers.
+  # None of the PR-governance jobs run docker themselves (git, curl and the
+  # preinstalled tools only) - don't mount the host docker socket into
+  # job/service containers.
   # "-" still lets act_runner find a docker host for its own container
   # management; it just skips passing that socket into job containers too.
   docker_host: "-"
+  # The CI image exists only locally; never try to pull it from a registry.
+  force_pull: false

@@ -1,23 +1,34 @@
 #!/bin/bash
 # Off-camera prep for the recorded demo (presentation/screenplay.md).
-# Pushes each stage's ready-made branch to the seeded Gitea repo, so nothing
-# has to be authored live, and rolls Gitea + Backstage back to the start of
-# any stage for a retake. Run from anywhere on the host, stack already up.
+# Prepares each stage's ready-made branch in the demo clone, so nothing has to
+# be authored live, and rolls Gitea, Backstage and the gateway back to the start
+# of any stage for a retake. Run from anywhere on the host, stack already up.
 #
-# Branches to push (each is what you check out on camera):
+# During a recording you only need one command, run after each merge:
+#   prep-stage.sh next             work out the next step from Gitea main and
+#                                  prepare its branch (says what to do if it is
+#                                  already prepared or still waiting for a merge)
+#   prep-stage.sh status           the same, without preparing anything
+#
+# Branches to prepare. Each one is created ONLY in the demo clone ($DEMO_CLONE,
+# default ~/demo/orders-api), committed on top of the current Gitea main and NOT
+# pushed: on camera you switch to it, show the diff and push it yourself. The
+# command fetches, updates the clone's local main and adds the branch without
+# touching what is checked out, so it is safe to run while the recording
+# terminal sits in the clone.
 #   prep-stage.sh stage1           feat/add-catalog-entry
 #   prep-stage.sh stage2           feat/add-spectral-gate
-#   prep-stage.sh stage2-red       feat/orders-server-url
+#   prep-stage.sh stage2-red       feat/orders-server-url     (after stage2 is merged)
 #   prep-stage.sh stage3           feat/add-contract-test-gate
-#   prep-stage.sh stage3-red       feat/orders-currency
+#   prep-stage.sh stage3-red       feat/orders-currency       (after stage3 is merged)
 #   prep-stage.sh stage4           feat/add-gateway-gate
 #   prep-stage.sh stage5           feat/add-backwards-compat-gate
-#   prep-stage.sh stage5-red       feat/orders-require-channel
+#   prep-stage.sh stage5-red       feat/orders-require-channel (after stage5 is merged)
 #
 # Rollback: put Gitea main, Backstage and the KrakenD gateway in the state right
-# BEFORE a step is recorded, and push that step's branch (goto closes open PRs and
-# deletes all feat/* branches, so it re-creates the one you need). Afterwards make a
-# fresh clone (main is force-pushed).
+# BEFORE a step is recorded (closes open PRs, deletes all feat/* branches on Gitea),
+# make a fresh demo clone and prepare that step's branch in it. cd into the clone
+# again if your terminal was inside the old one.
 #   prep-stage.sh goto 1           start of stage 1 (nothing merged; same as reset)
 #   prep-stage.sh goto 2           start of stage 2 part 1 (stage 1 merged)
 #   prep-stage.sh goto 2-red       start of stage 2 part 2 (spectral gate merged)
@@ -44,6 +55,7 @@ REMOTE="http://$U:$P@localhost:3000/$ORG/$REPO.git"
 WF="$ROOT/scripts/demo/workflows"
 RD="$ROOT/scripts/demo/readmes"   # the repo README as it reads at each stage
 CONTRACT="contracts/orders-openapi.yaml"
+DEMO_CLONE="${DEMO_CLONE:-$HOME/demo/orders-api}"   # the clone you record in
 WORK="$(mktemp -d)"
 trap 'rm -rf "$WORK"' EXIT
 
@@ -62,8 +74,8 @@ do_stage1() {
 }
 
 do_stage2() { use_workflow "$1" "$WF/stage2-spectral.yml"; use_readme "$1" "$RD/stage2.md"; }
-do_stage2_red() { sed -i 's#url: https://api.example.com#url: http://orders.example.com#' "$1/$CONTRACT"; }
-do_stage2_fix() { sed -i 's#http://orders.example.com#https://orders.example.com#' "$1/$CONTRACT"; }
+do_stage2_red() { sed -i 's#url: https://api.api-peak.com#url: http://orders.api-peak.com#' "$1/$CONTRACT"; }
+do_stage2_fix() { sed -i 's#http://orders.api-peak.com#https://orders.api-peak.com#' "$1/$CONTRACT"; }
 
 do_stage3() { use_workflow "$1" "$WF/stage3-contract-test.yml"; use_readme "$1" "$RD/stage3.md"; }
 # The contract promises a field the running backend doesn't return.
@@ -131,22 +143,6 @@ layers_before() {
   esac
 }
 
-# --- pushing branches ----------------------------------------------------------
-
-gitc() { git -C "$WORK/repo" -c user.name="$U" -c user.email="$U@example.com" "$@"; }
-
-# $1 = branch, $2 = commit message, $3.. = change functions to apply
-make_branch() {
-  local branch="$1" msg="$2"; shift 2
-  git clone -q "$REMOTE" "$WORK/repo"
-  gitc switch -q -c "$branch"
-  for f in "$@"; do "$f" "$WORK/repo"; done
-  gitc add -A
-  gitc commit -q -m "$msg"
-  gitc push -q -f origin HEAD
-  echo "pushed $branch"
-}
-
 # --- rollback ------------------------------------------------------------------
 
 # Same lean policy repo gitea-seed publishes, from this working tree.
@@ -186,17 +182,23 @@ cleanup_gitea() {
   done
 }
 
-# Consumer template minus the catalog entry and the workflow (backend + contract
-# remain), plus the first $1 layers, pushed as a fresh root commit onto Gitea main.
-push_state() {
-  local d="$WORK/base"
+# $1 = dir, $2 = layers: the consumer template minus the catalog entry and the
+# workflow (backend + contract remain), plus the first $2 layers.
+build_state() {
+  local d="$1" i f
   rm -rf "$d"; mkdir -p "$d"
   cp -a "$ROOT/example/." "$d/"
   rm -rf "$d/catalog-info.yaml" "$d/.gitea"
   use_readme "$d" "$RD/stage0.md"
-  for ((i = 0; i < $1; i++)); do
+  for ((i = 0; i < $2; i++)); do
     for f in ${LAYERS[$i]}; do "$f" "$d"; done
   done
+}
+
+# The state with the first $1 layers, pushed as a fresh root commit onto Gitea main.
+push_state() {
+  local d="$WORK/base"
+  build_state "$d" "$1"
   git -C "$d" init -q
   git -C "$d" -c user.name=seed -c user.email=seed@example.com add -A
   git -C "$d" -c user.name=seed -c user.email=seed@example.com commit -q -m "Consumer repo: Orders API"
@@ -212,6 +214,25 @@ delete_repo_entities() {
     curl -sf -o /dev/null -X DELETE -H "Authorization: Bearer $t" "http://localhost:7007/api/catalog/entities/by-uid/$uid"
     echo "deleted catalog entity $uid"
   done
+}
+
+# Microcks serves the last contract imported under the "Orders API" name as a
+# mock, so load the state's contract: the mock then matches what is merged.
+sync_microcks() {
+  curl -sf -o /dev/null -X POST -F "file=@$WORK/base/$CONTRACT" \
+    "http://localhost:8080/api/artifact/upload?mainArtifact=true" \
+    || { echo "could not load the contract into Microcks" >&2; exit 1; }
+  echo "microcks mock matches the state's contract"
+}
+
+# TechDocs builds a page the first time it is opened (a "building" banner on
+# camera). The governance repo was just re-pushed, so build it now.
+prewarm_techdocs() {
+  local t; t="$(backstage_token)"
+  curl -s -N --max-time 240 -H "Authorization: Bearer $t" -H "Accept: text/event-stream" \
+    "http://localhost:7007/api/techdocs/sync/default/component/api-guidelines" | grep -q "^event: finish" \
+    && echo "api guidelines (TechDocs) built" \
+    || echo "warning: TechDocs build did not finish; open the guidelines once before recording" >&2
 }
 
 # Never `podman start/restart backstage` (or `podman-compose up`): it starts its
@@ -283,19 +304,117 @@ sync_gateway() {
   fi
 }
 
-# What each prep step pushes: the branch you check out on camera.
+# Refuse to delete anything that is not a previous clone of the demo repo.
+check_demo_clone() {
+  [ -e "$DEMO_CLONE" ] || return 0
+  case "$(git -C "$DEMO_CLONE" remote get-url origin 2>/dev/null)" in
+    *"/$ORG/$REPO.git") ;;
+    *) echo "refusing to replace $DEMO_CLONE: it is not a clone of $ORG/$REPO (move it away or set DEMO_CLONE)" >&2; exit 1 ;;
+  esac
+}
+
+# A fresh clone of Gitea main at $DEMO_CLONE, the place the recording happens in.
+fresh_demo_clone() {
+  check_demo_clone
+  rm -rf "$DEMO_CLONE"
+  mkdir -p "$(dirname "$DEMO_CLONE")"
+  git clone -q "$REMOTE" "$DEMO_CLONE"
+  echo "demo clone ready: $DEMO_CLONE"
+}
+
+# Branch that exists only in the demo clone, committed on top of the current Gitea
+# main but NOT pushed: the presenter pushes it on camera. Done in a temporary
+# worktree, so whatever the recording terminal has checked out stays untouched.
+# $1 = branch, $2 = commit message, $3.. = change functions.
+make_local_branch() {
+  local branch="$1" msg="$2"; shift 2
+  local g=(git -C "$DEMO_CLONE") cur wt="$WORK/wt"
+  [ -d "$DEMO_CLONE/.git" ] || fresh_demo_clone
+  check_demo_clone
+  if git ls-remote --exit-code "$REMOTE" "refs/heads/$branch" >/dev/null; then
+    echo "Gitea already has branch $branch (from an earlier take). Run 'goto <target>' to reset, or delete that branch first." >&2
+    exit 1
+  fi
+  "${g[@]}" fetch -q --prune origin
+  # Bring the local main up to the Gitea main, without switching branches.
+  cur="$("${g[@]}" branch --show-current)"
+  if [ "$cur" = main ]; then
+    "${g[@]}" merge -q --ff-only origin/main \
+      || { echo "cannot fast-forward main in $DEMO_CLONE (local changes or commits on main?)" >&2; exit 1; }
+  else
+    "${g[@]}" branch -f main origin/main
+  fi
+  if "${g[@]}" show-ref --verify -q "refs/heads/$branch"; then
+    [ "$cur" = "$branch" ] && { echo "$branch is checked out in $DEMO_CLONE; switch to main first" >&2; exit 1; }
+    "${g[@]}" branch -q -D "$branch"
+  fi
+  "${g[@]}" worktree add -q -b "$branch" "$wt" origin/main
+  for f in "$@"; do "$f" "$wt"; done
+  git -C "$wt" add -A
+  git -C "$wt" -c user.name="$U" -c user.email="$U@example.com" commit -q -m "$msg"
+  "${g[@]}" worktree remove --force "$wt"
+  echo "local branch $branch ready in $DEMO_CLONE (not pushed; main updated to Gitea main)"
+}
+
+# What each prep step prepares: the branch you check out on camera.
 prep_step() {
   case "$1" in
-    stage1)     make_branch feat/add-catalog-entry "Register the Orders API in the catalog" do_stage1 ;;
-    stage2)     make_branch feat/add-spectral-gate "Add spectral-openapi-check gate" do_stage2 ;;
-    stage2-red) make_branch feat/orders-server-url "Move Orders API to orders.example.com" do_stage2_red ;;
-    stage3)     make_branch feat/add-contract-test-gate "Add contract-test gate (Microcks)" do_stage3 ;;
-    stage3-red) make_branch feat/orders-currency "Add currency to the order response" do_stage3_red ;;
-    stage4)     make_branch feat/add-gateway-gate "Add gateway-deploy-check gate (KrakenD)" do_stage4 ;;
-    stage5)     make_branch feat/add-backwards-compat-gate "Insert breaking-changes-check between lint and contract-test" do_stage5 ;;
-    stage5-red) make_branch feat/orders-require-channel "Require sales channel when reading an order" do_stage5_red ;;
+    stage1)     make_local_branch feat/add-catalog-entry "Register the Orders API in the catalog" do_stage1 ;;
+    stage2)     make_local_branch feat/add-spectral-gate "Add spectral-openapi-check gate" do_stage2 ;;
+    stage2-red) make_local_branch feat/orders-server-url "Move Orders API to orders.api-peak.com" do_stage2_red ;;
+    stage3)     make_local_branch feat/add-contract-test-gate "Add contract-test gate (Microcks)" do_stage3 ;;
+    stage3-red) make_local_branch feat/orders-currency "Add currency to the order response" do_stage3_red ;;
+    stage4)     make_local_branch feat/add-gateway-gate "Add gateway-deploy-check gate (KrakenD)" do_stage4 ;;
+    stage5)     make_local_branch feat/add-backwards-compat-gate "Insert breaking-changes-check between lint and contract-test" do_stage5 ;;
+    stage5-red) make_local_branch feat/orders-require-channel "Require sales channel when reading an order" do_stage5_red ;;
     *) return 1 ;;
   esac
+}
+
+# How many layers Gitea main holds: compare it with every replayed state.
+detect_layers() {
+  local cur="$WORK/cur" k
+  rm -rf "$cur"; git clone -q "$REMOTE" "$cur"; rm -rf "$cur/.git"
+  for ((k = 0; k <= ${#LAYERS[@]}; k++)); do
+    build_state "$WORK/st" "$k"
+    diff -rq "$cur" "$WORK/st" >/dev/null 2>&1 && { echo "$k"; return 0; }
+  done
+  return 1
+}
+
+# The step recorded after $1 layers are merged, and the branch it uses.
+step_after() {
+  local steps=(stage1 stage2 stage2-red stage3 stage3-red stage4 stage5 stage5-red "")
+  echo "${steps[$1]}"
+}
+branch_of() {
+  case "$1" in
+    stage1) echo feat/add-catalog-entry ;;         stage2) echo feat/add-spectral-gate ;;
+    stage2-red) echo feat/orders-server-url ;;     stage3) echo feat/add-contract-test-gate ;;
+    stage3-red) echo feat/orders-currency ;;       stage4) echo feat/add-gateway-gate ;;
+    stage5) echo feat/add-backwards-compat-gate ;; stage5-red) echo feat/orders-require-channel ;;
+  esac
+}
+
+# Work out where the demo is and prepare the next branch (or just report it).
+next_step() {  # $1 = "prepare" or "status"
+  local k step branch
+  k="$(detect_layers)" || {
+    echo "Gitea main matches no demo state (after podman-compose up, or a half-done step?). Use: $0 goto <target>" >&2
+    exit 1
+  }
+  step="$(step_after "$k")"
+  echo "Gitea main: $k of ${#LAYERS[@]} steps merged."
+  if [ -z "$step" ]; then echo "Everything is merged; nothing left to record."; return 0; fi
+  branch="$(branch_of "$step")"
+  echo "Next: $step, branch $branch."
+  if git ls-remote --exit-code "$REMOTE" "refs/heads/$branch" >/dev/null; then
+    echo "$branch is already on Gitea: open (or finish) its PR and merge it; then run next again."
+  elif [ -d "$DEMO_CLONE/.git" ] && git -C "$DEMO_CLONE" show-ref --verify -q "refs/heads/$branch"; then
+    echo "$branch is already prepared in $DEMO_CLONE: git switch $branch"
+  elif [ "$1" = prepare ]; then
+    prep_step "$step"
+  fi
 }
 
 # The step that is recorded from each goto state.
@@ -310,30 +429,32 @@ step_at() {
 goto() {
   local target="${1:-}" k
   k="$(layers_before "$target")" || { echo "unknown target '$target'; see the usage at the top of $0" >&2; exit 1; }
+  check_demo_clone   # fail before changing anything
   cleanup_gitea
   push_state "$k"
   sync_governance_repo
   delete_repo_entities
   sync_gateway "$k"
+  sync_microcks
+  prewarm_techdocs
   trigger_refresh
   if [ "$k" -ge 1 ]; then
     # Stage 1 is already merged in this state, so Backstage must list the API.
     wait_for_api 40 || { echo "orders-api never appeared in Backstage" >&2; exit 1; }
     echo "backstage lists orders-api"
   fi
+  fresh_demo_clone
   local step; step="$(step_at "$target")"
-  if [ -n "$step" ]; then
-    prep_step "$step"
-    echo "ready: start of '$target', and its branch is pushed. Make a fresh clone (main was force-pushed) and record."
-  else
-    echo "ready: '$target' (everything merged; nothing left to record)."
-  fi
+  [ -z "$step" ] || prep_step "$step"
+  echo "ready: start of '$target'. Work in $DEMO_CLONE (cd there again if your terminal was inside the old clone)."
 }
 
 case "${1:-}" in
   goto) goto "${2:-}" ;;
   reset) goto 1 ;;
+  next) next_step prepare ;;
+  status) next_step status ;;
   refresh-catalog) refresh_catalog ;;
   stage1|stage2|stage2-red|stage3|stage3-red|stage4|stage5|stage5-red) prep_step "$1" ;;
-  *) sed -n '2,34p' "$0"; exit 1 ;;
+  *) sed -n '2,43p' "$0"; exit 1 ;;
 esac

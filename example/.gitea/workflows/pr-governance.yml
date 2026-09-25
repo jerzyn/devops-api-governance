@@ -28,6 +28,10 @@ on:
   workflow_dispatch:
 
 env:
+  # This repo on Gitea, as job containers on gitea-network reach it.
+  REPO_URL: http://gitea:3000/${{ github.repository }}.git
+  # What to check out: the PR head, or the dispatched ref on workflow_dispatch.
+  CHECKOUT_REF: ${{ github.event.pull_request.number && format('refs/pull/{0}/head', github.event.pull_request.number) || github.ref }}
   # Central governance repo (ruleset + custom Spectral functions). Linked, not
   # vendored: the lint job clones it at run time. Anonymous clone (public repo).
   GOVERNANCE_REPO: http://gitea:3000/governance-demo/api-governance.git
@@ -53,12 +57,23 @@ jobs:
 
     steps:
       - name: Checkout PR branch
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
+        shell: bash
+        run: |
+          # Plain git against Gitea instead of actions/checkout, which is
+          # downloaded from github.com on every job. Full history, so the base
+          # branch is there to diff against.
+          set -e
+          git init -q .
+          git remote add origin "${REPO_URL}"
+          git fetch -q origin '+refs/heads/*:refs/remotes/origin/*'
+          git fetch -q origin "${CHECKOUT_REF}"
+          git checkout -q FETCH_HEAD
 
+      # The CI image (ci-image/Dockerfile) has every tool preinstalled; the
+      # install steps only download when a tool is missing.
       - name: Install Spectral CLI
-        run: npm install -g @stoplight/spectral-cli
+        shell: bash
+        run: command -v spectral >/dev/null || npm install -g @stoplight/spectral-cli@6.16.3
 
       - name: Fetch governance ruleset (linked, not vendored)
         shell: bash
@@ -119,11 +134,17 @@ jobs:
 
     steps:
       - name: Checkout PR branch
-        uses: actions/checkout@v4
-        with:
-          # Full history so we can resolve `origin/<base>:<path>` for oasdiff
-          # and diff against it.
-          fetch-depth: 0
+        shell: bash
+        run: |
+          # Plain git against Gitea instead of actions/checkout, which is
+          # downloaded from github.com on every job. Full history, so the base
+          # branch is there to diff against.
+          set -e
+          git init -q .
+          git remote add origin "${REPO_URL}"
+          git fetch -q origin '+refs/heads/*:refs/remotes/origin/*'
+          git fetch -q origin "${CHECKOUT_REF}"
+          git checkout -q FETCH_HEAD
 
       - name: Install oasdiff (pinned)
         shell: bash
@@ -131,10 +152,12 @@ jobs:
           OASDIFF_VERSION: 1.19.0
         run: |
           set -e
-          curl -fsSL -o /tmp/oasdiff.tgz \
-            "https://github.com/oasdiff/oasdiff/releases/download/v${OASDIFF_VERSION}/oasdiff_${OASDIFF_VERSION}_linux_amd64.tar.gz"
-          tar -xzf /tmp/oasdiff.tgz -C /tmp
-          install -m 0755 /tmp/oasdiff /usr/local/bin/oasdiff
+          if ! command -v oasdiff >/dev/null; then
+            curl -fsSL -o /tmp/oasdiff.tgz \
+              "https://github.com/oasdiff/oasdiff/releases/download/v${OASDIFF_VERSION}/oasdiff_${OASDIFF_VERSION}_linux_amd64.tar.gz"
+            tar -xzf /tmp/oasdiff.tgz -C /tmp
+            install -m 0755 /tmp/oasdiff /usr/local/bin/oasdiff
+          fi
           oasdiff --version
 
       - name: Find modified OpenAPI files vs base
@@ -192,12 +215,17 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout PR branch
-        uses: actions/checkout@v4
-        with:
-          # Check out the PR head commit so the contract under test is the PR's
-          # version, not the base branch (main). Empty on workflow_dispatch ->
-          # falls back to the dispatched ref.
-          ref: ${{ github.event.pull_request.head.sha }}
+        shell: bash
+        run: |
+          # Plain git against Gitea instead of actions/checkout, which is
+          # downloaded from github.com on every job. Full history, so the base
+          # branch is there to diff against.
+          set -e
+          git init -q .
+          git remote add origin "${REPO_URL}"
+          git fetch -q origin '+refs/heads/*:refs/remotes/origin/*'
+          git fetch -q origin "${CHECKOUT_REF}"
+          git checkout -q FETCH_HEAD
 
       - name: Wait for Microcks to be ready
         shell: bash
@@ -273,11 +301,17 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout PR branch
-        uses: actions/checkout@v4
-        with:
-          # Same rationale as contract-test: gateway config must come from
-          # the PR's contract, not main's.
-          ref: ${{ github.event.pull_request.head.sha }}
+        shell: bash
+        run: |
+          # Plain git against Gitea instead of actions/checkout, which is
+          # downloaded from github.com on every job. Full history, so the base
+          # branch is there to diff against.
+          set -e
+          git init -q .
+          git remote add origin "${REPO_URL}"
+          git fetch -q origin '+refs/heads/*:refs/remotes/origin/*'
+          git fetch -q origin "${CHECKOUT_REF}"
+          git checkout -q FETCH_HEAD
 
       - name: Fetch governance gateway tooling (linked, not vendored)
         shell: bash
@@ -289,7 +323,7 @@ jobs:
 
       - name: Install generator dependencies
         shell: bash
-        run: npm install --prefix .governance-gateway/gateway
+        run: node -e "require('js-yaml')" 2>/dev/null || npm install --prefix .governance-gateway/gateway
 
       - name: Generate krakend.json from the PR contract
         shell: bash
@@ -313,13 +347,15 @@ jobs:
           KRAKEND_VERSION: 2.6.2
         run: |
           set -e
-          # Asset name is krakend_<version>_amd64_generic-linux.tar.gz, NOT
-          # krakend_<version>_linux_amd64.tar.gz - verified against the
-          # krakend-ce GitHub releases API for this version.
-          curl -fsSL -o /tmp/krakend.tgz \
-            "https://github.com/krakend/krakend-ce/releases/download/v${KRAKEND_VERSION}/krakend_${KRAKEND_VERSION}_amd64_generic-linux.tar.gz"
-          tar -xzf /tmp/krakend.tgz -C /tmp
-          install -m 0755 /tmp/usr/bin/krakend /usr/local/bin/krakend
+          if ! command -v krakend >/dev/null; then
+            # Asset name is krakend_<version>_amd64_generic-linux.tar.gz, NOT
+            # krakend_<version>_linux_amd64.tar.gz - verified against the
+            # krakend-ce GitHub releases API for this version.
+            curl -fsSL -o /tmp/krakend.tgz \
+              "https://github.com/krakend/krakend-ce/releases/download/v${KRAKEND_VERSION}/krakend_${KRAKEND_VERSION}_amd64_generic-linux.tar.gz"
+            tar -xzf /tmp/krakend.tgz -C /tmp
+            install -m 0755 /tmp/usr/bin/krakend /usr/local/bin/krakend
+          fi
           krakend version
 
       # `krakend check -c` is the validation this version provides; no

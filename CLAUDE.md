@@ -81,7 +81,8 @@ being asked.
   `functionsDir`, still unused by any rule, still dead code — just silent now.
 - ~~The ruleset and guidelines referenced the real company "PZU"~~ — resolved:
   rebranded to the fictional "API Peak" (rule ID prefix `api-peak:*`, guideline
-  links now `api-guidelines.api-peak.com`) across the ruleset, guidelines docs,
+  links first pointed at the fictional `api-guidelines.api-peak.com`; they now open
+  the rule in the Backstage TechDocs page, `http://localhost:7007/docs/default/component/api-guidelines/#<anchor>`) across the ruleset, guidelines docs,
   catalog-info, and the test scenarios that quote rule IDs.
 - ~~`governance/api-guidelines/docs/index.md` rule-number inconsistencies~~ —
   resolved. Turned out to be two distinct bugs, both fixed:

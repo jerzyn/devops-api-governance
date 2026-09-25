@@ -67,6 +67,15 @@ services:
     command: >
       sh -c "apk add --no-cache git curl >/dev/null && sh /scripts/seed-gitea.sh"
 
+  # Builds the job image the runner starts for every CI job (tools
+  # preinstalled, so jobs don't download anything). Runs once and exits.
+  ci-image:
+    build: ./ci-image
+    image: localhost/devops-api-governance-ci:latest
+    container_name: ci-image
+    restart: "no"
+    command: ["true"]
+
   gitea-runner:
     image: gitea/act_runner:latest
     container_name: gitea-runner
@@ -74,13 +83,15 @@ services:
     depends_on:
       gitea-seed:
         condition: service_completed_successfully
+      ci-image:
+        condition: service_completed_successfully
     environment:
       - GITEA_INSTANCE_URL=http://gitea:3000/
       # run.sh reads the token from this file (written by gitea-seed).
       - GITEA_RUNNER_REGISTRATION_TOKEN_FILE=/seed/runner-token
       - GITEA_RUNNER_NAME=local-runner
-      # Example label for Docker-based jobs (can be changed per your workflows)
-      - GITEA_RUNNER_LABELS=ubuntu-latest:docker://node:20-bullseye
+      # Label used at registration; runner-config.yaml overrides it at run time.
+      - GITEA_RUNNER_LABELS=ubuntu-latest:docker://localhost/devops-api-governance-ci:latest
       # Pin Docker API version to avoid 500 from daemon when client uses v1.53
       - DOCKER_API_VERSION=1.44
       # Use config so job containers join gitea-network and can clone repo from Gitea

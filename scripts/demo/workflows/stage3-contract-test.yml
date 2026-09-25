@@ -21,6 +21,10 @@ on:
   workflow_dispatch:
 
 env:
+  # This repo on Gitea, as job containers on gitea-network reach it.
+  REPO_URL: http://gitea:3000/${{ github.repository }}.git
+  # What to check out: the PR head, or the dispatched ref on workflow_dispatch.
+  CHECKOUT_REF: ${{ github.event.pull_request.number && format('refs/pull/{0}/head', github.event.pull_request.number) || github.ref }}
   # Central governance repo (ruleset + custom Spectral functions). Linked, not
   # vendored: the lint job clones it at run time. Anonymous clone (public repo).
   GOVERNANCE_REPO: http://gitea:3000/governance-demo/api-governance.git
@@ -42,12 +46,23 @@ jobs:
 
     steps:
       - name: Checkout PR branch
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
+        shell: bash
+        run: |
+          # Plain git against Gitea instead of actions/checkout, which is
+          # downloaded from github.com on every job. Full history, so the base
+          # branch is there to diff against.
+          set -e
+          git init -q .
+          git remote add origin "${REPO_URL}"
+          git fetch -q origin '+refs/heads/*:refs/remotes/origin/*'
+          git fetch -q origin "${CHECKOUT_REF}"
+          git checkout -q FETCH_HEAD
 
+      # The CI image (ci-image/Dockerfile) has every tool preinstalled; the
+      # install steps only download when a tool is missing.
       - name: Install Spectral CLI
-        run: npm install -g @stoplight/spectral-cli
+        shell: bash
+        run: command -v spectral >/dev/null || npm install -g @stoplight/spectral-cli@6.16.3
 
       - name: Fetch governance ruleset (linked, not vendored)
         shell: bash
@@ -95,9 +110,17 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout PR branch
-        uses: actions/checkout@v4
-        with:
-          ref: ${{ github.event.pull_request.head.sha }}
+        shell: bash
+        run: |
+          # Plain git against Gitea instead of actions/checkout, which is
+          # downloaded from github.com on every job. Full history, so the base
+          # branch is there to diff against.
+          set -e
+          git init -q .
+          git remote add origin "${REPO_URL}"
+          git fetch -q origin '+refs/heads/*:refs/remotes/origin/*'
+          git fetch -q origin "${CHECKOUT_REF}"
+          git checkout -q FETCH_HEAD
 
       - name: Wait for Microcks to be ready
         shell: bash

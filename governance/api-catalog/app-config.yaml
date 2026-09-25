@@ -121,7 +121,10 @@ catalog:
         branch: main
         catalogPath: catalog-info.yaml
         schedule:
-          frequency: { minutes: 30 }
+          # Demo setting: a merged catalog-info.yaml shows up in Backstage within
+          # seconds, live on camera, with no manual refresh. A real deployment
+          # would scan far less often (e.g. every 30 minutes) or use webhooks.
+          frequency: { seconds: 10 }
           timeout: { minutes: 3 }
   # No static locations: all entities are discovered by the Gitea provider above.
   # (The create-app example file locations were removed — they don't exist in the
