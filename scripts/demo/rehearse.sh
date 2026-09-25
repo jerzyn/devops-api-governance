@@ -129,7 +129,7 @@ prep_keeps_checkout stage2-red
 take_branch feat/orders-server-url
 git -C "$CL" diff main -- contracts/ | grep -q '^+.*http://orders.api-peak.com' && ok "diff shows http URL" || bad "diff"
 push_branch feat/orders-server-url
-N=$(open_pr feat/orders-server-url "Move Orders API to orders.example.com"); ci $N
+N=$(open_pr feat/orders-server-url "Move Orders API to orders.api-peak.com"); ci $N
 [ "$CI_STATE" = failure ] && has failure spectral-openapi-check && ok "spectral RED" || bad "expected red"
 L=$(job_log spectral-openapi-check)
 echo "$L" | grep -q 'api-peak:rest17:2025-https-required' && ok "log: rest17:2025-https-required" || bad "rule id"
