@@ -125,8 +125,8 @@ repo** (`example/` → Gitea `governance-demo/devops-api-governance`):
      ruleset, then lints the OpenAPI files changed in the PR, **fails on
      error-severity findings**. Each finding links to its rule in the API
      guidelines in Backstage.
-   - **Backwards-compatibility** (`breaking-changes-check`) — installs a pinned
-     [`oasdiff`](https://github.com/oasdiff/oasdiff) (v1.19.0) and diffs every
+   - **Backwards-compatibility** (`breaking-changes-check`) — uses a pinned
+     [`oasdiff`](https://github.com/oasdiff/oasdiff) (v1.19.0, preinstalled in the CI image) and diffs every
      PR-modified `*openapi*.{yml,yaml}` against its version on the PR's base
      branch. **Fails on any ERR-severity breaking finding** (`--fail-on ERR`).
      Brand-new files (no baseline) and identical-content edits are skipped;
@@ -170,7 +170,7 @@ A step-by-step walkthrough (green/red for each gate + merge→catalog) is in
 | `governance/api-guidelines/` | `docs/index.md` (the API design guidelines the rules encode) + `catalog-info.yaml` + `mkdocs.yml` — published to the `api-governance` Gitea repo and surfaced in Backstage as TechDocs. |
 | `governance/api-catalog/` | The Backstage app (committed source; builds entirely in Docker). |
 
-**Consumer repo** ([`example/`](example/)) — the product unit / starting template (nested, git-ignored):
+**Consumer repo** ([`example/`](example/)) — the product unit / starting template, pushed by `gitea-seed` into its own Gitea repo:
 
 | Path | Purpose |
 |------|---------|
@@ -182,7 +182,7 @@ A step-by-step walkthrough (green/red for each gate + merge→catalog) is in
 ## Governance rules (Spectral)
 
 The ruleset extends Spectral's built-in OpenAPI rules with organization-specific
-checks based on `api-guidelines.md`. Examples:
+checks based on the API guidelines (`governance/api-guidelines/docs/index.md`). Examples:
 
 - OpenAPI documents must use OpenAPI 3.x.y and should use 3.1.y.
 - `info.title` must be Title Case and end with `API`; `info.version` semver.
@@ -208,7 +208,7 @@ files, so this example does not break unrelated PRs.
 ## Backwards-compatibility checks (oasdiff)
 
 The `breaking-changes-check` gate uses [`oasdiff`](https://github.com/oasdiff/oasdiff)
-v1.19.0 (pinned, installed in the job at run time — no host install needed) to
+v1.19.0 (pinned, preinstalled in the CI image; the job installs it itself on a plain runner — no host install needed) to
 diff every PR-modified `*openapi*.{yml,yaml}` against its version on the PR's
 base branch and **fail on any ERR-severity breaking finding** (`oasdiff
 breaking --fail-on ERR`). Typical findings it blocks:
@@ -286,7 +286,7 @@ directions are now **implemented**:
 - ✅ **Backwards-compatibility checks (oasdiff)** — PR diff of each modified
   `*openapi*.{yml,yaml}` vs the base branch fails the gate on breaking changes
   (new required parameters, narrowed types, removed response fields, removed
-  operations, …). Aligns with `api-guidelines.md` semver/extension rules.
+  operations, …). Aligns with the guidelines' semver and rules-of-extensibility sections.
 - ✅ **API gateway (KrakenD)** — the PR's contract is deployed to a real
   KrakenD CE gateway and re-tested through it before merge, closing the
   loop from design-time lint through to a running, routable gateway.
@@ -333,11 +333,17 @@ it, never against this project):
 
 ```bash
 docker compose --profile contract --profile catalog --profile gateway up -d      # up + auto-seed
-git clone http://demo:demo12345@localhost:3000/governance-demo/devops-api-governance.git
+mkdir -p ~/demo && cd ~/demo
+git clone http://demo:demo12345@localhost:3000/governance-demo/devops-api-governance.git orders-api
+cd orders-api
 ```
 
+Clone it outside this project and under another name: the Gitea repo is also
+called `devops-api-governance`, so a default clone next to or inside this
+project collides with it.
+
 Endpoints: Gitea `:3000` (`demo`/`demo12345`) · Microcks `:8080` · Backstage
-`:7007` (guest) · backend `:8081`.
+`:7007` (guest) · backend `:8081` · KrakenD `:8090`.
 
 **Topic 1 — API Catalog.** One `catalog-info.yaml` makes an API org-wide visible.
 Backstage → **APIs** shows `orders-api`, auto-discovered from Gitea; its

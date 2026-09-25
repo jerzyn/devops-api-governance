@@ -55,7 +55,7 @@ If a take goes wrong, don't redo the earlier stages: use `demo goto <target>` (s
 3. `demo goto 1` (if you didn't run `demo fresh`): Gitea `main` goes back to the Stage 1 starting state, open PRs are closed, all `feat/*` branches on Gitea are deleted, the governance repo is synced, the Backstage catalog is cleared, the gateway has no routes, and a **fresh demo clone** is made at `~/demo/orders-api` with the Stage 1 branch in it (not pushed).
 4. In the browser, **sign in to Gitea** at `http://localhost:3000/user/login` as `demo` / `demo12345`. Without a login the PR page shows "Sign in to…" and has no create or merge buttons.
 5. In the recording terminal: `demo shell`. It `cd`s into the clone, sets a short prompt that shows the current branch (`orders-api (main) $`), makes long output page only when it doesn't fit, and clears the screen.
-6. Check: `demo preflight`. It checks the stack, the runner and CI image, Gitea (state, no open PRs), Backstage, the gateway, the Microcks mock, the guidelines page and the demo clone, and ends with `READY: record …` or a list of problems with the command that fixes each. It works at any stage, so run it before every take.
+6. Check: `demo preflight`. It checks the stack, the runner and CI image, Gitea (state, no open PRs), Backstage, the gateway, the Microcks mock, the guidelines page, CI still running from an earlier take, and the demo clone, and ends with `READY: record …` or a list of problems with the command that fixes each. It works at any stage, so run it before every take.
 
 The Gitea repo has the same name as this project (`devops-api-governance`), so never clone it under that name or inside the project directory: a clone in `~/projekty` collides with the project, and a `rm -rf` of that name would delete it. `~/demo/orders-api` can't be confused with it. `goto` only ever deletes a folder that is a clone of the demo repo, and refuses otherwise.
 
@@ -65,7 +65,7 @@ Have everything below open **before** you press record, so no recording starts w
 
 - **Screen:** terminal on the left, browser on the right, both inside the recorded area. Terminal font ~18–20 pt and browser zoom ~125–150% (`Ctrl` `+`), so it is readable on a projector.
 - **Terminal 1 (recorded):** after `demo shell`, in `~/demo/orders-api`. Only git commands and the stage-4 `curl` run here. `clear` before each step.
-- **Terminal 2 (NOT recorded):** `~/projekty/devops-api-governance`, only for `demo next`. Keep it outside the recorded area (another workspace, or minimised). If you record every part as its own take, one terminal is enough: stop recording, run `next` there, start again.
+- **Terminal 2 (NOT recorded):** any directory, only for `demo` commands (`next`, `preflight`, `goto`). Keep it outside the recorded area (another workspace, or minimised). If you record every part as its own take, one terminal is enough: stop recording, run `next` there, start again.
 - **Browser:** one window with a few prepared tabs (listed per stage below). Signed in to Gitea as `demo`. Bookmarks bar hidden. If Backstage shows a sign-in page, sign in as guest once beforehand.
 - **Tabs only for what a stage shows:** Backstage in Stages 1 and 2 (the catalog, then the guidelines in it), Microcks at most in Stage 3. Close them in the other stages so nothing distracts.
 - **Not running / not visible:** the older `devops-driven-governance` stack (same container names and ports), desktop notifications, other windows.
@@ -382,7 +382,7 @@ demo concat demo.mp4 ~/demo/cards/card1.mp4 s1.mp4 ~/demo/cards/card2.mp4 s2.mp4
 
 **backend can't be recreated while `krakend` runs** (podman: "has dependent containers"). That's why Stage 3's red demo changes the contract instead of toggling the backend's `DRIFT` mode, which is only read at startup.
 
-**Before the recording day:** `demo rehearse` (~9 min) runs the whole screenplay against the stack and prints PASS/FAIL per check. It leaves the demo at `end`: run `goto 1` (or `fresh-gitea.sh`) afterwards.
+**Before the recording day:** `demo rehearse` (~9 min) runs the whole screenplay against the stack and prints PASS/FAIL per check. It leaves the demo at `end`: run `demo goto 1` (or `demo fresh`) afterwards.
 
 **Recording (Spectacle):**
 - One continuous recording per stage (or of the whole demo), terminal and browser side by side. Wayland asks once for screen-capture permission.
