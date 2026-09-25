@@ -1,0 +1,60 @@
+#!/bin/bash
+# One entry point for the recorded demo. Tab completion and `demo shell` come
+# from demo-completion.bash (see `demo help`).
+set -euo pipefail
+D="$(cd "$(dirname "$(readlink -f "$0")")" && pwd)"
+
+usage() {
+  cat <<'EOF'
+demo <command> [args]
+
+Between steps
+  next                  prepare the next step's branch in the demo clone
+  status                where the demo is, and what comes next
+  preflight             "ready to record?" check (ends with READY or a list of problems)
+
+Retakes and setup
+  goto <target>         roll back to the start of a step: 1 2 2-red 3 3-red 4 5 5-red end
+  reset                 same as: goto 1
+  fresh [--yes]         wipe the demo Gitea and start over at Stage 1 (final take)
+  refresh-catalog       make Backstage rescan Gitea now
+  shell                 set up this terminal for recording (prompt, cd into the clone)
+
+Checks and editing
+  rehearse              full dry run of the screenplay against the stack (~9 min)
+  cards <dir>           title cards card1..card5.mp4
+  trim <in> <from> <to> <out>
+  speed <in> <factor> <out>
+  concat <out> <in1> <in2> ...
+
+Advanced
+  stage1 stage2 stage2-red stage3 stage3-red stage4 stage5 stage5-red
+                        prepare one specific step's branch (next picks it for you)
+EOF
+}
+
+cmd="${1:-help}"; [ $# -gt 0 ] && shift
+case "$cmd" in
+  next|status|preflight|reset|refresh-catalog|stage1|stage2|stage2-red|stage3|stage3-red|stage4|stage5|stage5-red)
+    exec "$D/prep-stage.sh" "$cmd" "$@" ;;
+  goto)
+    [ $# -ge 1 ] || { echo "usage: demo goto <1|2|2-red|3|3-red|4|5|5-red|end>" >&2; exit 1; }
+    exec "$D/prep-stage.sh" goto "$@" ;;
+  fresh)    exec "$D/fresh-gitea.sh" "$@" ;;
+  rehearse) exec "$D/rehearse.sh" "$@" ;;
+  cards|trim|speed|concat) exec "$D/video.sh" "$cmd" "$@" ;;
+  shell)
+    echo "'demo shell' has to change this terminal, so it works through the shell function:" >&2
+    echo "  source $D/demo-completion.bash   (or run: demo install)" >&2
+    exit 1 ;;
+  install)
+    line="source $D/demo-completion.bash"
+    if grep -qxF "$line" "$HOME/.bashrc" 2>/dev/null; then
+      echo "already in ~/.bashrc"
+    else
+      printf '\n# DevOps API governance demo CLI (tab completion + demo shell)\n%s\n' "$line" >> "$HOME/.bashrc"
+      echo "added to ~/.bashrc; open a new terminal (or: $line)"
+    fi ;;
+  help|-h|--help) usage ;;
+  *) echo "unknown command: $cmd" >&2; usage >&2; exit 1 ;;
+esac

@@ -1,5 +1,5 @@
 # Recording terminal setup. Source it in the terminal you record:
-#   source ~/projekty/devops-api-governance/scripts/demo/demo-shell.sh
+#   demo shell   (or: source ~/projekty/devops-api-governance/scripts/demo/demo-shell.sh)
 # Short prompt with the current branch, so viewers always see where you are,
 # and a pager that only kicks in for output longer than the screen.
 if [ -f /usr/share/git-core/contrib/completion/git-prompt.sh ]; then
@@ -11,5 +11,5 @@ else
   PS1='\[\e[1;36m\]orders-api\[\e[0m\] \$ '
 fi
 export GIT_PAGER='less -FRX'
-cd "${DEMO_CLONE:-$HOME/demo/orders-api}" 2>/dev/null || echo "demo clone not found; run prep-stage.sh goto 1 first"
+cd "${DEMO_CLONE:-$HOME/demo/orders-api}" 2>/dev/null || echo "demo clone not found; run: demo goto 1"
 clear
