@@ -6,8 +6,9 @@ making changes.
 ## What this repo is
 
 A self-contained demo of API governance across the delivery loop (Gitea +
-Actions, Spectral, Microcks, Backstage, oasdiff) — see `README.md` for the
-full architecture and demo flow. It backs a conference talk.
+Actions, Spectral, oasdiff, Microcks, KrakenD, Backstage) — see `README.md`
+for the full architecture and demo flow. It backs a conference talk, which
+plays back five recordings of the demo growing one CI gate at a time.
 
 `presentation/` holds the talk deck as reference (`.pdf` + `.txt` transcript):
 *"DevOps-Driven API Governance"*. Use it to understand the *narrative* the
@@ -17,7 +18,15 @@ what is actually implemented — the deck may describe aspirational or
 future-roadmap items (e.g. an MCP mock server) that aren't built yet. If you
 add a feature the deck already claims exists, check the deck's wording isn't
 now technically inaccurate, but never edit the deck to match code without
-being asked.
+being asked: list the needed slide changes in `presentation/deck-changes.md`
+instead.
+
+`presentation/` also holds the recorded demo's docs: `screenplay.md` (the full
+script), `cue-card.md` (one page for recording) and `deck-changes.md`. The
+tooling behind them is `scripts/demo/` (the `demo` command; `demo rehearse` runs
+the whole screenplay against the live stack). When you change anything the
+recordings show (contract, workflow, stage branches, UI paths), update the
+screenplay and cue card too, and re-run `demo rehearse`.
 
 ## Branching
 

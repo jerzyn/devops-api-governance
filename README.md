@@ -156,6 +156,7 @@ A step-by-step walkthrough (green/red for each gate + merge→catalog) is in
 | `scripts/` | `seed-gitea.sh`, `seed-microcks.sh` — orchestration run by the seed services. `scripts/demo/` — tooling for the recorded stage-by-stage demo, behind one `demo` command (`scripts/demo/demo install`; see `presentation/screenplay.md`). |
 | `runner-config.yaml` | Joins CI job containers to `gitea-network` and runs them in the CI image. |
 | `ci-image/` | Job image (node:20 + Spectral, oasdiff, KrakenD CLI, js-yaml preinstalled), built by the `ci-image` compose service, so CI runs don't download anything. |
+| `presentation/` | The talk deck (`.pdf` + `.txt` transcript) and the recorded demo's docs: `screenplay.md`, `cue-card.md`, `deck-changes.md` (see "Recorded demo"). |
 | `tests/` | `pr-governance.feature.md` — BDD walkthrough of the PR loop. |
 | `docs/` | `demo-isolation.md` (two-repo model), `ci-test-path.md` walkthrough, `ci-fixes-scope.md` (CI design rationale). |
 | `gitea-data/`, `runner-data/` | Local runtime state, git-ignored, disposable. |

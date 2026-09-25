@@ -384,4 +384,9 @@ demo concat demo.mp4 ~/demo/cards/card1.mp4 s1.mp4 ~/demo/cards/card2.mp4 s2.mp4
 
 **Before the recording day:** `demo rehearse` (~9 min) runs the whole screenplay against the stack and prints PASS/FAIL per check. It leaves the demo at `end`: run `goto 1` (or `fresh-gitea.sh`) afterwards.
 
-**Recording:** Spectacle, one continuous recording per stage (or of the whole demo) with terminal and browser side by side. Wayland asks once for screen-capture permission.
+**Recording (Spectacle):**
+- One continuous recording per stage (or of the whole demo), terminal and browser side by side. Wayland asks once for screen-capture permission.
+- Record a **1920×1080** area (a region of that size, or the whole screen at that resolution). `demo concat` and the title cards are 1920×1080 at 30 fps, so clips of that size are joined without scaling; any other size is scaled and letterboxed.
+- If Spectacle lets you choose a format, pick MP4. Keep the mouse cursor visible: it shows where to look.
+- **Audio:** either record the narration with every clip, or with none of them and add it in editing. `demo concat` only keeps sound when every clip has an audio track; the title cards carry a silent one.
+- Close notifications and other windows before recording (see "Screen layout and windows").
