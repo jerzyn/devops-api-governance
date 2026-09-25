@@ -26,7 +26,7 @@ for i in $(seq 1 100); do
   curl -sf -o /dev/null http://localhost:7007 || ok=0
   curl -sf -o /dev/null http://localhost:8081/health || ok=0
   curl -sf -o /dev/null http://localhost:8080/api/health || ok=0
-  podman logs gitea-runner 2>&1 | grep -q "declare successfully" || ok=0
+  podman logs gitea-runner 2>&1 | grep >/dev/null -c "declare successfully" || ok=0
   [ $ok = 1 ] && break
   sleep 3
 done
