@@ -117,7 +117,7 @@ A step-by-step walkthrough (green/red for each gate + merge→catalog) is in
 | Path | Purpose |
 |------|---------|
 | `docker-compose.yml` | All services + the seed services + profiles (`contract`, `catalog`, `gateway`). |
-| `scripts/` | `seed-gitea.sh`, `seed-microcks.sh` — orchestration run by the seed services. `scripts/demo/` — tooling for the recorded stage-by-stage demo (see `presentation/screenplay.md`). |
+| `scripts/` | `seed-gitea.sh`, `seed-microcks.sh` — orchestration run by the seed services. `scripts/demo/` — tooling for the recorded stage-by-stage demo, behind one `demo` command (`scripts/demo/demo install`; see `presentation/screenplay.md`). |
 | `runner-config.yaml` | Joins CI job containers to `gitea-network` and runs them in the CI image. |
 | `ci-image/` | Job image (node:20 + Spectral, oasdiff, KrakenD CLI, js-yaml preinstalled), built by the `ci-image` compose service, so CI runs don't download anything. |
 | `tests/` | `pr-governance.feature.md` — BDD walkthrough of the PR loop. |

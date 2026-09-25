@@ -6,11 +6,13 @@ Two parts happen in every stage:
 - **Terminal:** git commands in your clone of the Gitea repo.
 - **Browser:** Gitea (PR, changed files, CI logs), Backstage, Microcks. Every browser step below is a click-path, so you can do the whole demo solo and record it in one go.
 
-Between steps there is one off-camera command, always the same: `scripts/demo/prep-stage.sh next`.
+Between steps there is one off-camera command, always the same: `demo next`.
+
+**The `demo` command** wraps every script in `scripts/demo/` and completes with Tab (`demo <Tab>`, `demo goto <Tab>`). One-time setup: `~/projekty/devops-api-governance/scripts/demo/demo install` (adds one line to `~/.bashrc`), then open a new terminal. `demo help` lists everything. It works from any directory.
 
 **While recording, use `cue-card.md`**: the same steps on one page (commands to paste, clicks, one line to say). This file explains them.
 
-Every step below was run end to end by `scripts/demo/rehearse.sh`: every command from this page in a throwaway clone, real PRs, real CI, every red/fix loop and every `goto` target. Durations are measured from that run.
+Every step below was run end to end by `demo rehearse`: every command from this page in a throwaway clone, real PRs, real CI, every red/fix loop and every `goto` target. Durations are measured from that run.
 
 ## Run of show
 
@@ -26,7 +28,7 @@ Every step below was run end to end by `scripts/demo/rehearse.sh`: every command
 
 Stages 2, 3 and 5 have two parts. **Part 1** installs the new gate. **Part 2** is the real shot: the gate catches a bad change (red, one-line fix, green). Stages 1 and 4 have a single part.
 
-1. **Prep (off camera):** `scripts/demo/prep-stage.sh next`. It looks at Gitea `main`, works out which step comes next and creates that step's branch **in your demo clone**, committed but **not pushed**. It first brings the clone's `main` up to Gitea `main`, and it doesn't touch what your terminal has checked out, so you can run it while the recording terminal sits in the clone. Nothing is typed from scratch on camera, and the red states are red every time. Run it after the previous PR is merged (it tells you if you are too early). After a `goto`, the next branch is already there.
+1. **Prep (off camera):** `demo next`. It looks at Gitea `main`, works out which step comes next and creates that step's branch **in your demo clone**, committed but **not pushed**. It first brings the clone's `main` up to Gitea `main`, and it doesn't touch what your terminal has checked out, so you can run it while the recording terminal sits in the clone. Nothing is typed from scratch on camera, and the red states are red every time. Run it after the previous PR is merged (it tells you if you are too early). After a `goto`, the next branch is already there.
 2. **Terminal, show and push:** `git switch <branch>`, show the change, then `git push -u origin <branch>`.
    - Contract changes are a few lines: show them in the terminal with `git diff main -- contracts/`.
    - Workflow changes are 40–60 lines of YAML: in the terminal only `git diff --stat main`, and show the change itself in the browser (**Files changed** tab of the PR), where it is readable.
@@ -42,18 +44,18 @@ Three things to keep in mind:
 - A `git push` does not open a PR in Gitea (the "Create a new pull request" line it prints is only a hint). PRs are always opened in the browser.
 - `git diff main` is right because `next` updates your local `main` to Gitea `main` just before creating the branch. No `git fetch` or `origin/main` on camera.
 
-If a take goes wrong, don't redo the earlier stages: use `prep-stage.sh goto <target>` (see "Retakes").
+If a take goes wrong, don't redo the earlier stages: use `demo goto <target>` (see "Retakes").
 
 ---
 
 ## Before recording
 
 1. **Stack up** (see appendix).
-2. **For the final recording only: `scripts/demo/fresh-gitea.sh`.** It wipes the demo Gitea (all PRs, CI runs and branches from rehearsals), brings the stack up again and runs `goto 1`. PR numbers then start at #1 and the Actions tab is empty. It asks before deleting anything. For a dry run, `scripts/demo/prep-stage.sh goto 1` is enough.
-3. `scripts/demo/prep-stage.sh goto 1` (if you didn't run `fresh-gitea.sh`): Gitea `main` goes back to the Stage 1 starting state, open PRs are closed, all `feat/*` branches on Gitea are deleted, the governance repo is synced, the Backstage catalog is cleared, the gateway has no routes, and a **fresh demo clone** is made at `~/demo/orders-api` with the Stage 1 branch in it (not pushed).
+2. **For the final recording only: `demo fresh`.** It wipes the demo Gitea (all PRs, CI runs and branches from rehearsals), brings the stack up again and runs `goto 1`. PR numbers then start at #1 and the Actions tab is empty. It asks before deleting anything. For a dry run, `demo goto 1` is enough.
+3. `demo goto 1` (if you didn't run `demo fresh`): Gitea `main` goes back to the Stage 1 starting state, open PRs are closed, all `feat/*` branches on Gitea are deleted, the governance repo is synced, the Backstage catalog is cleared, the gateway has no routes, and a **fresh demo clone** is made at `~/demo/orders-api` with the Stage 1 branch in it (not pushed).
 4. In the browser, **sign in to Gitea** at `http://localhost:3000/user/login` as `demo` / `demo12345`. Without a login the PR page shows "Sign in to…" and has no create or merge buttons.
-5. In the recording terminal: `source ~/projekty/devops-api-governance/scripts/demo/demo-shell.sh`. It `cd`s into the clone, sets a short prompt that shows the current branch (`orders-api (main) $`), makes long output page only when it doesn't fit, and clears the screen.
-6. Check: `scripts/demo/prep-stage.sh preflight`. It checks the stack, the runner and CI image, Gitea (state, no open PRs), Backstage, the gateway, the Microcks mock, the guidelines page and the demo clone, and ends with `READY: record …` or a list of problems with the command that fixes each. It works at any stage, so run it before every take.
+5. In the recording terminal: `demo shell`. It `cd`s into the clone, sets a short prompt that shows the current branch (`orders-api (main) $`), makes long output page only when it doesn't fit, and clears the screen.
+6. Check: `demo preflight`. It checks the stack, the runner and CI image, Gitea (state, no open PRs), Backstage, the gateway, the Microcks mock, the guidelines page and the demo clone, and ends with `READY: record …` or a list of problems with the command that fixes each. It works at any stage, so run it before every take.
 
 The Gitea repo has the same name as this project (`devops-api-governance`), so never clone it under that name or inside the project directory: a clone in `~/projekty` collides with the project, and a `rm -rf` of that name would delete it. `~/demo/orders-api` can't be confused with it. `goto` only ever deletes a folder that is a clone of the demo repo, and refuses otherwise.
 
@@ -62,15 +64,15 @@ The Gitea repo has the same name as this project (`devops-api-governance`), so n
 Have everything below open **before** you press record, so no recording starts with a blank browser or a login screen.
 
 - **Screen:** terminal on the left, browser on the right, both inside the recorded area. Terminal font ~18–20 pt and browser zoom ~125–150% (`Ctrl` `+`), so it is readable on a projector.
-- **Terminal 1 (recorded):** `demo-shell.sh` sourced, in `~/demo/orders-api`. Only git commands and the stage-4 `curl` run here. `clear` before each step.
-- **Terminal 2 (NOT recorded):** `~/projekty/devops-api-governance`, only for `scripts/demo/prep-stage.sh next`. Keep it outside the recorded area (another workspace, or minimised). If you record every part as its own take, one terminal is enough: stop recording, run `next` there, start again.
+- **Terminal 1 (recorded):** after `demo shell`, in `~/demo/orders-api`. Only git commands and the stage-4 `curl` run here. `clear` before each step.
+- **Terminal 2 (NOT recorded):** `~/projekty/devops-api-governance`, only for `demo next`. Keep it outside the recorded area (another workspace, or minimised). If you record every part as its own take, one terminal is enough: stop recording, run `next` there, start again.
 - **Browser:** one window with a few prepared tabs (listed per stage below). Signed in to Gitea as `demo`. Bookmarks bar hidden. If Backstage shows a sign-in page, sign in as guest once beforehand.
 - **Tabs only for what a stage shows:** Backstage in Stages 1 and 2 (the catalog, then the guidelines in it), Microcks at most in Stage 3. Close them in the other stages so nothing distracts.
 - **Not running / not visible:** the older `devops-driven-governance` stack (same container names and ports), desktop notifications, other windows.
 
 ## Retakes: roll back to any stage
 
-`scripts/demo/prep-stage.sh goto <target>` puts Gitea `main`, the Backstage catalog and the KrakenD gateway in the state right **before** that step is recorded (the gateway has no routes until Stage 4 is merged). It replays every earlier stage's changes onto `main` (including the merged fixes), closes open PRs, deletes all `feat/*` branches on Gitea, loads the state's contract into Microcks (so the mock matches), builds the guidelines page in Backstage (so it never shows "building" on camera), makes a fresh demo clone and prepares the branch of the step you are about to record in it (local, not pushed). No CI needed, ~10 s. If the aborted take's CI is still running, `goto` first waits for it to finish (a late job would redeploy the gateway or reload the mock after the reset); that can add a minute or two.
+`demo goto <target>` puts Gitea `main`, the Backstage catalog and the KrakenD gateway in the state right **before** that step is recorded (the gateway has no routes until Stage 4 is merged). It replays every earlier stage's changes onto `main` (including the merged fixes), closes open PRs, deletes all `feat/*` branches on Gitea, loads the state's contract into Microcks (so the mock matches), builds the guidelines page in Backstage (so it never shows "building" on camera), makes a fresh demo clone and prepares the branch of the step you are about to record in it (local, not pushed). No CI needed, ~10 s. If the aborted take's CI is still running, `goto` first waits for it to finish (a late job would redeploy the gateway or reload the mock after the reset); that can add a minute or two.
 
 | Target | State: what is already merged | Branch prepared in the clone |
 |---|---|---|
@@ -84,9 +86,9 @@ Have everything below open **before** you press record, so no recording starts w
 | `goto 5-red` | + backwards-compat gate (all four gates) | `feat/orders-require-channel` |
 | `goto end` | everything, incl. optional `channel` | (nothing left) |
 
-After a `goto`, `cd ~/demo/orders-api` again if your terminal was inside the old clone (or re-source `demo-shell.sh`), then record. `prep-stage.sh status` tells you where you are at any time.
+After a `goto`, `cd ~/demo/orders-api` again if your terminal was inside the old clone (or run `demo shell` again), then record. `demo status` tells you where you are at any time.
 
-If `git switch` says `fatal: invalid reference: feat/...`, the branch isn't prepared yet: run `prep-stage.sh next`.
+If `git switch` says `fatal: invalid reference: feat/...`, the branch isn't prepared yet: run `demo next`.
 
 ## Browser cheat sheet
 
@@ -347,13 +349,13 @@ About **8 minutes** of raw footage (the rehearsal's walk-through took 8.5 min, i
 
 ## Post-production
 
-`scripts/demo/video.sh` (ffmpeg) covers the usual edits:
+`demo cards | trim | speed | concat` (ffmpeg, `scripts/demo/video.sh`) covers the usual edits:
 
 ```bash
-scripts/demo/video.sh cards ~/demo/cards                       # card1.mp4 .. card5.mp4, 3 s each
-scripts/demo/video.sh trim stage2.mp4 00:00:12 00:01:40 s2.mp4  # keep a range
-scripts/demo/video.sh speed ci-wait.mp4 4 ci-wait-4x.mp4        # CI waiting at 4x
-scripts/demo/video.sh concat demo.mp4 ~/demo/cards/card1.mp4 s1.mp4 ~/demo/cards/card2.mp4 s2.mp4 ...
+demo cards ~/demo/cards                       # card1.mp4 .. card5.mp4, 3 s each
+demo trim stage2.mp4 00:00:12 00:01:40 s2.mp4  # keep a range
+demo speed ci-wait.mp4 4 ci-wait-4x.mp4        # CI waiting at 4x
+demo concat demo.mp4 ~/demo/cards/card1.mp4 s1.mp4 ~/demo/cards/card2.mp4 s2.mp4 ...
 ```
 
 - **Title cards** open each stage: the stage name, what it adds, and the pipeline so far ("Pipeline: Spectral → Contract test → Gateway"), so the audience always knows where they are.
@@ -372,14 +374,14 @@ scripts/demo/video.sh concat demo.mp4 ~/demo/cards/card1.mp4 s1.mp4 ~/demo/cards
 - backend `:8081`
 - KrakenD `:8090`
 
-**Run `prep-stage.sh goto 1` after every `podman-compose up`.** Anything that depends on the one-shot `gitea-seed` service re-runs it, and the seed force-pushes the full repo onto Gitea `main`, wiping the stage state (`status` then says "matches no demo state"). `backstage` and `gitea-runner` depend on it. Never run it mid-demo, and never `podman start`/`restart` those two either.
+**Run `demo goto 1` after every `podman-compose up`.** Anything that depends on the one-shot `gitea-seed` service re-runs it, and the seed force-pushes the full repo onto Gitea `main`, wiping the stage state (`status` then says "matches no demo state"). `backstage` and `gitea-runner` depend on it. Never run it mid-demo, and never `podman start`/`restart` those two either.
 
 **CI runs offline.** Jobs run in `localhost/devops-api-governance-ci:latest` (`ci-image/Dockerfile`, built by the `ci-image` compose service), which has Spectral, oasdiff, the KrakenD CLI and js-yaml preinstalled, and the checkout is plain `git` against Gitea. Only building that image the first time needs the internet. The install steps in the workflow remain as a fallback: on a plain `node:20` runner they download the tools.
 
-**Backstage** rescans Gitea every 10 s (`app-config.yaml`, a demo setting). `prep-stage.sh refresh-catalog` still forces an immediate rescan through the catalog's scheduler endpoint, without touching any container.
+**Backstage** rescans Gitea every 10 s (`app-config.yaml`, a demo setting). `demo refresh-catalog` still forces an immediate rescan through the catalog's scheduler endpoint, without touching any container.
 
 **backend can't be recreated while `krakend` runs** (podman: "has dependent containers"). That's why Stage 3's red demo changes the contract instead of toggling the backend's `DRIFT` mode, which is only read at startup.
 
-**Before the recording day:** `scripts/demo/rehearse.sh` (~9 min) runs the whole screenplay against the stack and prints PASS/FAIL per check. It leaves the demo at `end`: run `goto 1` (or `fresh-gitea.sh`) afterwards.
+**Before the recording day:** `demo rehearse` (~9 min) runs the whole screenplay against the stack and prints PASS/FAIL per check. It leaves the demo at `end`: run `goto 1` (or `fresh-gitea.sh`) afterwards.
 
 **Recording:** Spectacle, one continuous recording per stage (or of the whole demo) with terminal and browser side by side. Wayland asks once for screen-capture permission.

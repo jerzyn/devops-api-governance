@@ -2,21 +2,21 @@
 
 One page to keep next to the recording. The full explanations are in `screenplay.md`.
 
-**T2** = off-camera terminal in `~/projekty/devops-api-governance`. **T1** = recorded terminal. **PR** = `http://localhost:3000/governance-demo/devops-api-governance/compare/main...<branch>` → **New Pull Request** → **Create Pull Request**.
+**T2** = off-camera terminal (any directory). `demo <Tab>` completes; `demo help` lists everything. One-time: `~/projekty/devops-api-governance/scripts/demo/demo install`, new terminal. **T1** = recorded terminal. **PR** = `http://localhost:3000/governance-demo/devops-api-governance/compare/main...<branch>` → **New Pull Request** → **Create Pull Request**.
 
 ## Before pressing record
 ```bash
 # T2
-scripts/demo/fresh-gitea.sh          # final take only: PRs start at #1 (asks first)
-scripts/demo/prep-stage.sh goto 1    # dry run / retake: back to the Stage 1 start
-scripts/demo/prep-stage.sh preflight # must end with READY
+demo fresh           # final take only: PRs start at #1 (asks first)
+demo goto 1          # dry run / retake: back to the Stage 1 start
+demo preflight       # must end with READY
 # T1
-source ~/projekty/devops-api-governance/scripts/demo/demo-shell.sh
+demo shell
 ```
 Browser: signed in to Gitea (`demo`/`demo12345`). Tabs: Gitea repo home, Backstage **APIs**. Zoom ~125–150%.
 
-**Between steps (T2), after each merge:** `scripts/demo/prep-stage.sh next`.
-**Take went wrong:** `scripts/demo/prep-stage.sh goto <1|2|2-red|3|3-red|4|5|5-red>` (first waits up to ~1–2 min for the aborted take's CI to finish) → re-source `demo-shell.sh` in T1.
+**Between steps (T2), after each merge:** `demo next`.
+**Take went wrong:** `demo goto <1|2|2-red|3|3-red|4|5|5-red>` (first waits up to ~1–2 min for the aborted take's CI to finish) → `demo shell` again in T1.
 
 ---
 
