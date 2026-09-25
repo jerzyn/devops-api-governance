@@ -69,8 +69,9 @@ js-yaml preinstalled). Building it the first time needs the internet; after
 that, CI runs download nothing (the checkout is plain `git` against Gitea).
 
 Gitea secrets are auto-generated and persisted in the `gitea-data` volume.
-`gitea-runner` and `backstage` wait for `gitea-seed` via compose `depends_on`
-conditions; the runner reads its token from the shared volume.
+`gitea-runner` and `backstage` wait for `gitea-seed` (and the runner also for
+`ci-image`) via compose `depends_on` conditions; the runner reads its token from
+the shared volume.
 
 > The seed pushes the **committed** HEAD, so commit your work before `up` for it
 > to appear in Gitea / the catalog.
@@ -92,7 +93,8 @@ Endpoints:
 The compose file mounts `/var/run/docker.sock`, which rootless Podman doesn't
 have. Point the three services that use it at the Podman socket with a
 `docker-compose.override.yml` next to `docker-compose.yml` (git-ignored, machine
-specific; enable the socket with `systemctl --user enable --now podman.socket`):
+specific; enable the socket with `systemctl --user enable --now podman.socket`,
+and replace `1000` with your user id from `id -u`):
 
 ```yaml
 services:
