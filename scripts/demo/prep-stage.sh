@@ -5,7 +5,7 @@
 # any stage for a retake. Run from anywhere on the host, stack already up.
 #
 # Branches to push (each is what you check out on camera):
-#   prep-stage.sh stage1           feat/add-catalog-entry
+#   prep-stage.sh stage1           feat/add-catalog-entry   (LOCAL only, in the demo clone; you push it on camera)
 #   prep-stage.sh stage2           feat/add-spectral-gate
 #   prep-stage.sh stage2-red       feat/orders-server-url
 #   prep-stage.sh stage3           feat/add-contract-test-gate
@@ -15,9 +15,11 @@
 #   prep-stage.sh stage5-red       feat/orders-require-channel
 #
 # Rollback: put Gitea main, Backstage and the KrakenD gateway in the state right
-# BEFORE a step is recorded, and push that step's branch (goto closes open PRs and
-# deletes all feat/* branches, so it re-creates the one you need). Afterwards make a
-# fresh clone (main is force-pushed).
+# BEFORE a step is recorded, and prepare that step's branch (goto closes open PRs and
+# deletes all feat/* branches, so it re-creates the one you need). Stage 1's branch is
+# only created locally; every other step's branch is pushed to Gitea. goto also makes a
+# fresh demo clone at $DEMO_CLONE (default ~/demo/orders-api); cd there again if your
+# terminal was inside the old one.
 #   prep-stage.sh goto 1           start of stage 1 (nothing merged; same as reset)
 #   prep-stage.sh goto 2           start of stage 2 part 1 (stage 1 merged)
 #   prep-stage.sh goto 2-red       start of stage 2 part 2 (spectral gate merged)
@@ -44,6 +46,7 @@ REMOTE="http://$U:$P@localhost:3000/$ORG/$REPO.git"
 WF="$ROOT/scripts/demo/workflows"
 RD="$ROOT/scripts/demo/readmes"   # the repo README as it reads at each stage
 CONTRACT="contracts/orders-openapi.yaml"
+DEMO_CLONE="${DEMO_CLONE:-$HOME/demo/orders-api}"   # the clone you record in
 WORK="$(mktemp -d)"
 trap 'rm -rf "$WORK"' EXIT
 
@@ -283,10 +286,41 @@ sync_gateway() {
   fi
 }
 
-# What each prep step pushes: the branch you check out on camera.
+# Refuse to delete anything that is not a previous clone of the demo repo.
+check_demo_clone() {
+  [ -e "$DEMO_CLONE" ] || return 0
+  case "$(git -C "$DEMO_CLONE" remote get-url origin 2>/dev/null)" in
+    *"/$ORG/$REPO.git") ;;
+    *) echo "refusing to replace $DEMO_CLONE: it is not a clone of $ORG/$REPO (move it away or set DEMO_CLONE)" >&2; exit 1 ;;
+  esac
+}
+
+# A fresh clone of Gitea main at $DEMO_CLONE, the place the recording happens in.
+fresh_demo_clone() {
+  check_demo_clone
+  rm -rf "$DEMO_CLONE"
+  mkdir -p "$(dirname "$DEMO_CLONE")"
+  git clone -q "$REMOTE" "$DEMO_CLONE"
+  echo "demo clone ready: $DEMO_CLONE"
+}
+
+# Branch that exists only in the demo clone, committed but NOT pushed: the presenter
+# pushes it on camera. $1 = branch, $2 = commit message, $3.. = change functions.
+make_local_branch() {
+  local branch="$1" msg="$2"; shift 2
+  fresh_demo_clone
+  git -C "$DEMO_CLONE" switch -q -c "$branch"
+  for f in "$@"; do "$f" "$DEMO_CLONE"; done
+  git -C "$DEMO_CLONE" add -A
+  git -C "$DEMO_CLONE" -c user.name="$U" -c user.email="$U@example.com" commit -q -m "$msg"
+  git -C "$DEMO_CLONE" switch -q main
+  echo "local branch $branch ready in $DEMO_CLONE (not pushed)"
+}
+
+# What each prep step prepares: the branch you check out on camera.
 prep_step() {
   case "$1" in
-    stage1)     make_branch feat/add-catalog-entry "Register the Orders API in the catalog" do_stage1 ;;
+    stage1)     make_local_branch feat/add-catalog-entry "Register the Orders API in the catalog" do_stage1 ;;
     stage2)     make_branch feat/add-spectral-gate "Add spectral-openapi-check gate" do_stage2 ;;
     stage2-red) make_branch feat/orders-server-url "Move Orders API to orders.example.com" do_stage2_red ;;
     stage3)     make_branch feat/add-contract-test-gate "Add contract-test gate (Microcks)" do_stage3 ;;
@@ -310,6 +344,7 @@ step_at() {
 goto() {
   local target="${1:-}" k
   k="$(layers_before "$target")" || { echo "unknown target '$target'; see the usage at the top of $0" >&2; exit 1; }
+  check_demo_clone   # fail before changing anything
   cleanup_gitea
   push_state "$k"
   sync_governance_repo
@@ -322,12 +357,12 @@ goto() {
     echo "backstage lists orders-api"
   fi
   local step; step="$(step_at "$target")"
-  if [ -n "$step" ]; then
-    prep_step "$step"
-    echo "ready: start of '$target', and its branch is pushed. Make a fresh clone (main was force-pushed) and record."
-  else
-    echo "ready: '$target' (everything merged; nothing left to record)."
-  fi
+  case "$step" in
+    stage1) prep_step stage1 ;;                                   # local branch + fresh clone
+    "")     fresh_demo_clone ;;                                   # everything merged
+    *)      prep_step "$step"; fresh_demo_clone ;;                # branch pushed to Gitea
+  esac
+  echo "ready: start of '$target'. Work in $DEMO_CLONE (cd there again if your terminal was inside the old clone)."
 }
 
 case "${1:-}" in

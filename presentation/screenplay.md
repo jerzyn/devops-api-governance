@@ -26,7 +26,7 @@ Every stage follows the same pattern. Stages 2, 3 and 5 run it twice: **part 1**
 2. **Terminal, show the change:** `git fetch origin`, `git switch <branch>`, then show what it changes: `git diff origin/main -- <path>` (or `cat` for a new file). This is where the audience sees *what is being proposed*, so let it stay on screen for a beat.
 3. **Browser, PR and checks:** open the PR (`compare/main...<branch>` → **New Pull Request** → **Create Pull Request**) and let the checks run. Open a check's **Details** to show the one log line that matters (each stage names it). The gate's verdict is the payload of the recording.
 4. **Terminal, fix (red demos only):** one command edits the contract (`sed`), then `git commit -am` and `git push`. Pushing updates the same PR, so the checks re-run by themselves and go from red to green in the browser.
-5. **Browser, merge:** click **Create merge commit**. `main` now contains this step, and the next step starts from that. (Stage 1 has no PR: it is a plain `git push origin <branch>:main`, because no gate exists yet.)
+5. **Browser, merge:** click **Create merge commit**. `main` now contains this step, and the next step starts from that. (Stage 1 has a PR too, but no checks run on it: no gate exists yet.)
 
 Three things to keep in mind:
 - You can keep the same clone for the whole walk-through (`git fetch` picks up each new branch). Make a new one only after a `goto`.
@@ -44,15 +44,11 @@ The environment is ready when: 7 containers run (all from `devops-api-governance
 Gitea keeps the history of earlier PRs and CI runs, so new PRs on camera are numbered from #33 up (not #1) and the Actions tab lists old runs. The screenplay only ever opens a PR by URL, so this rarely shows.
 
 1. Stack up (see appendix).
-2. `scripts/demo/prep-stage.sh goto 1` (run from the project directory; `reset` is an alias): Gitea `main` goes back to the Stage 1 starting state, open PRs are closed, **all** `feat/*` branches are deleted, the governance repo is synced, the Backstage catalog is cleared, and the branch for Stage 1 (`feat/add-catalog-entry`) is pushed. Nothing else to run before the clone.
+2. `scripts/demo/prep-stage.sh goto 1` (run from the project directory; `reset` is an alias): Gitea `main` goes back to the Stage 1 starting state, open PRs are closed, **all** `feat/*` branches are deleted, the governance repo is synced, the Backstage catalog is cleared, and a **fresh demo clone** is made at `~/demo/orders-api`, with the Stage 1 branch `feat/add-catalog-entry` committed in it but **not pushed** (you push it on camera). Nothing else to run.
 3. In the browser, **sign in to Gitea** at `http://localhost:3000/user/login` as `demo` / `demo12345`. Without a login the PR page shows "Sign in to…" and has no create or merge buttons.
-4. Make a fresh clone *after* the reset, in its own folder and under its own name:
-   ```bash
-   mkdir -p ~/demo && cd ~/demo
-   git clone http://demo:demo12345@localhost:3000/governance-demo/devops-api-governance.git orders-api
-   cd orders-api
-   ```
-   The Gitea repo has the same name as this project (`devops-api-governance`), so never clone it under that name or inside the project directory: a clone in `~/projekty` collides with the project, and a `rm -rf` of that name would delete the project. `~/demo/orders-api` can't be confused with it, and its prompt on camera reads as the team's Orders API repo.
+4. `cd ~/demo/orders-api` (again, if your terminal was inside the old clone: `goto` replaces the folder). It is a clone of the Gitea repo in its own folder and under its own name.
+
+   The Gitea repo has the same name as this project (`devops-api-governance`), so never clone it under that name or inside the project directory: a clone in `~/projekty` collides with the project, and a `rm -rf` of that name would delete the project. `~/demo/orders-api` can't be confused with it, and its prompt on camera reads as the team's Orders API repo. `goto` only ever deletes a folder that is a clone of the demo repo, and refuses otherwise.
 
 ## Screen layout and windows
 
@@ -75,7 +71,7 @@ Because `goto` deletes every `feat/*` branch, always let it push the branch (it 
 
 | Target | State: what is already merged | Branch `goto` pushes (= `prep-stage.sh <step>`) |
 |---|---|---|
-| `goto 1` | nothing | `stage1` |
+| `goto 1` | nothing | `stage1` (**local only**, in the demo clone: you push it) |
 | `goto 2` | stage 1 (catalog entry; the API is in Backstage) | `stage2` |
 | `goto 2-red` | + spectral gate | `stage2-red` |
 | `goto 3` | + stage 2 fix (server URL is now `https://orders.example.com`) | `stage3` |
@@ -85,14 +81,8 @@ Because `goto` deletes every `feat/*` branch, always let it push the branch (it 
 | `goto 5-red` | + backwards-compat gate (all four gates) | `stage5-red` |
 | `goto end` | everything, incl. optional `channel` | (final state) |
 
-After a `goto`:
-1. Delete your old clone and make a fresh one (`main` was force-pushed, and your local `feat/*` branches are stale):
-   ```bash
-   cd ~/demo && rm -rf orders-api
-   git clone http://demo:demo12345@localhost:3000/governance-demo/devops-api-governance.git orders-api
-   cd orders-api
-   ```
-2. Record. The step's branch is already on the remote.
+After a `goto`, `cd ~/demo/orders-api` (again, if your terminal was inside the old clone). `goto` has already made a fresh clone there (`main` was force-pushed, so an old clone would be stale) and prepared the step's branch: pushed to Gitea for every step except Stage 1, whose branch is local only.
+Then record.
 
 Every retake target was verified: the resulting repo state, plus the real red/green CI result for `3-red` (contract-test fails) and `5-red` (breaking-changes-check fails, the rest skipped).
 
@@ -115,27 +105,27 @@ Repo: `http://localhost:3000/governance-demo/devops-api-governance`
 
 **Starting state:** Gitea `main` has `backend/` and the OpenAPI contract `contracts/orders-openapi.yaml` (plus `README.md`, `.gitignore`). It has no `catalog-info.yaml` and no workflow. Backstage lists no APIs.
 
-**Prep:** `scripts/demo/prep-stage.sh stage1` pushes branch `feat/add-catalog-entry`. It adds `catalog-info.yaml` (and updates the README to mention it).
+**Prep:** `scripts/demo/prep-stage.sh goto 1` (or `stage1`) creates branch `feat/add-catalog-entry` **only in your demo clone**, committed but not pushed. It adds `catalog-info.yaml` (and updates the README to mention it). You push it on camera.
 
 **On screen at the start:**
-- Terminal 1: fresh clone, `git status` clean, screen cleared.
+- Terminal 1: `~/demo/orders-api` on `main`, `git status` clean, screen cleared. The Stage 1 branch exists locally.
 - Browser tab 1 (visible first): Gitea repo home. The file list shows `contracts/`, `backend/`, `README.md`, `.gitignore`, and the README below it says the same: the contract and the backend exist, no catalog entry, no checks. This is the "before".
-- Browser tab 2: Backstage, left menu **APIs**. The list is empty, the other "before". Switch to it after the push.
-- Terminal 2 (off camera): `prep-stage.sh stage1` already run; `prep-stage.sh refresh-catalog` typed, not yet executed.
+- Browser tab 2: Backstage, left menu **APIs**. The list is empty, the other "before". Switch to it after the merge.
+- Terminal 2 (off camera): `prep-stage.sh refresh-catalog` typed, not yet executed.
 
 **Terminal:**
 ```bash
 ls                                               # contracts/ and backend/, no catalog-info.yaml
-git fetch origin
-git switch feat/add-catalog-entry
+git switch feat/add-catalog-entry                # local branch, already committed
 cat catalog-info.yaml                            # show what gets registered
-git push origin feat/add-catalog-entry:main      # merge: fast-forward, no gate exists yet
+git push origin feat/add-catalog-entry           # the branch goes to Gitea
 ```
 
 **Browser:**
-1. Right after the push: `scripts/demo/prep-stage.sh refresh-catalog`. Backstage's Gitea provider only rescans every **30 minutes**, so this triggers a rescan; the API is listed after ~5–7s. Run it from a second terminal (or cut those seconds from the video).
-2. Open Backstage → **APIs** → `orders-api`.
-3. Show the **Definition** tab (the rendered contract that was already in the repo) and the owner.
+1. Open the PR (`compare/main...feat/add-catalog-entry` → **New Pull Request** → **Create Pull Request**). There are no checks, so it is mergeable at once. Merge.
+2. Right after the merge: `scripts/demo/prep-stage.sh refresh-catalog`. Backstage's Gitea provider only rescans every **30 minutes**, so this triggers a rescan; the API is listed after ~5–7s. Run it from a second terminal (or cut those seconds from the video).
+3. Open Backstage → **APIs** → `orders-api`.
+4. Show the **Definition** tab (the rendered contract that was already in the repo) and the owner.
 
 **Duration:** ~30s after cutting.
 
