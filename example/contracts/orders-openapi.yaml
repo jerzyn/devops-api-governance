@@ -7,13 +7,18 @@ info:
     whether it has been paid.
 
     Errors are returned as `application/problem+json` (RFC 9457).
+  contact:
+    name: Orders team
+    email: orders-team@api-peak.com
+    url: https://developer.api-peak.com/orders
   license:
     name: MIT
-    url: https://example.com/license
+    url: https://opensource.org/licenses/MIT
 servers:
-  - url: https://api.example.com
+  - url: https://api.api-peak.com
 tags:
   - name: Orders
+    description: Customer orders and their payment status.
 paths:
   /orders/{orderId}:
     summary: Orders resource
@@ -27,6 +32,7 @@ paths:
         - name: orderId
           in: path
           required: true
+          description: Unique identifier of the order.
           schema:
             type: string
           examples:
@@ -63,9 +69,18 @@ paths:
                     type: string
                   detail:
                     type: string
+                  instance:
+                    type: string
+                    format: uri
+                  status:
+                    type: integer
+                    minimum: 400
+                    maximum: 599
               examples:
                 missing_id:
                   value:
-                    type: https://errors.example.com/bad-request
+                    type: https://errors.api-peak.com/bad-request
                     title: Bad Request
                     detail: orderId path parameter is required.
+                    instance: https://api.api-peak.com/orders/
+                    status: 400
