@@ -9,6 +9,8 @@
 #                                  prepare its branch (says what to do if it is
 #                                  already prepared or still waiting for a merge)
 #   prep-stage.sh status           the same, without preparing anything
+#   prep-stage.sh preflight        read-only "ready to record?" check of stack, Gitea,
+#                                  Backstage, gateway, mock and demo clone
 #
 # Branches to prepare. Each one is created ONLY in the demo clone ($DEMO_CLONE,
 # default ~/demo/orders-api), committed on top of the current Gitea main and NOT
@@ -167,6 +169,24 @@ backstage_token() {
     | python3 -c "import json,sys; print(json.load(sys.stdin)['backstageIdentity']['token'])"
 }
 
+# CI runs still going (from an abandoned take) keep going after their PR is
+# closed: a late gateway-deploy-check would redeploy KrakenD and a late
+# contract-test would reload the Microcks mock after goto has reset them.
+ci_active_runs() {
+  curl -sf -u "$U:$P" "$API/repos/$ORG/$REPO/actions/runs?limit=20" \
+    | python3 -c "import json,sys; print(sum(r['status'] != 'completed' for r in json.load(sys.stdin)['workflow_runs']))"
+}
+wait_for_idle_ci() {
+  local n i
+  for ((i = 1; i <= 90; i++)); do
+    n="$(ci_active_runs)"
+    [ "$n" = 0 ] && return 0
+    [ "$i" = 1 ] && echo "waiting for $n CI run(s) from an earlier take to finish (up to 3 min)..."
+    sleep 2
+  done
+  echo "CI is still busy after 3 min; check $GITEA/$ORG/$REPO/actions" >&2; exit 1
+}
+
 # Close open PRs and delete leftover feat/* branches from earlier runs.
 cleanup_gitea() {
   for n in $(curl -sf -u "$U:$P" "$API/repos/$ORG/$REPO/pulls?state=open&limit=50" \
@@ -230,7 +250,7 @@ sync_microcks() {
 prewarm_techdocs() {
   local t; t="$(backstage_token)"
   curl -s -N --max-time 240 -H "Authorization: Bearer $t" -H "Accept: text/event-stream" \
-    "http://localhost:7007/api/techdocs/sync/default/component/api-guidelines" | grep -q "^event: finish" \
+    "http://localhost:7007/api/techdocs/sync/default/component/api-guidelines" | grep >/dev/null -c "^event: finish" \
     && echo "api guidelines (TechDocs) built" \
     || echo "warning: TechDocs build did not finish; open the guidelines once before recording" >&2
 }
@@ -417,6 +437,82 @@ next_step() {  # $1 = "prepare" or "status"
   fi
 }
 
+# Read-only "ready to record?" check against whatever state Gitea main is in.
+preflight() {
+  local problems=0 k step branch t names foreign want
+  pass() { echo "  ok       $*"; }
+  miss() { echo "  PROBLEM  $*"; problems=$((problems + 1)); }
+  code() { curl -s -o /dev/null -w '%{http_code}' "$1"; }
+
+  echo "Stack"
+  names="$(podman ps --format '{{.Names}}')"
+  for c in gitea backend microcks-uber krakend-deployer gitea-runner backstage krakend; do
+    grep -qx "$c" <<<"$names" && pass "container $c running" || miss "container $c not running (podman-compose up, then goto 1)"
+  done
+  foreign="$(podman ps --format '{{index .Labels "com.docker.compose.project"}} {{.Names}}' | awk '$1 != "devops-api-governance" {print $2}' | tr '\n' ' ')"
+  [ -z "$foreign" ] && pass "no containers from other projects" || miss "other containers running: $foreign(ports may clash)"
+  for u in http://localhost:3000/api/healthz http://localhost:8080/api/health http://localhost:8081/health http://localhost:7007; do
+    [ "$(code "$u")" = 200 ] && pass "$u answers" || miss "$u does not answer"
+  done
+  podman logs gitea-runner 2>&1 | grep >/dev/null -c "declare successfully" && pass "CI runner registered" || miss "CI runner not registered"
+  podman image exists localhost/devops-api-governance-ci:latest && pass "CI image present (CI runs offline)" || miss "CI image missing (podman-compose up builds it)"
+
+  echo "Demo state"
+  if ! k="$(detect_layers)"; then
+    miss "Gitea main matches no demo state: run goto 1 (or goto <target>)"
+    echo; echo "NOT READY: $problems problem(s)"; return 1
+  fi
+  step="$(step_after "$k")"; branch="$(branch_of "$step")"
+  pass "Gitea main: $k of ${#LAYERS[@]} steps merged; next: ${step:-nothing (all merged)}"
+  [ "$(ci_active_runs)" = 0 ] && pass "no CI running" || miss "CI is still running (an earlier take?): wait for it, then goto <target>"
+  [ "$(curl -sf -u "$U:$P" "$API/repos/$ORG/$REPO/pulls?state=open" | python3 -c 'import json,sys; print(len(json.load(sys.stdin)))')" = 0 ] \
+    && pass "no open PRs" || miss "open PRs on Gitea: merge or close them (goto closes them)"
+  if [ -n "$branch" ] && git ls-remote --exit-code "$REMOTE" "refs/heads/$branch" >/dev/null; then
+    miss "$branch is already on Gitea (half-done step?): finish its PR, or goto"
+  fi
+  if catalog_has_api; then
+    [ "$k" -ge 1 ] && pass "Backstage lists orders-api" || miss "Backstage lists orders-api before Stage 1 is merged: goto 1"
+  else
+    [ "$k" -ge 1 ] && miss "Backstage does not list orders-api yet: refresh-catalog" || pass "Backstage lists no API yet (Stage 1 before)"
+  fi
+  if [ "$k" -ge 6 ]; then want=200; else want=404; fi
+  [ "$(code http://localhost:8090/orders/123)" = "$want" ] && pass "gateway answers $want (as it should at this point)" || miss "gateway does not answer $want: goto <target> resets it"
+  build_state "$WORK/pf" "$k"
+  if python3 - "$WORK/pf/$CONTRACT" "$(curl -s http://localhost:8080/rest/Orders+API/1.0.0/orders/123)" <<'PY'
+import json, sys, yaml
+c = yaml.safe_load(open(sys.argv[1]))
+ex = c['paths']['/orders/{orderId}']['get']['responses']['200']['content']['application/json']['examples']['order_123']['value']
+sys.exit(0 if json.loads(sys.argv[2] or 'null') == ex else 1)
+PY
+  then pass "Microcks mock matches the merged contract"; else miss "Microcks mock differs from the merged contract: goto <target> reloads it"; fi
+  t="$(backstage_token)"
+  curl -sf -H "Authorization: Bearer $t" "http://localhost:7007/api/techdocs/static/docs/default/component/api-guidelines/index.html" \
+    | grep >/dev/null -c 'id="https-api-peakrest172025-https"' && pass "API guidelines page built in Backstage" || miss "API guidelines page not built: goto builds it"
+
+  echo "Demo clone ($DEMO_CLONE)"
+  if [ ! -d "$DEMO_CLONE/.git" ]; then
+    miss "no demo clone: goto <target> creates it"
+  else
+    local g=(git -C "$DEMO_CLONE") cur
+    [ -z "$("${g[@]}" status --porcelain)" ] && pass "no uncommitted changes" || miss "uncommitted changes in the clone"
+    cur="$("${g[@]}" branch --show-current)"
+    [ "$cur" = main ] && pass "on main" || echo "  note     on $cur (fine if you are mid-stage)"
+    [ "$("${g[@]}" rev-parse main)" = "$(git ls-remote "$REMOTE" refs/heads/main | cut -f1)" ] \
+      && pass "local main = Gitea main" || miss "local main differs from Gitea main: run next (updates it) or goto"
+    if [ -n "$branch" ]; then
+      "${g[@]}" show-ref --verify -q "refs/heads/$branch" && pass "next branch $branch prepared" || miss "next branch $branch not prepared: run next"
+    fi
+  fi
+
+  echo
+  if [ "$problems" = 0 ]; then
+    echo "READY: record ${step:-nothing left (all merged)}${branch:+ (git switch $branch)}."
+    echo "Not checked here: that the browser is signed in to Gitea as demo."
+  else
+    echo "NOT READY: $problems problem(s) above."; return 1
+  fi
+}
+
 # The step that is recorded from each goto state.
 step_at() {
   case "$1" in
@@ -430,6 +526,7 @@ goto() {
   local target="${1:-}" k
   k="$(layers_before "$target")" || { echo "unknown target '$target'; see the usage at the top of $0" >&2; exit 1; }
   check_demo_clone   # fail before changing anything
+  wait_for_idle_ci
   cleanup_gitea
   push_state "$k"
   sync_governance_repo
@@ -454,7 +551,8 @@ case "${1:-}" in
   reset) goto 1 ;;
   next) next_step prepare ;;
   status) next_step status ;;
+  preflight) preflight ;;
   refresh-catalog) refresh_catalog ;;
   stage1|stage2|stage2-red|stage3|stage3-red|stage4|stage5|stage5-red) prep_step "$1" ;;
-  *) sed -n '2,43p' "$0"; exit 1 ;;
+  *) sed -n '2,45p' "$0"; exit 1 ;;
 esac
