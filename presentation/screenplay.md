@@ -100,7 +100,7 @@ Repo: `http://localhost:3000/governance-demo/devops-api-governance`
 - **Read a job's log:** **Details** next to a check, then click a step row (e.g. "Run Spectral (fail on errors)") to expand it.
 - **Merge:** when all checks are green, **Create merge commit** at the bottom of the Conversation tab, then confirm.
 - **Backstage:** `http://localhost:7007`. Left menu **APIs**, then the API's name.
-- **API guidelines in the catalog:** `http://localhost:7007/docs/default/component/api-guidelines` (Backstage → **Docs** → **API Guidelines**). Every Spectral error links to its rule on this page.
+- **API guidelines in the catalog:** `http://localhost:7007/docs/default/component/api-guidelines` (Backstage → **Docs** → `api-guidelines`). Every Spectral error links to its rule on this page.
 - **Mock:** `http://localhost:8080/rest/Orders+API/1.0.0/orders/123` returns the contract's example.
 - **Microcks:** `http://localhost:8080`. Test results are linked from the CI log (`Details: http://localhost:8080/#/tests/…`).
 

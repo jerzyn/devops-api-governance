@@ -14,8 +14,10 @@ A local, self-contained demo of API governance across the full delivery loop —
 - **Gitea** — local Git server + pull requests.
 - **Gitea Actions** (`act_runner`) — local CI.
 - **Spectral** — policy-as-code lint of OpenAPI on every PR (design-time quality).
-- **Microcks** — contract testing of a running implementation against its contract.
-- **Backstage** — API catalog that discovers contracts from Gitea.
+- **oasdiff** — blocks backward-incompatible contract changes on every PR.
+- **Microcks** — live mocks from the contract, and contract testing of the running implementation.
+- **KrakenD** — API gateway whose config is generated from the contract and deployed by CI.
+- **Backstage** — API catalog that discovers contracts from Gitea, with the API guidelines as TechDocs.
 
 The goal is not to deploy a production service. It simulates the control points
 around API delivery: source control, PRs, automated quality gates, contract
@@ -43,7 +45,7 @@ rather than vendoring it. Details: [`docs/demo-isolation.md`](docs/demo-isolatio
 
 ## One command
 
-Requires Docker Desktop (Compose). From the repo root:
+Requires Docker Desktop (Compose), or Podman with `podman-compose` (see "Running on Podman" below). From the repo root:
 
 ```bash
 docker compose --profile contract --profile catalog --profile gateway up -d
@@ -61,6 +63,11 @@ cannot:
 - **microcks-seed** (after Microcks starts): imports the OpenAPI contract from
   the consumer repo.
 
+A third one-shot service, **ci-image**, builds the image CI jobs run in
+(`ci-image/Dockerfile`: node:20 with Spectral, oasdiff, the KrakenD CLI and
+js-yaml preinstalled). Building it the first time needs the internet; after
+that, CI runs download nothing (the checkout is plain `git` against Gitea).
+
 Gitea secrets are auto-generated and persisted in the `gitea-data` volume.
 `gitea-runner` and `backstage` wait for `gitea-seed` via compose `depends_on`
 conditions; the runner reads its token from the shared volume.
@@ -77,6 +84,33 @@ Endpoints:
 | Backstage | http://localhost:7007 | API catalog (guest sign-in) |
 | backend | http://localhost:8081 | provider under test |
 | KrakenD | http://localhost:8090 | API gateway routing to the backend |
+| Orders API mock | http://localhost:8080/rest/Orders+API/1.0.0/orders/123 | Microcks mock served from the contract's examples |
+| API guidelines | http://localhost:7007/docs/default/component/api-guidelines | the rules as TechDocs in Backstage; every Spectral error links to its rule here |
+
+### Running on Podman
+
+The compose file mounts `/var/run/docker.sock`, which rootless Podman doesn't
+have. Point the three services that use it at the Podman socket with a
+`docker-compose.override.yml` next to `docker-compose.yml` (git-ignored, machine
+specific; enable the socket with `systemctl --user enable --now podman.socket`):
+
+```yaml
+services:
+  gitea-seed:
+    volumes:
+      - /run/user/1000/podman/podman.sock:/var/run/docker.sock
+  gitea-runner:
+    volumes:
+      - /run/user/1000/podman/podman.sock:/var/run/docker.sock
+  krakend-deployer:
+    volumes:
+      - /run/user/1000/podman/podman.sock:/var/run/docker.sock
+```
+
+Then use `podman-compose` instead of `docker compose` (same arguments).
+Two Podman differences: restarting a container that depends on `gitea-seed`
+(`backstage`, `gitea-runner`) runs the seed again, and `backend` can't be
+recreated while `krakend` (which depends on it) runs.
 
 ## The demo loop
 
@@ -89,7 +123,8 @@ repo** (`example/` → Gitea `governance-demo/devops-api-governance`):
    by `needs:` so the next stage only runs if the previous one passed:
    - **Spectral** (`spectral-openapi-check`) — clones the governance repo for the
      ruleset, then lints the OpenAPI files changed in the PR, **fails on
-     error-severity findings**.
+     error-severity findings**. Each finding links to its rule in the API
+     guidelines in Backstage.
    - **Backwards-compatibility** (`breaking-changes-check`) — installs a pinned
      [`oasdiff`](https://github.com/oasdiff/oasdiff) (v1.19.0) and diffs every
      PR-modified `*openapi*.{yml,yaml}` against its version on the PR's base
@@ -97,15 +132,16 @@ repo** (`example/` → Gitea `governance-demo/devops-api-governance`):
      Brand-new files (no baseline) and identical-content edits are skipped;
      the whole job is skipped on `workflow_dispatch` (no PR base ref).
    - **Microcks contract test** (`contract-test`) — imports the PR branch's
-     contract and tests the running `backend` against it via the Microcks
-     REST API; **fails on contract drift**.
+     contract (which also updates the live mock) and tests the running
+     `backend` against it via the Microcks REST API; **fails on contract drift**.
    - **Gateway deploy** (`gateway-deploy-check`) — generates a KrakenD gateway
      config from the PR's contract, deploys it to a running KrakenD instance,
      and re-runs the Microcks test suite against the gateway instead of the
      backend directly; **fails on any config-lint error or gateway-level
      contract-test failure**.
 3. On merge, Backstage's Gitea provider discovers `catalog-info.yaml` from `main`
-   and the API entity appears/updates in the catalog.
+   and the API entity appears/updates in the catalog (it rescans every 10 s, a
+   demo setting in `app-config.yaml`).
 
 A step-by-step walkthrough (green/red for each gate + merge→catalog) is in
 [`docs/ci-test-path.md`](docs/ci-test-path.md).
@@ -229,8 +265,11 @@ contracts are ephemeral and re-imported on each run.
 Committed under `governance/api-catalog/` and built entirely in Docker (Node 24 in-image — no
 host Node). It serves frontend + backend on port 7007 and authenticates to Gitea
 with the seeded admin credentials. The Gitea provider scans the `governance-demo`
-org for `catalog-info.yaml` and renders the API with its OpenAPI document and a
-link to the Microcks mocks/tests.
+org for `catalog-info.yaml` (every 10 s in this demo) and renders the API with
+its OpenAPI document and a link to the Microcks mocks/tests. The governance
+repo's `api-guidelines` component carries the API guidelines as TechDocs
+(**Docs** → `api-guidelines`); the Spectral rule messages link to the rule's
+anchor on that page.
 
 > The official `@microcks/microcks-backstage-provider` (0.0.7) is **not** used —
 > it depends on removed Backstage packages and crashes startup on current
@@ -261,8 +300,12 @@ directions are now **implemented**:
   network, but its blast radius is narrow — write one config file, restart one
   named container — narrower than the socket access job containers had before
   an earlier fix removed it.
-- **Runner network**: `runner-config.yaml` puts CI job containers on
-  `gitea-network` so checkout reaches `http://gitea:3000/`.
+- **Runner network and image**: `runner-config.yaml` puts CI job containers on
+  `gitea-network` so checkout reaches `http://gitea:3000/`, and runs them in the
+  local CI image (`localhost/devops-api-governance-ci:latest`).
+- **Re-seeding**: every `up` runs `gitea-seed`, which force-pushes `example/`
+  over the Gitea consumer repo's `main` (and the governance repo). Anything you
+  did in Gitea's `main` is replaced by the committed template.
 - **Backstage config**: `governance/api-catalog/app-config.yaml` is mounted, so config changes
   need only a `restart` (not a rebuild). For host `yarn dev`, override the compose
   service-name hosts with `localhost` in `governance/api-catalog/app-config.local.yaml`.
@@ -275,9 +318,12 @@ docker compose --profile contract --profile catalog --profile gateway down -v   
 rm -rf gitea-data runner-data                                    # + drop Gitea/runner state
 ```
 
+For the recorded demo, `demo fresh` does the full wipe and brings the stack back
+at the Stage 1 start (see "Recorded demo" below).
+
 ## Reproduce the demo
 
-This demo covers five topics. Below is how to run each one live. Full
+This demo covers five topics, in the order the talk tells them. Below is how to run each one live; for the recorded, stage-by-stage version see "Recorded demo". Full
 PR-driven flows are in
 [`tests/pr-governance.feature.md`](tests/pr-governance.feature.md).
 
@@ -297,28 +343,59 @@ Backstage → **APIs** shows `orders-api`, auto-discovered from Gitea; its
 **Definition** tab has the rendered contract + owner + docs.
 
 **Topic 2 — Guidelines as Code.** The guidelines live in the catalog (Backstage →
-`api-governance` → **Docs**) and run as Spectral checks in CI. In the cloned
+**Docs** → `api-guidelines`) and run as Spectral checks in CI. In the cloned
 consumer repo, branch, break a rule (e.g. server URL `http://` instead of
 `https://`), and open a PR in Gitea → Actions runs `spectral-openapi-check` →
-**red**, with rule · file · line. Fix it, push again → **green**.
+**red**, with rule · file · line and a link to the rule in the catalog. Fix it,
+push again → **green**.
 
 **Topic 3 — Mocking & Contract Testing.** Microcks serves a live mock from the
-spec (Microcks UI → `Orders API`) and tests the running backend for drift.
-Run the contract test from the Microcks UI, or let it run as the `contract-test`
-gate on a PR — drift goes red, in-sync goes green.
-
-**Topic 4 — Breaking Changes.** Making an existing field required breaks live
-clients. Open a PR with that change → the `breaking-changes-check` gate (oasdiff)
-runs and blocks it → **red**. Relax the change to stay compatible, push again →
+spec (`curl http://localhost:8080/rest/Orders+API/1.0.0/orders/123`, or Microcks
+UI → `Orders API`) and tests the running backend for drift. Make the contract
+promise a field the backend doesn't return (e.g. a required `currency`) and the
+`contract-test` gate goes **red**; keep the contract in line with the code →
 **green**.
 
-**Topic 5 — API Gateway.** The contract isn't just tested against the backend —
+**Topic 4 — API Gateway.** The contract isn't just tested against the backend —
 it's deployed. Open a PR, and the `gateway-deploy-check` gate generates a
 KrakenD config from the contract, deploys it to a real KrakenD CE gateway, and
 re-runs the same Microcks test suite through the gateway (`:8090`) instead of
 the backend directly → **green** when the gateway routes and proxies
 transparently. Break the contract (e.g. an operation `krakend check` can't
 route) and the gate goes **red** before the gateway ever restarts.
+
+**Topic 5 — Breaking Changes.** A new *required* request parameter (e.g. a
+`channel` query parameter on `GET /orders/{orderId}`) breaks every client that
+doesn't send it. Open a PR with that change → the `breaking-changes-check` gate
+(oasdiff, `new-required-request-parameter`) blocks it → **red**, and the later
+gates are skipped. Make the parameter optional, push again → **green**.
+
+## Recorded demo
+
+The talk plays back five recordings, one per topic above, in which the pipeline
+grows by one gate at a time. Everything for them is in `presentation/` and
+`scripts/demo/`:
+
+| File | What it is |
+|------|------------|
+| [`presentation/screenplay.md`](presentation/screenplay.md) | The full script: per stage, what is on screen, terminal and browser steps, expected results, measured timings, retakes. |
+| [`presentation/cue-card.md`](presentation/cue-card.md) | The same on one page, to keep next to the recording. |
+| [`presentation/deck-changes.md`](presentation/deck-changes.md) | What to change in the slide deck (per PDF page) to match the recordings. |
+| `scripts/demo/` | The tooling behind the `demo` command below. |
+
+One-time setup: `scripts/demo/demo install` (adds one line to `~/.bashrc`), then
+open a new terminal. `demo` works from any directory and completes with Tab:
+
+```bash
+demo preflight            # "ready to record?" check, ends with READY or a list of problems
+demo next                 # prepare the next step's branch (run after each merge)
+demo status               # where the demo is and what comes next
+demo goto 3-red           # retake: roll back to the start of any step
+demo fresh                # wipe the demo Gitea before the final take (PRs start at #1)
+demo shell                # set up the recording terminal (prompt with branch, cd into the clone)
+demo rehearse             # full dry run of the screenplay against the stack (~9 min)
+demo cards ~/demo/cards   # title cards; also: demo trim | speed | concat
+```
 
 ## License
 
