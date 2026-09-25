@@ -216,6 +216,25 @@ delete_repo_entities() {
   done
 }
 
+# Microcks serves the last contract imported under the "Orders API" name as a
+# mock, so load the state's contract: the mock then matches what is merged.
+sync_microcks() {
+  curl -sf -o /dev/null -X POST -F "file=@$WORK/base/$CONTRACT" \
+    "http://localhost:8080/api/artifact/upload?mainArtifact=true" \
+    || { echo "could not load the contract into Microcks" >&2; exit 1; }
+  echo "microcks mock matches the state's contract"
+}
+
+# TechDocs builds a page the first time it is opened (a "building" banner on
+# camera). The governance repo was just re-pushed, so build it now.
+prewarm_techdocs() {
+  local t; t="$(backstage_token)"
+  curl -s -N --max-time 240 -H "Authorization: Bearer $t" -H "Accept: text/event-stream" \
+    "http://localhost:7007/api/techdocs/sync/default/component/api-guidelines" | grep -q "^event: finish" \
+    && echo "api guidelines (TechDocs) built" \
+    || echo "warning: TechDocs build did not finish; open the guidelines once before recording" >&2
+}
+
 # Never `podman start/restart backstage` (or `podman-compose up`): it starts its
 # dependency gitea-seed, which force-pushes the full repo over Gitea main and
 # wipes the stage state. Instead, trigger the Gitea provider's scheduled task
@@ -416,6 +435,8 @@ goto() {
   sync_governance_repo
   delete_repo_entities
   sync_gateway "$k"
+  sync_microcks
+  prewarm_techdocs
   trigger_refresh
   if [ "$k" -ge 1 ]; then
     # Stage 1 is already merged in this state, so Backstage must list the API.

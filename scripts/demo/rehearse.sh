@@ -58,6 +58,13 @@ api_listed() {
   curl -s -H "Authorization: Bearer $t" "http://localhost:7007/api/catalog/entities?filter=kind=api" | python3 -c "import json,sys; print(','.join(e['metadata']['name'] for e in json.load(sys.stdin)))"
 }
 gw() { curl -s -o /dev/null -w '%{http_code}' http://localhost:8090/orders/123; }
+MOCK=http://localhost:8080/rest/Orders+API/1.0.0/orders/123
+GUIDE=http://localhost:7007/docs/default/component/api-guidelines
+has_currency() { curl -s "$1" | python3 -c "import json,sys; sys.exit(0 if 'currency' in json.load(sys.stdin) else 1)"; }
+techdocs_has_anchor() {
+  local t; t=$(curl -s -X POST http://localhost:7007/api/auth/guest/refresh | python3 -c "import json,sys; print(json.load(sys.stdin)['backstageIdentity']['token'])")
+  curl -s -H "Authorization: Bearer $t" http://localhost:7007/api/techdocs/static/docs/default/component/api-guidelines/index.html | grep -q "id=\"$1\""
+}
 seed_started() { podman inspect gitea-seed --format '{{.State.StartedAt}}'; }
 
 # Presenter, on camera: switch to the prepared branch, check it is local only.
@@ -126,6 +133,8 @@ N=$(open_pr feat/orders-server-url "Move Orders API to orders.example.com"); ci 
 [ "$CI_STATE" = failure ] && has failure spectral-openapi-check && ok "spectral RED" || bad "expected red"
 L=$(job_log spectral-openapi-check)
 echo "$L" | grep -q 'api-peak:rest17:2025-https-required' && ok "log: rest17:2025-https-required" || bad "rule id"
+echo "$L" | grep -q "$GUIDE/#https-api-peakrest172025-https" && ok "the error links to the rule in the catalog (Backstage TechDocs)" || bad "no catalog link in the Spectral error"
+techdocs_has_anchor https-api-peakrest172025-https && ok "the catalog page has that rule's anchor" || bad "anchor missing in TechDocs"
 echo "$L" | grep -q '1 problem (1 error, 0 warnings, 0 infos, 0 hints)' && ok "Spectral reports exactly one problem" || bad "Spectral reports more than the rest17 error"
 echo "$L" | grep -q 'cloning https://github.com' && bad "CI still downloads from github.com" || ok "no download from github.com (checkout is plain git)"
 echo "$L" | grep -qE 'added [0-9]+ packages' && bad "CI still npm-installs Spectral" || ok "Spectral preinstalled in the CI image"
@@ -138,6 +147,7 @@ merge_pr $N; snap after2b
 
 sec "3a. Stage 3 part 1"
 prep_keeps_checkout stage3
+[ "$(curl -s $MOCK)" = '{"orderId":"123","isPaid":true}' ] && ok "mock serves the contract's example" || bad "mock: $(curl -s $MOCK)"
 take_branch feat/add-contract-test-gate
 git -C "$CL" diff main -- .gitea/ | grep -q '^+  contract-test:' && ok "diff shows the gate" || bad "diff"
 push_branch feat/add-contract-test-gate
@@ -153,6 +163,8 @@ push_branch feat/orders-currency
 N=$(open_pr feat/orders-currency "Add currency to the order response"); ci $N
 [ "$CI_STATE" = failure ] && has failure contract-test && ok "contract-test RED" || bad "expected red"
 job_log contract-test | grep -q "currency' not found" && ok "Microcks: currency' not found" || bad "currency message"
+has_currency $MOCK && ok "mock (from the PR's contract) returns currency" || bad "mock has no currency"
+has_currency http://localhost:8081/orders/123 && bad "backend returns currency?" || ok "running backend doesn't return currency"
 OLD=$(head_sha $N)
 sed -i 's/required: \[orderId, isPaid, currency\]/required: [orderId, isPaid]/' "$CL/contracts/orders-openapi.yaml"
 git -C "$CL" commit -qam "Don't promise currency until the backend returns it"; git -C "$CL" push -q 2>&1 | grep -v '^remote'
@@ -208,6 +220,8 @@ for pair in "2 after1 feat/add-spectral-gate stage2" "2-red after2a feat/orders-
   DEMO_CLONE="$GC" "$PREP" goto "$1" 2>&1 | grep -E "rror|refus|never|should|cannot"
   snap "goto-$1"
   diff -r "$W/snap-$2" "$W/snap-goto-$1" >/dev/null && ok "goto $1 == state after '$2'" || bad "goto $1 differs from '$2'"
+  case "$1" in 3-red) ! has_currency $MOCK && ok "goto 3-red: mock without currency" || bad "goto 3-red: mock still has currency" ;;
+               4)     has_currency $MOCK && ok "goto 4: mock with currency (optional)" || bad "goto 4: mock lacks currency" ;; esac
   if [ "$3" != - ]; then
     git -C "$GC" show-ref --verify -q "refs/heads/$3" && ! on_remote "$3" && ok "goto $1: $3 local only" || bad "goto $1: branch $3 not local-only"
     st=$(DEMO_CLONE="$GC" "$PREP" status 2>&1)
