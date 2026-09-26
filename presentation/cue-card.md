@@ -24,7 +24,7 @@ Browser: signed in to Gitea (`demo`/`demo12345`). Tabs: Gitea repo home, Backsta
 ```bash
 ls
 git switch feat/add-catalog-entry
-cat catalog-info.yaml
+vi catalog-info.yaml     # :q to close
 git push -u origin feat/add-catalog-entry
 ```
 PR (no checks) → **Merge** → Backstage tab → reload **APIs** → `orders-api` (~10 s) → **Definition** tab.
