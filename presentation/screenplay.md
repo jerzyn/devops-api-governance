@@ -157,7 +157,8 @@ git push -u origin feat/add-spectral-gate        # hand the change over: the bra
 
 **Browser:**
 1. Open the PR (`compare/main...feat/add-spectral-gate`). Show **Files changed**: the one gate, running on every PR.
-2. Back on **Conversation**, `spectral-openapi-check` runs and goes green (no contract changed, so it only confirms the gate works). Cut the wait in editing. Merge.
+2. Back on **Conversation**, `spectral-openapi-check` runs. While it runs, switch to the Backstage tab → **Docs** → `api-guidelines` and scroll the page: these are the rules the gate enforces. Say: "the guidelines are a document in the catalog, and the gate makes CI enforce them." Cut the wait in editing.
+3. Back on the PR, the check goes green (no contract changed, so it only confirms the gate works). Merge.
 
 **Part 2: the gate catches something.** Run `next` (off camera). Branch `feat/orders-server-url` moves the server URL to `http://orders.api-peak.com`.
 
@@ -172,13 +173,14 @@ git push -u origin feat/orders-server-url        # hand the change over: the bra
 1. Open the PR (`compare/main...feat/orders-server-url`). `spectral-openapi-check` goes **red**.
 2. **Details** → expand **Run Spectral (fail on errors)**. The contract is otherwise clean, so this is the only finding:
    `error api-peak:rest17:2025-https-required server.url MUST use HTTPS.` and `✖ 1 problem (1 error, 0 warnings, 0 infos, 0 hints)`.
-3. **Guidelines live in the catalog.** The line under the error is the rule's link, `http://localhost:7007/docs/default/component/api-guidelines/#https-api-peakrest172025-https`. Open it (click it, or copy it into the Backstage tab): Backstage opens the **API Guidelines** page at the HTTPS rule. Say: "same rule for humans and for CI, one source of truth, and the CI error points right at it."
+3. **Guidelines live in the catalog** (seen in part 1). The line under the error is the rule's link, `http://localhost:7007/docs/default/component/api-guidelines/#https-api-peakrest172025-https`. Open it (click it, or copy it into the Backstage tab): Backstage opens the **API Guidelines** page at the HTTPS rule. Say: "same rule for humans and for CI, one source of truth, and the CI error points right at it."
 
 **Terminal (fix):**
 ```bash
-sed -i 's#http://orders.api-peak.com#https://orders.api-peak.com#' contracts/orders-openapi.yaml
+vi +18 contracts/orders-openapi.yaml             # the servers: line. /http: Enter, e, a, type s, Esc, :wq
+git diff                                         # one character: http -> https
 git commit -am "Use HTTPS server URL"
-git push
+git push origin feat/orders-server-url
 ```
 
 **Browser:** back on the PR, the check re-runs and goes green (the log now says "No results with a severity of 'error' found!"). Merge.
@@ -243,9 +245,10 @@ curl -s http://localhost:8081/orders/123
 
 **Terminal (fix):** say it out loud: "Contract first: we don't promise what the code doesn't deliver yet. We keep `currency` in the contract but optional; once the backend returns it, we make it required."
 ```bash
-sed -i 's/required: \[orderId, isPaid, currency\]/required: [orderId, isPaid]/' contracts/orders-openapi.yaml
+vi +48 contracts/orders-openapi.yaml             # the response's required: line. /, currency Enter, dt], :wq
+git diff                                         # ", currency" is gone from required
 git commit -am "Don't promise currency until the backend returns it"
-git push
+git push origin feat/orders-currency
 ```
 
 **Browser:** back on the PR, contract-test goes green. Merge.
@@ -330,9 +333,10 @@ git push -u origin feat/orders-require-channel   # hand the change over: the bra
 
 **Terminal (fix):**
 ```bash
-sed -i '/name: channel/,/required:/ s/required: true/required: false/' contracts/orders-openapi.yaml
+vi +43 contracts/orders-openapi.yaml             # the channel parameter. /true Enter, cw, type false, Esc, :wq
+git diff                                         # required: true -> false
 git commit -am "Make channel optional (non-breaking)"
-git push
+git push origin feat/orders-require-channel
 ```
 
 **Browser:** back on the PR, all four gates run and go green. Merge. This is the climax: keep it at full speed.

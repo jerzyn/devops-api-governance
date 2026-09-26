@@ -36,7 +36,7 @@ git switch feat/add-spectral-gate
 git diff --stat main
 git push -u origin feat/add-spectral-gate
 ```
-PR → **Files changed** → green (cut the wait) → **Merge**. T2: `next`.
+PR → **Files changed** → while CI runs: Backstage → **Docs** → `api-guidelines`, scroll (*"the rules the gate enforces"*) → back, green → **Merge**. T2: `next`.
 
 **2b**
 ```bash
@@ -47,8 +47,10 @@ git push -u origin feat/orders-server-url
 PR → **red** → **Details** → **Run Spectral (fail on errors)**: `rest17:2025-https-required`, `1 problem`.
 Open the link under the error → rule in Backstage. *"Same rule for humans and CI, one source of truth."*
 ```bash
-sed -i 's#http://orders.api-peak.com#https://orders.api-peak.com#' contracts/orders-openapi.yaml
-git commit -am "Use HTTPS server URL" && git push
+vi +18 contracts/orders-openapi.yaml    # /http: Enter · e · a · s · Esc · :wq
+git diff
+git commit -am "Use HTTPS server URL"
+git push origin feat/orders-server-url
 ```
 Green → **Merge**. T2: `next`.
 
@@ -78,8 +80,10 @@ curl -s http://localhost:8081/orders/123                          # backend: doe
 ```
 *"We don't promise what the code doesn't deliver yet."*
 ```bash
-sed -i 's/required: \[orderId, isPaid, currency\]/required: [orderId, isPaid]/' contracts/orders-openapi.yaml
-git commit -am "Don't promise currency until the backend returns it" && git push
+vi +48 contracts/orders-openapi.yaml    # /, currency Enter · dt] · :wq
+git diff
+git commit -am "Don't promise currency until the backend returns it"
+git push origin feat/orders-currency
 ```
 Green → **Merge**. T2: `next`.
 
@@ -115,8 +119,10 @@ git push -u origin feat/orders-require-channel
 ```
 PR → **breaking-changes-check red**, the other two **Skipped** (wait until they turn grey) → **Details** → **Run oasdiff breaking…**: `new-required-request-parameter … channel`.
 ```bash
-sed -i '/name: channel/,/required:/ s/required: true/required: false/' contracts/orders-openapi.yaml
-git commit -am "Make channel optional (non-breaking)" && git push
+vi +43 contracts/orders-openapi.yaml    # /true Enter · cw · false · Esc · :wq
+git diff
+git commit -am "Make channel optional (non-breaking)"
+git push origin feat/orders-require-channel
 ```
 All four green (full speed, the climax) → **Merge**.
 
