@@ -46,6 +46,7 @@
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
+. "$ROOT/scripts/demo/engine.sh"   # ENGINE (docker|podman), COMPOSE
 U="${GITEA_ADMIN_USER:-demo}"
 P="${GITEA_ADMIN_PASSWORD:-demo12345}"
 GITEA="http://localhost:3000"
@@ -255,8 +256,8 @@ prewarm_techdocs() {
     || echo "warning: TechDocs build did not finish; open the guidelines once before recording" >&2
 }
 
-# Never `podman start/restart backstage` (or `podman-compose up`): it starts its
-# dependency gitea-seed, which force-pushes the full repo over Gitea main and
+# Never run compose `up` mid-demo, and on Podman never start/restart backstage
+# either: that runs its dependency gitea-seed, which force-pushes the full repo over Gitea main and
 # wipes the stage state. Instead, trigger the Gitea provider's scheduled task
 # through the catalog's scheduler endpoint: it rescans Gitea in a few seconds.
 trigger_refresh() {
@@ -294,7 +295,7 @@ refresh_catalog() {
 # (404); afterwards it serves the contract. Posts to the deployer sidecar,
 # which writes the config and restarts krakend.
 gateway_deploy() {  # $1 = krakend.json
-  podman exec krakend-deployer wget -qO- --header 'Content-Type: application/json' \
+  "$ENGINE" exec krakend-deployer wget -qO- --header 'Content-Type: application/json' \
     --post-data "$(cat "$1")" http://localhost:9000/deploy >/dev/null
   for i in $(seq 1 30); do
     [ "$(curl -s -o /dev/null -w '%{http_code}' http://localhost:8090/orders/1)" != 000 ] && return 0
@@ -420,7 +421,7 @@ branch_of() {
 next_step() {  # $1 = "prepare" or "status"
   local k step branch
   k="$(detect_layers)" || {
-    echo "Gitea main matches no demo state (after podman-compose up, or a half-done step?). Use: $0 goto <target>" >&2
+    echo "Gitea main matches no demo state (after compose up, or a half-done step?). Use: $0 goto <target>" >&2
     exit 1
   }
   step="$(step_after "$k")"
@@ -445,17 +446,17 @@ preflight() {
   code() { curl -s -o /dev/null -w '%{http_code}' "$1"; }
 
   echo "Stack"
-  names="$(podman ps --format '{{.Names}}')"
+  names="$("$ENGINE" ps --format '{{.Names}}')"
   for c in gitea backend microcks-uber krakend-deployer gitea-runner backstage krakend; do
-    grep -qx "$c" <<<"$names" && pass "container $c running" || miss "container $c not running (podman-compose up, then goto 1)"
+    grep -qx "$c" <<<"$names" && pass "container $c running" || miss "container $c not running (${COMPOSE[*]} up -d, then demo goto 1)"
   done
-  foreign="$(podman ps --format '{{index .Labels "com.docker.compose.project"}} {{.Names}}' | awk '$1 != "devops-api-governance" {print $2}' | tr '\n' ' ')"
+  foreign="$("$ENGINE" ps --format '{{index .Labels "com.docker.compose.project"}} {{.Names}}' | awk '$1 != "devops-api-governance" {print $2}' | tr '\n' ' ')"
   [ -z "$foreign" ] && pass "no containers from other projects" || miss "other containers running: $foreign(ports may clash)"
   for u in http://localhost:3000/api/healthz http://localhost:8080/api/health http://localhost:8081/health http://localhost:7007; do
     [ "$(code "$u")" = 200 ] && pass "$u answers" || miss "$u does not answer"
   done
-  podman logs gitea-runner 2>&1 | grep >/dev/null -c "declare successfully" && pass "CI runner registered" || miss "CI runner not registered"
-  podman image exists localhost/devops-api-governance-ci:latest && pass "CI image present (CI runs offline)" || miss "CI image missing (podman-compose up builds it)"
+  "$ENGINE" logs gitea-runner 2>&1 | grep >/dev/null -c "declare successfully" && pass "CI runner registered" || miss "CI runner not registered"
+  "$ENGINE" image inspect localhost/devops-api-governance-ci:latest >/dev/null 2>&1 && pass "CI image present (CI runs offline)" || miss "CI image missing (${COMPOSE[*]} up builds it)"
 
   echo "Demo state"
   if ! k="$(detect_layers)"; then

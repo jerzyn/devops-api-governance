@@ -1,6 +1,6 @@
 services:
   gitea:
-    image: gitea/gitea:latest
+    image: docker.io/gitea/gitea:latest
     container_name: gitea
     restart: unless-stopped
     environment:
@@ -44,7 +44,7 @@ services:
   # writes a runner registration token to the shared seed-state volume. Needs
   # the Docker socket to run `gitea` CLI commands inside the gitea container.
   gitea-seed:
-    image: docker:27-cli
+    image: docker.io/library/docker:27-cli
     container_name: gitea-seed
     restart: "no"
     depends_on:
@@ -63,7 +63,7 @@ services:
       # Seed scripts are orchestration, kept at the repo root (not governance).
       - ./scripts:/scripts:ro
       - seed-state:/seed
-      - /var/run/docker.sock:/var/run/docker.sock
+      - ${DOCKER_SOCK:-/var/run/docker.sock}:/var/run/docker.sock
     command: >
       sh -c "apk add --no-cache git curl >/dev/null && sh /scripts/seed-gitea.sh"
 
@@ -77,7 +77,7 @@ services:
     command: ["true"]
 
   gitea-runner:
-    image: gitea/act_runner:latest
+    image: docker.io/gitea/act_runner:latest
     container_name: gitea-runner
     restart: unless-stopped
     depends_on:
@@ -102,7 +102,7 @@ services:
       # Config: job containers use gitea-network so checkout can reach Gitea
       - ./runner-config.yaml:/config.yaml:ro
       # Give runner access to host Docker (simpler for local demo)
-      - /var/run/docker.sock:/var/run/docker.sock
+      - ${DOCKER_SOCK:-/var/run/docker.sock}:/var/run/docker.sock
       # Shared seed state (runner registration token)
       - seed-state:/seed:ro
 
@@ -141,7 +141,7 @@ services:
 
   # One-shot seed: imports the OpenAPI contract into Microcks once it is up.
   microcks-seed:
-    image: curlimages/curl:8.11.1
+    image: docker.io/curlimages/curl:8.11.1
     container_name: microcks-seed
     restart: "no"
     profiles: ["contract"]
@@ -197,7 +197,7 @@ services:
     # pinned for job-container glibc compatibility (see the workflow's own
     # comment), not to track this runtime version - the v3 config schema
     # `krakend check` validates has been stable across both.
-    image: krakend:2.13.11
+    image: docker.io/library/krakend:2.13.11
     container_name: krakend
     restart: unless-stopped
     profiles: ["gateway"]
@@ -227,7 +227,7 @@ services:
     profiles: ["gateway"]
     volumes:
       - krakend-config:/shared
-      - /var/run/docker.sock:/var/run/docker.sock
+      - ${DOCKER_SOCK:-/var/run/docker.sock}:/var/run/docker.sock
     healthcheck:
       test: ["CMD", "wget", "-qO-", "http://localhost:9000/health"]
       interval: 5s

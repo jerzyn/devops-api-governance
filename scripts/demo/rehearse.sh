@@ -8,6 +8,7 @@ set -uo pipefail
 
 ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
 PREP="$ROOT/scripts/demo/prep-stage.sh"
+. "$ROOT/scripts/demo/engine.sh"   # ENGINE (docker|podman)
 BASE=http://localhost:3000/governance-demo/devops-api-governance
 A=http://localhost:3000/api/v1/repos/governance-demo/devops-api-governance
 C=(-u demo:demo12345)
@@ -65,7 +66,7 @@ techdocs_has_anchor() {
   local t; t=$(curl -s -X POST http://localhost:7007/api/auth/guest/refresh | python3 -c "import json,sys; print(json.load(sys.stdin)['backstageIdentity']['token'])")
   curl -s -H "Authorization: Bearer $t" http://localhost:7007/api/techdocs/static/docs/default/component/api-guidelines/index.html | grep >/dev/null -c "id=\"$1\""
 }
-seed_started() { podman inspect gitea-seed --format '{{.State.StartedAt}}'; }
+seed_started() { "$ENGINE" inspect gitea-seed --format '{{.State.StartedAt}}'; }
 
 # Presenter, on camera: switch to the prepared branch, check it is local only.
 take_branch() {  # $1 = branch

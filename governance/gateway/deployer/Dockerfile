@@ -1,6 +1,6 @@
 # Same base image family as gitea-seed (docker:27-cli) for a trusted,
 # already-used-in-this-repo docker/podman CLI, plus Node for server.js.
-FROM docker:27-cli
+FROM docker.io/library/docker:27-cli
 RUN apk add --no-cache nodejs
 # docker:27-cli sets ENTRYPOINT ["docker-entrypoint.sh"], which rewrites its
 # command to "docker <cmd>" whenever the first arg is a valid docker

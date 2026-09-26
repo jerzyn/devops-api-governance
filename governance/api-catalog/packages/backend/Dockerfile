@@ -6,7 +6,7 @@
 #
 # Build context is the Backstage app root (./backstage).
 
-FROM node:24-bookworm-slim
+FROM docker.io/library/node:24-bookworm-slim
 
 RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
     --mount=type=cache,target=/var/lib/apt,sharing=locked \

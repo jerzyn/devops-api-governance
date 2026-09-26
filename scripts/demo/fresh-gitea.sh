@@ -7,17 +7,23 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
 PROFILES=(--profile contract --profile catalog --profile gateway)
 cd "$ROOT"
+. "$ROOT/scripts/demo/engine.sh"   # ENGINE (docker|podman), COMPOSE
 
 if [ "${1:-}" != --yes ]; then
   read -r -p "Delete ALL data of the demo Gitea (./gitea-data) and the runner registration (./runner-data)? [y/N] " a
   [ "$a" = y ] || { echo "aborted"; exit 1; }
 fi
 
-podman-compose "${PROFILES[@]}" down
-# Files inside are owned by container users, so delete them in podman's user namespace.
-podman unshare rm -rf gitea-data runner-data
+"${COMPOSE[@]}" "${PROFILES[@]}" down
+# Files inside are owned by container users, not by you: delete them as the
+# engine sees them (Podman: its user namespace; Docker: a throwaway container).
+if [ "$ENGINE" = podman ]; then
+  podman unshare rm -rf gitea-data runner-data
+else
+  docker run --rm -v "$ROOT":/w docker.io/library/docker:27-cli rm -rf /w/gitea-data /w/runner-data
+fi
 mkdir -p gitea-data runner-data
-podman-compose "${PROFILES[@]}" up -d
+"${COMPOSE[@]}" "${PROFILES[@]}" up -d
 
 echo "waiting for the stack..."
 for i in $(seq 1 100); do
@@ -26,9 +32,9 @@ for i in $(seq 1 100); do
   curl -sf -o /dev/null http://localhost:7007 || ok=0
   curl -sf -o /dev/null http://localhost:8081/health || ok=0
   curl -sf -o /dev/null http://localhost:8080/api/health || ok=0
-  podman logs gitea-runner 2>&1 | grep >/dev/null -c "declare successfully" || ok=0
+  "$ENGINE" logs gitea-runner 2>&1 | grep >/dev/null -c "declare successfully" || ok=0
   [ $ok = 1 ] && break
   sleep 3
 done
-[ $ok = 1 ] || { echo "stack did not come up; check podman ps" >&2; exit 1; }
+[ $ok = 1 ] || { echo "stack did not come up; check: $ENGINE ps" >&2; exit 1; }
 "$ROOT/scripts/demo/prep-stage.sh" goto 1

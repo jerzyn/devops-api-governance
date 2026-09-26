@@ -17,10 +17,14 @@ RUN npm install -g "@stoplight/spectral-cli@${SPECTRAL_VERSION}" "js-yaml@${JS_Y
 # The gateway generator requires js-yaml; resolve it from the global install.
 ENV NODE_PATH=/usr/local/lib/node_modules
 
+# Binaries for the base image's own architecture (amd64 on most PCs, arm64 on
+# Apple Silicon; both tools publish both), so they always match the image.
 RUN set -e; cd /tmp \
- && curl -fsSL -o oasdiff.tgz "https://github.com/oasdiff/oasdiff/releases/download/v${OASDIFF_VERSION}/oasdiff_${OASDIFF_VERSION}_linux_amd64.tar.gz" \
+ && ARCH="$(dpkg --print-architecture)" \
+ && case "$ARCH" in amd64|arm64) ;; *) echo "unsupported architecture: $ARCH" >&2; exit 1 ;; esac \
+ && curl -fsSL -o oasdiff.tgz "https://github.com/oasdiff/oasdiff/releases/download/v${OASDIFF_VERSION}/oasdiff_${OASDIFF_VERSION}_linux_${ARCH}.tar.gz" \
  && tar -xzf oasdiff.tgz oasdiff && install -m 0755 oasdiff /usr/local/bin/oasdiff \
- && curl -fsSL -o krakend.tgz "https://github.com/krakend/krakend-ce/releases/download/v${KRAKEND_VERSION}/krakend_${KRAKEND_VERSION}_amd64_generic-linux.tar.gz" \
+ && curl -fsSL -o krakend.tgz "https://github.com/krakend/krakend-ce/releases/download/v${KRAKEND_VERSION}/krakend_${KRAKEND_VERSION}_${ARCH}_generic-linux.tar.gz" \
  && tar -xzf krakend.tgz && install -m 0755 usr/bin/krakend /usr/local/bin/krakend \
  && rm -rf /tmp/* \
  && spectral --version && oasdiff --version && krakend version
