@@ -36,7 +36,7 @@ git switch feat/add-spectral-gate
 git diff --stat main
 git push -u origin feat/add-spectral-gate
 ```
-PR → **Files changed** → green (cut the wait) → **Merge**. T2: `next`.
+PR → **Files changed** → while CI runs: Backstage → **Docs** → `api-guidelines`, scroll (*"the rules the gate enforces"*) → back, green → **Merge**. T2: `next`.
 
 **2b**
 ```bash
