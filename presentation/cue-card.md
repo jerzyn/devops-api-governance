@@ -47,7 +47,8 @@ git push -u origin feat/orders-server-url
 PR → **red** → **Details** → **Run Spectral (fail on errors)**: `rest17:2025-https-required`, `1 problem`.
 Open the link under the error → rule in Backstage. *"Same rule for humans and CI, one source of truth."*
 ```bash
-sed -i 's#http://orders.api-peak.com#https://orders.api-peak.com#' contracts/orders-openapi.yaml
+vi +18 contracts/orders-openapi.yaml    # /http: Enter · e · a · s · Esc · :wq
+git diff
 git commit -am "Use HTTPS server URL" && git push
 ```
 Green → **Merge**. T2: `next`.

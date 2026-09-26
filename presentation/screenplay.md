@@ -177,7 +177,8 @@ git push -u origin feat/orders-server-url        # hand the change over: the bra
 
 **Terminal (fix):**
 ```bash
-sed -i 's#http://orders.api-peak.com#https://orders.api-peak.com#' contracts/orders-openapi.yaml
+vi +18 contracts/orders-openapi.yaml             # the servers: line. /http: Enter, e, a, type s, Esc, :wq
+git diff                                         # one character: http -> https
 git commit -am "Use HTTPS server URL"
 git push
 ```
