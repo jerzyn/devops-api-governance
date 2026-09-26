@@ -10,4 +10,4 @@ There is no catalog entry and no automated checks yet.
 | Path | Purpose |
 |------|---------|
 | `contracts/orders-openapi.yaml` | The OpenAPI contract (source of truth for the API). |
-| `backend/` | The provider implementation. |
+| `backend/` | The provider implementation. Runs at `http://localhost:8081`. |
