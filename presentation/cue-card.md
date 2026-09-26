@@ -49,7 +49,8 @@ Open the link under the error → rule in Backstage. *"Same rule for humans and 
 ```bash
 vi +18 contracts/orders-openapi.yaml    # /http: Enter · e · a · s · Esc · :wq
 git diff
-git commit -am "Use HTTPS server URL" && git push
+git commit -am "Use HTTPS server URL"
+git push origin feat/orders-server-url
 ```
 Green → **Merge**. T2: `next`.
 

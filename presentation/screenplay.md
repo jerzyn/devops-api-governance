@@ -180,7 +180,7 @@ git push -u origin feat/orders-server-url        # hand the change over: the bra
 vi +18 contracts/orders-openapi.yaml             # the servers: line. /http: Enter, e, a, type s, Esc, :wq
 git diff                                         # one character: http -> https
 git commit -am "Use HTTPS server URL"
-git push
+git push origin feat/orders-server-url
 ```
 
 **Browser:** back on the PR, the check re-runs and goes green (the log now says "No results with a severity of 'error' found!"). Merge.
