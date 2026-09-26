@@ -367,14 +367,14 @@ demo concat demo.mp4 ~/demo/cards/card1.mp4 s1.mp4 ~/demo/cards/card2.mp4 s2.mp4
 ## Appendix — operator notes (off camera)
 
 **Stack:** from the project directory (`~/projekty/devops-api-governance`, check with `pwd`; the older `devops-driven-governance` project uses the same container names and ports and cannot run at the same time):
-`podman-compose --profile contract --profile catalog --profile gateway up -d`. On this machine it's the hyphenated `podman-compose` binary. Endpoints:
+`podman-compose --profile contract --profile catalog --profile gateway up -d`. On this machine it's the hyphenated `podman-compose` binary; with Docker it's `docker compose` with the same flags (see the main README). Endpoints:
 - Gitea `localhost:3000` (demo/demo12345)
 - Microcks `:8080`
 - Backstage `:7007`
 - backend `:8081`
 - KrakenD `:8090`
 
-**Run `demo goto 1` after every `podman-compose up`.** Anything that depends on the one-shot `gitea-seed` service re-runs it, and the seed force-pushes the full repo onto Gitea `main`, wiping the stage state (`status` then says "matches no demo state"). `backstage` and `gitea-runner` depend on it. Never run it mid-demo, and never `podman start`/`restart` those two either.
+**Run `demo goto 1` after every `podman-compose up` (or `docker compose up`).** Anything that depends on the one-shot `gitea-seed` service re-runs it, and the seed force-pushes the full repo onto Gitea `main`, wiping the stage state (`status` then says "matches no demo state"). `backstage` and `gitea-runner` depend on it. Never run it mid-demo, and never `podman start`/`restart` those two either.
 
 **CI runs offline.** Jobs run in `localhost/devops-api-governance-ci:latest` (`ci-image/Dockerfile`, built by the `ci-image` compose service), which has Spectral, oasdiff, the KrakenD CLI and js-yaml preinstalled, and the checkout is plain `git` against Gitea. Only building that image the first time needs the internet. The install steps in the workflow remain as a fallback: on a plain `node:20` runner they download the tools.
 
