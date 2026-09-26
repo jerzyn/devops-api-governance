@@ -11,17 +11,16 @@ ARG OASDIFF_VERSION=1.19.0
 # match the gateway image (krakend:2.13.11 in docker-compose.yml). Newer CLI
 # builds need glibc 2.32+/2.34+; bullseye has 2.31, and 2.6.2 runs on it.
 ARG KRAKEND_VERSION=2.6.2
-# Set by the builder (docker buildx / podman build): amd64 on most PCs, arm64 on
-# Apple Silicon. Both tools publish binaries for both.
-ARG TARGETARCH
 
 RUN npm install -g "@stoplight/spectral-cli@${SPECTRAL_VERSION}" "js-yaml@${JS_YAML_VERSION}" \
  && npm cache clean --force
 # The gateway generator requires js-yaml; resolve it from the global install.
 ENV NODE_PATH=/usr/local/lib/node_modules
 
+# Binaries for the base image's own architecture (amd64 on most PCs, arm64 on
+# Apple Silicon; both tools publish both), so they always match the image.
 RUN set -e; cd /tmp \
- && ARCH="${TARGETARCH:-$(dpkg --print-architecture)}" \
+ && ARCH="$(dpkg --print-architecture)" \
  && case "$ARCH" in amd64|arm64) ;; *) echo "unsupported architecture: $ARCH" >&2; exit 1 ;; esac \
  && curl -fsSL -o oasdiff.tgz "https://github.com/oasdiff/oasdiff/releases/download/v${OASDIFF_VERSION}/oasdiff_${OASDIFF_VERSION}_linux_${ARCH}.tar.gz" \
  && tar -xzf oasdiff.tgz oasdiff && install -m 0755 oasdiff /usr/local/bin/oasdiff \
