@@ -123,7 +123,7 @@ Repo: `http://localhost:3000/governance-demo/devops-api-governance`
 ```bash
 ls                                               # contracts/ and backend/, no catalog-info.yaml
 git switch feat/add-catalog-entry                # local branch, already committed
-cat catalog-info.yaml                            # show what gets registered
+vi catalog-info.yaml                             # show what gets registered (:q to close)
 git push -u origin feat/add-catalog-entry        # hand the change over: the branch goes to Gitea
 ```
 
