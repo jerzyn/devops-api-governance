@@ -34,3 +34,6 @@ docker-compose.override.yml
 # Gateway generator's resolved lockfile - CI runs `npm install` (not
 # `npm ci`), so there's no reproducibility story that requires committing it.
 governance/gateway/package-lock.json
+
+# Local recordings of the demo (large video, not part of the repo)
+presentation/recordings/
