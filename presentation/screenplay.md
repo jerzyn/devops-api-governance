@@ -245,9 +245,10 @@ curl -s http://localhost:8081/orders/123
 
 **Terminal (fix):** say it out loud: "Contract first: we don't promise what the code doesn't deliver yet. We keep `currency` in the contract but optional; once the backend returns it, we make it required."
 ```bash
-sed -i 's/required: \[orderId, isPaid, currency\]/required: [orderId, isPaid]/' contracts/orders-openapi.yaml
+vi +48 contracts/orders-openapi.yaml             # the response's required: line. /, currency Enter, dt], :wq
+git diff                                         # ", currency" is gone from required
 git commit -am "Don't promise currency until the backend returns it"
-git push
+git push origin feat/orders-currency
 ```
 
 **Browser:** back on the PR, contract-test goes green. Merge.
@@ -332,9 +333,10 @@ git push -u origin feat/orders-require-channel   # hand the change over: the bra
 
 **Terminal (fix):**
 ```bash
-sed -i '/name: channel/,/required:/ s/required: true/required: false/' contracts/orders-openapi.yaml
+vi +43 contracts/orders-openapi.yaml             # the channel parameter. /true Enter, cw, type false, Esc, :wq
+git diff                                         # required: true -> false
 git commit -am "Make channel optional (non-breaking)"
-git push
+git push origin feat/orders-require-channel
 ```
 
 **Browser:** back on the PR, all four gates run and go green. Merge. This is the climax: keep it at full speed.

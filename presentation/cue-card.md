@@ -80,8 +80,10 @@ curl -s http://localhost:8081/orders/123                          # backend: doe
 ```
 *"We don't promise what the code doesn't deliver yet."*
 ```bash
-sed -i 's/required: \[orderId, isPaid, currency\]/required: [orderId, isPaid]/' contracts/orders-openapi.yaml
-git commit -am "Don't promise currency until the backend returns it" && git push
+vi +48 contracts/orders-openapi.yaml    # /, currency Enter · dt] · :wq
+git diff
+git commit -am "Don't promise currency until the backend returns it"
+git push origin feat/orders-currency
 ```
 Green → **Merge**. T2: `next`.
 
@@ -117,8 +119,10 @@ git push -u origin feat/orders-require-channel
 ```
 PR → **breaking-changes-check red**, the other two **Skipped** (wait until they turn grey) → **Details** → **Run oasdiff breaking…**: `new-required-request-parameter … channel`.
 ```bash
-sed -i '/name: channel/,/required:/ s/required: true/required: false/' contracts/orders-openapi.yaml
-git commit -am "Make channel optional (non-breaking)" && git push
+vi +43 contracts/orders-openapi.yaml    # /true Enter · cw · false · Esc · :wq
+git diff
+git commit -am "Make channel optional (non-breaking)"
+git push origin feat/orders-require-channel
 ```
 All four green (full speed, the climax) → **Merge**.
 
