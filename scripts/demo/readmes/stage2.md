@@ -10,7 +10,7 @@ opens pull requests against.
 |------|---------|
 | `contracts/orders-openapi.yaml` | The OpenAPI contract (source of truth for the API). |
 | `catalog-info.yaml` | Backstage entities (API + Component + Group), discovered from Gitea. |
-| `backend/` | The provider implementation. |
+| `backend/` | The provider implementation. Runs at `http://localhost:8081`. |
 | `.gitea/workflows/pr-governance.yml` | PR gate: Spectral lint. |
 
 ## Governance is linked, not vendored
