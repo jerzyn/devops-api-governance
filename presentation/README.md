@@ -7,9 +7,9 @@ Material for giving the talk *"DevOps-Driven API Governance"* and for recording 
 | File | What it is |
 |------|------------|
 | [FOST London deck](https://claude.ai/artifact/AUkTCc1xev8nuvEcBELiU2) | The deck for FOST London, 1 October 2026: a Slides artifact with the five demo clips embedded. Built by `tools/build_deck.py`. |
-| `FOST London 2026 - DevOps-Driven API Governance.pdf` | Offline copy of that deck with the clips embedded; plays in Okular. Built by `tools/embed_videos.py`. |
+| `DevOps-Driven API Governance — FOST London 2026.{pdf,html,pptx}` | Offline copies of that deck (its PDF, HTML and PowerPoint exports) with the five demo clips embedded: the PDF plays them in Okular, the HTML in any browser, the PPTX in PowerPoint and LibreOffice. Built by `tools/embed_exports.py`. |
 | [`deck-plan.md`](deck-plan.md) / [`run-sheet.md`](run-sheet.md) | The plan behind the FOST deck (timing, cuts, design) and the one-page run sheet for the talk. |
-| `tools/` | Scripts for the FOST deck: `cut_clips.py` (cuts `recordings/stage*-talk.mp4` from `cuts.json`), `build_deck.py`, `embed_videos.py`, `make_qr.py`. Set up with `python3 -m venv tools/.venv && tools/.venv/bin/pip install -r tools/requirements.txt`. |
+| `tools/` | Scripts for the FOST deck: `cut_clips.py` (cuts `recordings/stage*-talk.mp4` from `cuts.json`), `build_deck.py`, `embed_videos.py`, `embed_exports.py`, `make_qr.py`. Set up with `python3 -m venv tools/.venv && tools/.venv/bin/pip install -r tools/requirements.txt`. |
 | `DevOps Driven Governance - London 2026.pdf` / `.txt` | The earlier (Munich) slide deck and its text transcript. |
 | [`deck-changes.md`](deck-changes.md) | What to change in the deck, per PDF page, so it matches the recordings (the API gateway step, the breaking-change example). The deck itself is not edited in this repo. |
 | [`screenplay.md`](screenplay.md) | The full script of the five recordings: narrative, what is on screen at the start of each stage, terminal and browser steps, expected results, measured timings, retakes, recording and editing notes. |

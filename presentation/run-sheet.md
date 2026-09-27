@@ -38,4 +38,4 @@ DevOps-Driven API Governance · 20 minutes · Q&A after (~5 min) · [deck](https
 
 **Videos:** click the video to start it. They are silent and loop: move on at the merge.
 
-**Backup:** no internet → `FOST London 2026 - DevOps-Driven API Governance.pdf` in Okular (Ctrl+Shift+P), click a video page to play.
+**Backup (no internet):** `DevOps-Driven API Governance — FOST London 2026.html` in a browser (F11, click a video to play), or the `.pdf` in Okular (Ctrl+Shift+P), or the `.pptx` in LibreOffice.

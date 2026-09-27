@@ -22,7 +22,7 @@ The plan for the new talk deck. It replaces the Munich deck (`DevOps Driven Gove
 | File | What | Where |
 |---|---|---|
 | Slides artifact | Main deck, played in the browser, videos embedded | https://claude.ai/artifact/AUkTCc1xev8nuvEcBELiU2 |
-| `presentation/FOST London 2026 - DevOps-Driven API Governance.pdf` | Offline fallback: the same deck with the five MP4s embedded in the PDF | git |
+| `presentation/DevOps-Driven API Governance — FOST London 2026.{pdf,html,pptx}` | Offline fallbacks: the deck's exports with the five MP4s embedded | git |
 | `presentation/run-sheet.md` | One page: slide, clock time, key line | git |
 | `presentation/recordings/stage{1..5}-talk.mp4` | The five cut clips | git-ignored, like all recordings |
 
