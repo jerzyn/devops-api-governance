@@ -79,7 +79,7 @@ C_CMD = "#d7b8f3"      # commands, HTTP methods
 _TOKENS = {
     "yaml": [
         (r"#.*$", C_DIM),
-        (r"^\s*[\w$.-]+(?=:)", C_KEY),
+        (r"^\s*[\w$./-]+(?=:)", C_KEY),
         (r"(?<=[{,]\s)[\w-]+(?=:)", C_KEY),
         (r'"[^"]*"', C_STR),
         (r"\b(?:true|false|\d+)\b", C_LIT),
@@ -143,7 +143,7 @@ def code(lines, size=32, width=None, lang=None):
 PIPE_TEXT = 30  # 25% larger than the 24px minimum, for reading from the back of the room
 
 
-def _box(name, tool, look, width):
+def _box(name, tool, look, width, dim=False):
     looks = {
         "neutral": ("transparent", f"2px solid {FADED}", "#e6e9ef", "#c4cad8"),
         "future": ("transparent", "2px dashed #5d6679", FADED, FADED),
@@ -153,14 +153,23 @@ def _box(name, tool, look, width):
     bg, border, c1, c2 = looks[look]
     tool_p = (f'<p style="font-size:{PIPE_TEXT}px; line-height:1.2; color:{c2}; text-align:center">{tool}</p>'
               if tool else "")
+    extra = ""
+    if look == "current":
+        # the active gate: thicker light border, glow, slightly larger
+        border = f"4px solid {LIGHT}"
+        extra = ("; box-shadow:0px 0px 0px 6px rgba(124,200,234,0.35), 0px 0px 36px rgba(124,200,234,0.7)"
+                 "; transform:scale(1.08)")
+    elif dim:
+        extra = "; opacity:0.6"
     return (f'<div style="width:{width}px; background:{bg}; border:{border}; border-radius:14px; '
-            f'padding:18px 12px; display:flex; flex-direction:column; align-items:center; gap:6px">'
+            f'padding:18px 12px; display:flex; flex-direction:column; align-items:center; gap:6px{extra}">'
             f'<p style="font-size:{PIPE_TEXT}px; font-weight:700; line-height:1.2; color:{c1}; '
             f'text-align:center">{name}</p>{tool_p}</div>')
 
 
-def _arrow(width=30):
-    return (f'<x-connector style="width:{width}px; color:{FADED}; align-self:center">'
+def _arrow(width=30, dim=False):
+    op = "; opacity:0.6" if dim else ""
+    return (f'<x-connector style="width:{width}px; color:{FADED}; align-self:center{op}">'
             f"</x-connector>")
 
 
@@ -174,21 +183,38 @@ def pipeline(state):
         i, cur = STEPS.index(key), STEPS.index(state)
         return "current" if i == cur else ("done" if i < cur else "future")
 
+    # Emphasis: on a step slide only the current gate is at full strength, everything
+    # else sits at 60%. Before any gate (thread) the bare pipeline is active and the
+    # gates are dimmed; on the final slide ("all") nothing is dimmed.
+    step = state in STEPS
+
+    def dim(key=None):
+        if state == "all":
+            return False
+        if state == "empty":
+            return key is not None
+        return key != state
+
     gates = [("guidelines", "Guidelines", "Spectral"),
              ("breaking", "Breaking changes", "oasdiff"),
              ("contracts", "Contract test + mock", "Microcks"),
              ("gateway", "API gateway", "KrakenD")]
-    gate_row = _arrow(24).join(_box(n, t, look(k), 230) for k, n, t in gates)
+    parts = []
+    for i, (k, n, t) in enumerate(gates):
+        if i:
+            parts.append(_arrow(24, dim=step or state == "empty"))
+        parts.append(_box(n, t, look(k), 230, dim=dim(k)))
+    label_op = "; opacity:0.6" if (step or state == "empty") else ""
     ci = (f'<div style="border:2px solid #5d6679; border-radius:18px; padding:18px 20px; '
           f'display:flex; flex-direction:column; gap:14px; align-items:center">'
-          f'<p style="font-size:{PIPE_TEXT}px; color:{FADED}">CI gates on every pull request</p>'
-          f'<div style="display:flex; flex-direction:row; align-items:center">{gate_row}</div></div>')
+          f'<p style="font-size:{PIPE_TEXT}px; color:{FADED}{label_op}">CI gates on every pull request</p>'
+          f'<div style="display:flex; flex-direction:row; align-items:center">{"".join(parts)}</div></div>')
     right = (f'<div style="display:flex; flex-direction:column; gap:18px">'
-             f'{_box("Catalog", "Backstage", look("catalog"), 200)}'
-             f'{_box("Deploy", "", "neutral", 200)}</div>')
+             f'{_box("Catalog", "Backstage", look("catalog"), 200, dim=dim("catalog"))}'
+             f'{_box("Deploy", "", "neutral", 200, dim=dim())}</div>')
     return (f'<div style="display:flex; flex-direction:row; align-items:center">'
-            f'{_box("Pull request", "", "neutral", 160)}{_arrow()}{ci}{_arrow()}'
-            f'{_box("Merge", "", "neutral", 130)}{_arrow()}{right}</div>')
+            f'{_box("Pull request", "", "neutral", 160, dim=dim())}{_arrow(dim=step)}{ci}{_arrow(dim=step)}'
+            f'{_box("Merge", "", "neutral", 130, dim=dim())}{_arrow(dim=step)}{right}</div>')
 
 
 # ---------------------------------------------------------------- templates
@@ -197,7 +223,7 @@ def step_title(sid, n, name, statement, sub, state, notes, backdrop=None):
     bd = ""
     if backdrop:
         bd = (f'<img src="{asset(backdrop)}" alt="" style="position:absolute; left:0; top:0; '
-              f'width:1920px; height:1080px; object-fit:cover; opacity:0.18">')
+              f'width:1920px; height:1080px; object-fit:cover; opacity:0.08">')
     body = (f"{bd}<div style=\"display:flex; flex-direction:column; gap:24px\">"
             f"{eyebrow(f'Step {n} — {name}', ACCENT_ON_DARK)}{h1(statement, LIGHT)}"
             f"{p(sub, 36, BEIGE_TEXT)}</div>"
@@ -213,10 +239,11 @@ def video(sid, n, name, clip, notes):
     return section(sid, NAVY_DEEP, body, notes, color=LIGHT)
 
 
-def takeaway(sid, n, title, key_lines, support, agents, notes, lang=None):
+def takeaway(sid, n, title, key_lines, support, agents, notes, lang=None, extra=None):
     body = (f'<div style="display:flex; flex-direction:column; gap:20px">'
             f"{eyebrow(f'Step {n} — takeaway', ACCENT_ON_LIGHT)}{h2(title)}</div>"
-            f"{code(key_lines, 36, lang=lang)}{p(support, 32, MUTED)}"
+            + (f"{code(key_lines, 30, lang=lang)}{code(extra[0], 26, lang=extra[1])}" if extra
+               else f"{code(key_lines, 36, lang=lang)}{p(support, 32, MUTED)}") +
             f'<div style="flex:1"></div>'
             f'<div style="display:flex; flex-direction:row; gap:24px; align-items:center">'
             f'<p style="font-size:24px; font-weight:700; letter-spacing:2px; color:{LIGHT}; '
@@ -235,7 +262,7 @@ def slides():
         f"linear-gradient(160deg, {LIGHT} 0%, {LIGHT} 60%, {NAVY} 60%, {NAVY} 100%)",
         f'<div style="display:flex; flex-direction:column; gap:28px">'
         f'{h1("DevOps-Driven API Governance", "#1f2a44", 104)}'
-        f'{p("One gate at a time: API governance in the delivery pipeline", 40, MUTED)}</div>'
+        f'{p("Open Source and Agent-Ready in Hours", 40, MUTED)}</div>'
         f'<p style="position:absolute; left:128px; top:760px; width:720px; font-size:32px; '
         f'font-weight:700; line-height:1.4; color:{ACCENT_ON_LIGHT}">FOST London 2026 · 1 October</p>'
         f'<p style="position:absolute; right:128px; bottom:150px; width:640px; text-align:right; '
@@ -247,12 +274,11 @@ def slides():
         "Transition: first, who I am, in thirty seconds.")
 
     track = [
+        ("3scale", "API Solution Engineer: API management, gateways, developer portals"),
+        ("adidas", "API Evangelist: guidelines, API contract repository, CI quality gates"),
+        ("ING", "Lead of Policy as Code in API governance"),
         ("PZU", "Chief API Architect: governance program from zero, 200+ external APIs, "
                 "30+ products, APIs ready for AI agents"),
-        ("ING", "Lead of Policy as Code in API governance"),
-        ("adidas", "API Evangelist: guidelines, API contract repository, CI quality gates"),
-        ("3scale · iWelcome", "API management, gateways and API products"),
-        ("Author", "RESTful API Design Patterns and Best Practices (Packt)"),
     ]
     rows = "".join(
         f'<div style="display:flex; flex-direction:row; gap:24px; border-top:1px solid #d9dbe0; '
@@ -295,9 +321,9 @@ def slides():
     s["hook"] = section(
         "hook", NAVY,
         f'<div style="flex:1"></div>'
-        f'{eyebrow("FOST London 2026", ACCENT_ON_DARK)}'
+        f'{eyebrow("paradigm shift", ACCENT_ON_DARK)}'
         f'{h1("Your next API consumer is an agent.", LIGHT, 96)}'
-        f'{p("It can’t read your wiki. It can’t ask on Slack. It takes your contract literally.", 44, BEIGE_TEXT)}'
+        f'{p("It takes your contract as is - completeness and quality are key", 44, BEIGE_TEXT)}'
         f'<div style="flex:1"></div>',
         "0:45 → 1:15. This conference is about agents moving money, not just talking about it. "
         "A human developer reads the docs, pings someone on Slack, works around a gap. An agent "
@@ -321,8 +347,8 @@ def slides():
         f'{eyebrow("PZU · internal test of AI agents on our APIs", ACCENT_ON_LIGHT)}'
         f'{h2("Governed contracts make agents accurate")}</div>'
         f'<div style="display:flex; flex-direction:row; gap:40px">'
-        f'{stat("Single API calls", "70–80%", "99.6%", "Bare OpenAPI → plus what governance already requires: descriptions, Problem Details, examples")}'
-        f'{stat("Multi-step workflows", "~60%", "&gt;90%", "Chained calls → plus Arazzo workflow descriptions on top of the same specs")}'
+        f'{stat("Single API calls", "70–80%", "99.6%", "Bare OpenAPI → plus what governance already requires: descriptions, adherence to standards, examples")}'
+        f'{stat("Multi-step workflows", "~60%", "&gt;90%", "Chained calls → plus Arazzo workflow descriptions on top of the same specs, or Hypermedia controls")}'
         f'</div><div style="flex:1"></div>'
         f'{p("AI-ready APIs are not a separate initiative. They are a product of your API governance program", 40, INK, "font-weight:700")}',
         "1:15 → 2:05. At PZU we pointed AI agents at our own OpenAPI files. Bare specs with "
@@ -335,16 +361,20 @@ def slides():
     s["why"] = section(
         "why", LIGHT,
         f'<img src="{asset("api-sprawl.jpg")}" alt="A dense map of hundreds of connected systems" '
-        f'style="position:absolute; left:820px; top:0px; width:1100px; height:1080px; object-fit:cover">'
-        f'<div style="position:absolute; left:0px; top:0px; width:820px; height:1080px; background:{NAVY}"></div>'
-        f'<div style="position:absolute; left:112px; top:112px; width:620px; display:flex; '
-        f'flex-direction:column; gap:28px">'
+        f'style="position:absolute; left:860px; top:0px; width:1060px; height:1080px; object-fit:cover">'
+        f'<div style="position:absolute; left:0px; top:0px; width:860px; height:1080px; background:{NAVY}"></div>'
+        f'<div style="position:absolute; left:112px; top:112px; width:660px; height:856px; display:flex; '
+        f'flex-direction:column; justify-content:space-between">'
+        f'<div style="display:flex; flex-direction:column; gap:36px">'
         f'{h2("Why governance?", LIGHT)}'
-        f'<ul style="font-size:30px; line-height:1.4; color:{BEIGE_TEXT}">'
+        f'<ul style="font-size:32px; line-height:1.6; color:{BEIGE_TEXT}">'
         f"<li>API sprawl and zombie endpoints</li><li>Manual checks, late in the lifecycle</li>"
-        f"<li>Uneven quality: tools and agents break</li></ul>"
-        f'{p("Governance is the developer experience of creating and using APIs. And the developer can now be an agent.", 32, LIGHT, "font-weight:700")}'
-        f'{p("Easy to do right, hard to do wrong. Good governance is invisible.", 30, ACCENT_ON_DARK)}</div>',
+        f"<li>Uneven quality: tools and agents break</li></ul></div>"
+        f'<div style="display:flex; flex-direction:column; gap:24px; border-left:4px solid {ACCENT_ON_DARK}; '
+        f'padding:4px 0px 4px 32px">'
+        f'{p("Governance is the developer experience of creating and using APIs. And the developer can now be an agent", 34, LIGHT, "font-weight:700")}'
+        f'{p("It is about making it easy to do things right, and hard to do things wrong", 30, ACCENT_ON_DARK)}'
+        f'</div></div>',
         "2:05 → 2:55. This is a real integration map, not a drawing. Nobody has the full picture. "
         "Sprawl, zombie endpoints, checks that happen weeks late in a review board, and uneven "
         "quality that breaks tools and now agents. My definition: governance is about the "
@@ -500,10 +530,10 @@ def slides():
         "it's the test the code must pass. Transition: now let's expose it for real.", lang="yaml")
 
     s["gateway"] = step_title(
-        "gateway", 4, "API gateway", "Expose it, generated from the contract",
-        "Hand-written gateway config drifts: the catalog says one thing, the gateway exposes another.",
+        "gateway", 4, "Publish through the API gateway", "Publish the API straight from its contract",
+        "Publishing is a lifecycle step, not a ticket. Hand-written gateway config drifts from the contract.",
         "gateway",
-        "11:42 → 12:17. In most companies someone types routes into the gateway by hand, and "
+        "11:42 → 12:17. Putting an API behind the gateway is how it gets published in its lifecycle. In most companies someone types routes into the gateway by hand, and "
         "nobody checks them against the contract. So we generate the gateway config from the "
         "contract, in CI, on every PR, and prove it. Transition: watch.")
 
@@ -525,8 +555,16 @@ def slides():
         "test runs through the gateway: it must not change what the contract promises.",
         "what runs in production is exactly what the agent read.",
         "13:27 → 13:57. Catalog, tests, mock and now the gateway all come from the same "
-        "orders-openapi.yaml. With Kong or Apigee only the generator changes. Checkpoint 13:57. Behind? Keep takeaway 5 to one sentence and go straight to Monday morning after the pipeline slide. Transition: "
-        "and now our partner is live.", lang="shell")
+        "orders-openapi.yaml. One endpoint per path and method in the contract, nothing else, "
+        "and the same contract test runs through the gateway. Gateway policy can live in the "
+        "contract too: KrakenD Enterprise imports x-krakend-* OpenAPI extensions, such as a "
+        "rate limit; the demo's open-source generator doesn't read them yet. "
+        "With Kong or Apigee only the generator changes. Checkpoint 13:57. Behind? Keep takeaway 5 to one sentence and go straight to Monday morning after the pipeline slide. Transition: "
+        "and now our partner is live.", lang="shell",
+        extra=(["# gateway policy in the contract too (KrakenD Enterprise importer)",
+                "get:",
+                "  x-krakend-extra_config:",
+                "    qos/ratelimit/router: { max_rate: 50 }"], "yaml"))
 
     s["breaking"] = step_title(
         "breaking", 5, "Breaking changes", "Now the partner is integrated",

@@ -103,3 +103,19 @@ def test_about_photo_only_and_book_slide_follows(tmp_path):
     assert ORDER.index("book") == ORDER.index("about") + 1
     assert book_cover not in slides["thanks"]
     assert "One example, many uses" in slides["t3"]
+
+
+def test_review_round_3(tmp_path):
+    slides = build(tmp_path, "2026-09-27T00:00:00Z")
+    about = slides["about"]
+    order = [about.index(x) for x in (">3scale<", ">adidas<", ">ING<", ">PZU<")]
+    assert order == sorted(order)
+    assert "iWelcome" not in about and ">Author<" not in about
+    assert "hard to do things wrong" in slides["why"]
+    assert "opacity:0.08" in slides["catalog"]
+    assert "Publish" in slides["gateway"]
+    assert "x-krakend" in slides["t4"] and "Enterprise" in slides["t4"]
+    # pipeline: current gate glows, everything else at 60%
+    g = slides["guidelines"]
+    assert g.count("opacity:0.6") >= 7 and "box-shadow" in g
+    assert "opacity:0.6" not in slides["pipeline"]  # final slide: everything active
