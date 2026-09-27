@@ -34,7 +34,7 @@ Both need:
 ## Start
 
 ```bash
-git clone https://github.com/jerzyn/devops-api-governance.git
+git clone https://codeberg.org/pierogi/devops-api-governance.git
 cd devops-api-governance
 ```
 
