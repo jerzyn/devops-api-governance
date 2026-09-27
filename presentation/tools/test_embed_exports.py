@@ -58,3 +58,12 @@ def test_pptx_picture_becomes_embedded_video(tmp_path):
     assert "relationships/video" in rels and "2007/relationships/media" in rels
     assert z.read("ppt/media/stage1-talk.mp4") == clip.read_bytes()
     assert 'Extension="mp4"' in z.read("[Content_Types].xml").decode()
+
+
+def test_html_poster_uses_the_clips_own_still(tmp_path):
+    clip, still = tmp_path / "c.mp4", tmp_path / "s.jpg"
+    _tiny_mp4(clip)
+    still.write_bytes(b"JPEGDATA")
+    html = '<img src="data:image/jpeg;base64,OLD" alt="Recorded demo, step 1: API catalog">'
+    out = embed_html(html, {1: clip}, {1: still})
+    assert 'poster="data:image/jpeg;base64,SlBFR0RBVEE="' in out

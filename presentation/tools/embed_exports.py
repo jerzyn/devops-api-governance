@@ -23,6 +23,7 @@ from embed_videos import embed as embed_pdf
 
 HERE = Path(__file__).resolve().parent
 CLIPS = {n: HERE.parent / "recordings" / f"stage{n}-talk.mp4" for n in range(1, 6)}
+STILLS = {n: HERE.parent / "assets" / f"stage{n}-still.jpg" for n in range(1, 6)}
 VIDEO_REL = "http://schemas.openxmlformats.org/officeDocument/2006/relationships/video"
 MEDIA_REL = "http://schemas.microsoft.com/office/2007/relationships/media"
 
@@ -31,13 +32,15 @@ def _still_tag(n):
     return re.compile(r'<img\b[^>]*\balt="Recorded demo, step %d:[^"]*"[^>]*>' % n)
 
 
-def embed_html(html, clips):
+def embed_html(html, clips, stills=None):
     for n, clip in clips.items():
         m = _still_tag(n).search(html)
         if not m:
             raise ValueError(f"no still for step {n} in the HTML")
         tag = m.group(0)
         poster = re.search(r'\bsrc="([^"]*)"', tag).group(1)
+        if stills and Path(stills.get(n, "")).is_file():  # the clip's own first frame
+            poster = "data:image/jpeg;base64," + base64.b64encode(Path(stills[n]).read_bytes()).decode()
         m_style = re.search(r'\bstyle="([^"]*)"', tag)
         style = m_style.group(1) if m_style else ""
         data = base64.b64encode(Path(clip).read_bytes()).decode()
@@ -47,7 +50,7 @@ def embed_html(html, clips):
     return html
 
 
-def embed_pptx(src, out, clips):
+def embed_pptx(src, out, clips, stills=None):
     tmp = Path(tempfile.mkdtemp())
     with zipfile.ZipFile(src) as z:
         z.extractall(tmp)
@@ -62,6 +65,11 @@ def embed_pptx(src, out, clips):
         shutil.copy(clip, tmp / "ppt" / "media" / media)
         rels = slide.parent / "_rels" / (slide.name + ".rels")
         r = rels.read_text()
+        if stills and Path(stills.get(n, "")).is_file():  # poster = the clip's own first frame
+            blip = re.search(r'descr="Recorded demo, step %d:.*?<a:blip r:embed="([^"]+)"' % n,
+                             slide.read_text(), re.S).group(1)
+            target = re.search(r'Id="%s"[^>]*Target="\.\./media/([^"]+)"' % blip, r).group(1)
+            shutil.copy(stills[n], tmp / "ppt" / "media" / target)
         r = r.replace("</Relationships>",
                       f'<Relationship Id="rIdVid{n}" Type="{VIDEO_REL}" Target="../media/{media}"/>'
                       f'<Relationship Id="rIdMed{n}" Type="{MEDIA_REL}" Target="../media/{media}"/>'
@@ -120,9 +128,9 @@ def main(base):
         if ext == ".pdf":
             embed_pdf(src, tmp, pdf_pages)
         elif ext == ".html":
-            tmp.write_text(embed_html(src.read_text(), CLIPS))
+            tmp.write_text(embed_html(src.read_text(), CLIPS, STILLS))
         else:
-            embed_pptx(src, tmp, CLIPS)
+            embed_pptx(src, tmp, CLIPS, STILLS)
         tmp.replace(src)
         print(f"{src.name}: {src.stat().st_size / 1e6:.1f} MB, 5 videos embedded")
 

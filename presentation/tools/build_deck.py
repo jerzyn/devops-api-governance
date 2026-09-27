@@ -577,13 +577,13 @@ def slides():
 
     s["v5"] = video(
         "v5", 5, "Breaking changes", "stage5-talk.mp4",
-        "14:27 → 16:22. Click to play (104 s). Cues: 0:00 Files changed: the new "
-        "breaking-changes job in the middle of the chain, needs repointed. ~0:13 (fast) four "
-        "gates green, merge. ~0:24 the innocent change: a new query parameter channel, "
-        "required. ~0:43 breaking-changes red; contract test and gateway Skipped, grey: the "
-        "later gates don't even run. ~0:47 oasdiff: new-required-request-parameter, channel. "
-        "~1:03 (fast) fix: make channel optional. ~1:21 (fast) all four green, merge. Move on "
-        "at the merge. Transition: blocked before anyone got hurt.")
+        "14:27 → 16:24. Click to play (117 s). Cues: 0:00 switch to the branch, git diff --stat, push. "
+        "~0:09 (fast) open the PR. ~0:13 Files changed: the new breaking-changes job in the middle of the chain, "
+        "needs repointed. ~0:26 (fast) four gates green, merge. ~0:37 the innocent change: a new query "
+        "parameter channel, required. ~0:56 breaking-changes red; contract test and gateway Skipped, grey: "
+        "the later gates don't even run. ~1:00 oasdiff: new-required-request-parameter, channel. "
+        "~1:16 (fast) fix: make channel optional. ~1:34 (fast) all four green, merge. Move on at the merge. "
+        "Transition: blocked before anyone got hurt.")
 
     s["t5"] = takeaway(
         "t5", 5, "An explicit decision, not an accident",

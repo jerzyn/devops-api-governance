@@ -25,7 +25,7 @@ DevOps-Driven API Governance · 20 minutes · Q&A after (~5 min) · [deck](https
 | 19 | ▶ KrakenD (70 s) | 13:27 | 404 → 200 through the gateway |
 | 20 | Takeaway 4 | **13:57** ✔ | Generated, deployed, proven |
 | 21 | Step 5: partner live | 14:27 | Innocent change |
-| 22 | ▶ oasdiff (104 s) | 16:22 | `new-required-request-parameter`; later gates skipped |
+| 22 | ▶ oasdiff (117 s) | 16:24 | `new-required-request-parameter`; later gates skipped |
 | 23 | Takeaway 5 | 16:57 | Explicit decision, not an accident |
 | 24 | Whole pipeline | 17:27 | "You don't need five gates on day one." Audit trail. |
 | 25 | Monday morning | 18:12 | Track all APIs · top 5 rules as lint · diff your top API |
