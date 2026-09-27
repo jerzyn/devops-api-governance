@@ -269,13 +269,16 @@ def slides():
         f'{h2("Andrzej Jarzyna")}'
         f'{p("Founder of <b>API Peak</b>: API strategy and governance services, community products", 32, MUTED)}'
         f'<div style="display:flex; flex-direction:column">{rows}</div></div>'
-        f'<div style="width:500px; display:flex; flex-direction:column; gap:24px">'
+        f'<div style="width:540px; display:flex; flex-direction:column; gap:24px">'
         f'<img src="{asset("andrzej.jpg")}" alt="Andrzej climbing a snowy gully" '
-        f'style="width:500px; height:580px; object-fit:cover; border-radius:16px">'
-        f'<div style="display:flex; flex-direction:row; gap:24px; align-items:center">'
+        f'style="width:540px; height:430px; object-fit:cover; border-radius:16px">'
+        f'<div style="display:flex; flex-direction:row; gap:24px; align-items:end">'
+        f'<img src="{asset("book.jpg")}" alt="Book cover: RESTful API Design Patterns and Best Practices" '
+        f'style="width:300px; height:370px; object-fit:contain">'
+        f'<div style="display:flex; flex-direction:column; gap:12px">'
         f'<img src="{asset("qr-book-amazon.png")}" alt="QR code: the book on Amazon" '
         f'style="width:200px; height:200px; object-fit:contain">'
-        f'{p("The book on Amazon", 28, INK, "font-weight:700")}</div></div></div>',
+        f'{p("The book on Amazon", 26, INK, "font-weight:700")}</div></div></div></div>',
         "0:15 → 0:45. Founder of API Peak, my own company: API strategy and governance for "
         "companies, plus community work. Before that I built API governance at adidas, ING and "
         "most recently PZU, the largest insurer in Central-Eastern Europe. Co-author of the "

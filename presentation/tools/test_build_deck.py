@@ -91,3 +91,11 @@ def test_pipeline_is_25_percent_larger_and_fits():
     assert gates == 4
     total = 160 + 3 * 30 + (4 * 230 + 3 * 24 + 40 + 4) + 130 + 200
     assert total <= 1664
+
+
+def test_about_shows_book_cover_next_to_qr(tmp_path):
+    slides = build(tmp_path, "2026-09-27T00:00:00Z")
+    about = slides["about"]
+    book = re.search(r'<img src="/_blob/87da81414be4cd152ed5b1d65641ba3c"[^>]*style="([^"]*)"', about)
+    assert book and "width:300px" in book.group(1)
+    assert about.index("87da81414be4cd152ed5b1d65641ba3c") < about.index("ac781fdac69e95bab1e7fc8700ebff3c")
