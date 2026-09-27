@@ -38,3 +38,5 @@ governance/gateway/package-lock.json
 # Local recordings of the demo (large video, not part of the repo)
 presentation/recordings/
 presentation/tools/.venv/
+presentation/tools/okular-test.pdf
+presentation/tools/deck-export.pdf
