@@ -6,6 +6,7 @@ Content follows presentation/deck-plan.md; asset urls come from
 presentation/assets/uploads.json.
 """
 import json
+import re
 import sys
 from datetime import datetime, timezone
 from html import escape
@@ -40,6 +41,8 @@ def asset(name):
 
 
 def section(sid, bg, body, notes, color=INK, extra_style="", attrs=""):
+    # Slide text never ends with a period (titles, subtitles, one-line statements).
+    body = re.sub(r"\.(</(?:p|h1|h2|h3|li|b|span)>)", r"\1", body)
     style = (f"background:{bg}; color:{color}; font-family:{BODY}; "
              f"padding:128px; display:flex; flex-direction:column; gap:40px; {extra_style}")
     return (f'<section id="{sid}" data-transition="fade"{attrs} style="{style}">\n'

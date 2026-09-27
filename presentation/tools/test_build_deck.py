@@ -60,3 +60,10 @@ def test_review_round_2_layout_fixes(tmp_path):
         tag = re.search(r'<p style="([^"]*)">' + re.escape(number) + "</p>", slides["agents"])
         assert tag and "white-space:nowrap" in tag.group(1), number
     assert "fc6979b5ff4e9fec57245e41f0e67fea" in slides["catalog"]
+
+
+def test_visible_text_has_no_trailing_period(tmp_path):
+    slides = build(tmp_path, "2026-09-27T00:00:00Z")
+    for sid, html in slides.items():
+        visible = html.split("<aside>")[0]
+        assert not re.search(r"\.</(p|h1|h2|h3|li|b|span)>", visible), sid
