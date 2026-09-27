@@ -40,3 +40,5 @@ presentation/recordings/
 presentation/tools/.venv/
 presentation/tools/okular-test.pdf
 presentation/tools/deck-export.pdf
+presentation/tools/__pycache__/
+presentation/tools/.pytest_cache/

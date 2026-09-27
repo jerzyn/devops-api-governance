@@ -7,7 +7,7 @@ Material for giving the talk *"DevOps-Driven API Governance"* and for recording 
 | File | What it is |
 |------|------------|
 | [FOST London deck](https://claude.ai/artifact/AUkTCc1xev8nuvEcBELiU2) | The deck for FOST London, 1 October 2026: a Slides artifact with the five demo clips embedded. Built by `tools/build_deck.py`. |
-| `FOST London 2026 - DevOps-Driven API Governance.pdf` | Offline copy of that deck with the clips embedded; plays in Okular. Built by `tools/embed_videos.py`. |
+| `FOST London 2026 - DevOps-Driven API Governance.pdf` | *(pending: built once the deck is final)* Offline copy of that deck with the clips embedded; plays in Okular. Built by `tools/embed_videos.py`. |
 | [`deck-plan.md`](deck-plan.md) / [`run-sheet.md`](run-sheet.md) | The plan behind the FOST deck (timing, cuts, design) and the one-page run sheet for the talk. |
 | `tools/` | Scripts for the FOST deck: `cut_clips.py` (cuts `recordings/stage*-talk.mp4` from `cuts.json`), `build_deck.py`, `embed_videos.py`, `make_qr.py`. Set up with `python3 -m venv tools/.venv && tools/.venv/bin/pip install -r tools/requirements.txt`. |
 | `DevOps Driven Governance - London 2026.pdf` / `.txt` | The earlier (Munich) slide deck and its text transcript. |

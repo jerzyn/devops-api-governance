@@ -31,3 +31,13 @@ def test_every_video_slide_plays_its_clip_on_click(tmp_path):
         html = slides[f"v{n}"]
         assert 'data-video="/_blob/' in html and 'data-video-start="click"' in html
         assert f"DEMO · STEP {n}" in html
+
+
+def test_notes_carry_checkpoints_valid_cue_times_and_transitions(tmp_path):
+    slides = build(tmp_path, "2026-09-27T00:00:00Z")
+    for sid in ("thread", "t2", "t4"):
+        assert "Behind?" in slides[sid], sid
+    for n in range(1, 6):
+        html = slides[f"v{n}"]
+        assert not re.search(r"~0:[6-9]\d", html), n
+        assert "Transition:" in html, n

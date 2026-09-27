@@ -312,7 +312,7 @@ def slides():
         "fintech building an AI agent on top of it. Keep them in mind: they'll integrate in step "
         "three, and in step five we'll protect them. Here's the delivery pipeline: pull request, "
         "CI, merge, deploy. No gates yet. The demos are recordings of a real local stack; the "
-        "whole repo is open source. Transition: step one.", color=LIGHT)
+        "whole repo is open source. Checkpoint 4:30. Behind? Skip slide 9: say the one-file point in one sentence on slide 8. Transition: step one.", color=LIGHT)
 
     s["catalog"] = step_title(
         "catalog", 1, "API catalog", "You can’t govern what you can’t see",
@@ -371,7 +371,7 @@ def slides():
         "(fast) a change moves the server URL to http://. ~0:27 red check. ~0:29 the log: one "
         "finding, api-peak:rest17:2025-https-required, with a link. ~0:36 the link opens the "
         "same rule in Backstage: one source of truth for humans and CI. ~0:44 (fast) one-line "
-        "fix, push, green, merge. Move on at the merge.")
+        "fix, push, green, merge. Move on at the merge. Transition: so what does that give you?")
 
     s["t2"] = takeaway(
         "t2", 2, "Feedback in seconds, not weeks",
@@ -383,7 +383,7 @@ def slides():
         "descriptions and examples in the contract are what lifted accuracy to 99.6%.",
         "8:22 → 8:52. The review board used to find this weeks later. Now it's a red check in "
         "seconds, with the rule and the fix. Tip: warnings first, then promote rules to errors "
-        "once teams are clean. Transition: now, a contract is a promise.")
+        "once teams are clean. Checkpoint 8:52. Behind? Talk over the Microcks UI part of clip 3 without pausing. Transition: now, a contract is a promise.")
 
     s["contracts"] = step_title(
         "contracts", 3, "Mocks and contract testing", "A contract is a promise",
@@ -399,9 +399,9 @@ def slides():
         "~0:04 curl the mock: a live response from the contract's example; the partner "
         "integrates today. ~0:13 Microcks: the mocked service. ~0:25 (fast) a change promises "
         "a new field, currency. ~0:40 contract-test red. ~0:49 Microcks test detail: "
-        "required property currency not found. ~0:74 curl the mock (has currency) vs the "
-        "backend (doesn't): the code doesn't keep the promise. ~0:83 (fast) fix: don't promise "
-        "currency until the backend returns it; green, merge. Move on at the merge.")
+        "required property currency not found. ~1:14 curl the mock (has currency) vs the "
+        "backend (doesn't): the code doesn't keep the promise. ~1:23 (fast) fix: don't promise "
+        "currency until the backend returns it; green, merge. Move on at the merge. Transition: one example, two uses.")
 
     s["t3"] = takeaway(
         "t3", 3, "One example, two uses",
@@ -429,7 +429,7 @@ def slides():
         "yet. ~0:04 (fast) the PR adds the gateway gate. ~0:23 the job: generate krakend.json "
         "from the contract, validate it with krakend check, deploy it, then run the same "
         "contract test through the gateway. ~0:45 green, merge. ~0:52 curl again: 200 through "
-        "KrakenD, same body as the backend. Move on after the second curl.")
+        "KrakenD, same body as the backend. Move on after the second curl. Transition: generated, deployed, proven.")
 
     s["t4"] = takeaway(
         "t4", 4, "Generated, deployed, proven",
@@ -441,7 +441,7 @@ def slides():
         "test runs through the gateway: it must not change what the contract promises.",
         "what runs in production is exactly what the agent read.",
         "13:27 → 13:57. Catalog, tests, mock and now the gateway all come from the same "
-        "orders-openapi.yaml. With Kong or Apigee only the generator changes. Transition: "
+        "orders-openapi.yaml. With Kong or Apigee only the generator changes. Checkpoint 13:57. Behind? Keep takeaway 5 to one sentence and go straight to Monday morning after the pipeline slide. Transition: "
         "and now our partner is live.")
 
     s["breaking"] = step_title(
@@ -461,7 +461,7 @@ def slides():
         "required. ~0:43 breaking-changes red; contract test and gateway Skipped, grey: the "
         "later gates don't even run. ~0:47 oasdiff: new-required-request-parameter, channel. "
         "~1:03 (fast) fix: make channel optional. ~1:21 (fast) all four green, merge. Move on "
-        "at the merge.")
+        "at the merge. Transition: blocked before anyone got hurt.")
 
     s["t5"] = takeaway(
         "t5", 5, "An explicit decision, not an accident",

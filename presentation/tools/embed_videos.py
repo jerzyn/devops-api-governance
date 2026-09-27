@@ -24,7 +24,7 @@ def _screen(pdf, page, clip):
         C=Dictionary(Type=Name.MediaClip, S=Name.MCD, N=name,
                      CT=String("video/mp4"), D=filespec,
                      P=Dictionary(Type=Name.MediaPermissions, TF=String("TEMPACCESS"))),
-        P=Dictionary(Type=Name.MediaPlayParams, BE=Dictionary(C=True)))
+        P=Dictionary(Type=Name.MediaPlayParams, BE=Dictionary(C=True, A=False)))
     box = page.mediabox
     annot = pdf.make_indirect(Dictionary(
         Type=Name.Annot, Subtype=Name.Screen, Rect=Array(list(box)), F=4,

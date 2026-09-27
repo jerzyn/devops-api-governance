@@ -31,6 +31,7 @@ def test_embeds_a_playable_screen_annotation(tmp_path):
     assert action.AN.objgen == screen.objgen
     clipdata = action.R.C
     assert action.R.S == "/MR" and clipdata.S == "/MCD"
+    assert action.R.P.BE.A is False  # start on click, not on page open
     assert str(clipdata.CT) == "video/mp4"
     stream = clipdata.D.EF.F
     assert len(stream.read_bytes()) == clip.stat().st_size
