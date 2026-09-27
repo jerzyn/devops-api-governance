@@ -68,9 +68,71 @@ def p(text, size=32, color=INK, extra=""):
     return f'<p style="font-size:{size}px; line-height:1.4; color:{color}; {extra}">{text}</p>'
 
 
-def code(lines, size=32, width=None):
+# Code colors on the navy code card (all >= 4.5:1 on #323a4d)
+C_KEY = "#7cc8ea"      # keys, rule ids
+C_STR = "#a8e0a0"      # strings, names in backticks
+C_LIT = "#f5c27a"      # numbers, booleans, success status
+C_ERR = "#f28b82"      # errors, failure status
+C_DIM = "#9aa2b5"      # comments, prompts
+C_CMD = "#d7b8f3"      # commands, HTTP methods
+
+_TOKENS = {
+    "yaml": [
+        (r"#.*$", C_DIM),
+        (r"^\s*[\w$.-]+(?=:)", C_KEY),
+        (r"(?<=[{,]\s)[\w-]+(?=:)", C_KEY),
+        (r'"[^"]*"', C_STR),
+        (r"\b(?:true|false|\d+)\b", C_LIT),
+    ],
+    "shell": [
+        (r"#.*$", C_DIM),
+        (r"^\$", C_DIM),
+        (r"\bcurl\b", C_CMD),
+        (r"\b404 Not Found\b", C_ERR),
+        (r"\b200 OK\b", C_LIT),
+        (r'"[\w]+"(?=:)', C_KEY),
+        (r'"[^"]*"', C_STR),
+        (r"\b(?:true|false)\b", C_LIT),
+    ],
+    "lint": [
+        (r"\berror\b", C_ERR),
+        (r"\bexit 1\b|\bPR blocked\b", C_ERR),
+        (r"\[[\w-]+\]|api-peak:[\w:-]+", C_KEY),
+        (r"`[^`]*`", C_STR),
+        (r"\b(?:GET|POST|PUT|DELETE|MUST)\b", C_CMD),
+        (r"#[\w-]+|→", C_DIM),
+        (r"\bskipped\b", C_DIM),
+    ],
+}
+
+
+def highlight(line, lang):
+    """One code line as HTML: escaped, spaces kept, tokens wrapped in color spans."""
+    rules = [(re.compile(rx), color) for rx, color in _TOKENS.get(lang, [])]
+
+    def text(t):
+        return escape(t).replace(" ", "&#160;")
+
+    out, i = [], 0
+    while i < len(line):
+        best = None
+        for rx, color in rules:
+            m = rx.search(line, i)
+            if m and m.end() > m.start() and (best is None or m.start() < best[0].start()):
+                best = (m, color)
+        if not best:
+            out.append(text(line[i:]))
+            break
+        m, color = best
+        out.append(text(line[i:m.start()]))
+        out.append(f'<span style="color:{color}">{text(m.group())}</span>')
+        i = m.end()
+    return "".join(out)
+
+
+def code(lines, size=32, width=None, lang=None):
     w = f" width:{width}px;" if width else ""
-    body = "<br>".join(escape(l).replace(" ", "&#160;") for l in lines)
+    body = "<br>".join(highlight(l, lang) for l in lines)
     return (f'<div style="background:{NAVY}; border-radius:16px; padding:36px 44px;{w}">'
             f'<p style="font-family:{MONO}; font-size:{size}px; line-height:1.5; color:#e6e9ef">'
             f"{body}</p></div>")
@@ -150,10 +212,10 @@ def video(sid, n, name, clip, notes):
     return section(sid, NAVY_DEEP, body, notes, color=LIGHT)
 
 
-def takeaway(sid, n, title, key_lines, support, agents, notes):
+def takeaway(sid, n, title, key_lines, support, agents, notes, lang=None):
     body = (f'<div style="display:flex; flex-direction:column; gap:20px">'
             f"{eyebrow(f'Step {n} — takeaway', ACCENT_ON_LIGHT)}{h2(title)}</div>"
-            f"{code(key_lines, 36)}{p(support, 32, MUTED)}"
+            f"{code(key_lines, 36, lang=lang)}{p(support, 32, MUTED)}"
             f'<div style="flex:1"></div>'
             f'<div style="display:flex; flex-direction:row; gap:24px; align-items:center">'
             f'<p style="font-size:24px; font-weight:700; letter-spacing:2px; color:{LIGHT}; '
@@ -249,7 +311,7 @@ def slides():
         f'{stat("Single API calls", "70–80%", "99.6%", "Bare OpenAPI → plus what governance already requires: descriptions, Problem Details, examples")}'
         f'{stat("Multi-step workflows", "~60%", "&gt;90%", "Chained calls → plus Arazzo workflow descriptions on top of the same specs")}'
         f'</div><div style="flex:1"></div>'
-        f'{p("AI readiness isn’t a separate project. It falls out of governance done right.", 40, INK, "font-weight:700")}',
+        f'{p("AI-ready APIs are not a separate initiative. They are a product of your API governance program", 40, INK, "font-weight:700")}',
         "1:15 → 2:05. At PZU we pointed AI agents at our own OpenAPI files. Bare specs with "
         "minimal descriptions: 70 to 80 percent accuracy. Then the same specs with what our "
         "governance program already required, descriptions everywhere, Problem Details for "
@@ -344,7 +406,7 @@ def slides():
                 "  lifecycle: experimental",
                 "  owner: group:default/platform-team",
                 "  definition:",
-                "    $text: ./contracts/orders-openapi.yaml"], 30, 960)
+                "    $text: ./contracts/orders-openapi.yaml"], 30, 960, lang="yaml")
         + f'<div style="flex:1; display:flex; flex-direction:column; gap:28px">'
         f'{p("Name, owner, contract: next to the code", 34, INK, "font-weight:700")}'
         f'{p("Merge it, and the API is discovered, visible org-wide, with its contract and owner in one place", 30, MUTED)}'
@@ -392,7 +454,7 @@ def slides():
         "descriptions and examples in the contract are what lifted accuracy to 99.6%.",
         "8:22 → 8:52. The review board used to find this weeks later. Now it's a red check in "
         "seconds, with the rule and the fix. Tip: warnings first, then promote rules to errors "
-        "once teams are clean. Checkpoint 8:52. Behind? Talk over the Microcks UI part of clip 3 without pausing. Transition: now, a contract is a promise.")
+        "once teams are clean. Checkpoint 8:52. Behind? Talk over the Microcks UI part of clip 3 without pausing. Transition: now, a contract is a promise.", lang="lint")
 
     s["contracts"] = step_title(
         "contracts", 3, "Mocks and contract testing", "A contract is a promise",
@@ -422,7 +484,7 @@ def slides():
         "the promise on every pull request.",
         "build and test the agent against the mock before the API exists.",
         "11:12 → 11:42. One example in the contract pays twice: it's the mock partners use, and "
-        "it's the test the code must pass. Transition: now let's expose it for real.")
+        "it's the test the code must pass. Transition: now let's expose it for real.", lang="yaml")
 
     s["gateway"] = step_title(
         "gateway", 4, "API gateway", "Expose it, generated from the contract",
@@ -451,7 +513,7 @@ def slides():
         "what runs in production is exactly what the agent read.",
         "13:27 → 13:57. Catalog, tests, mock and now the gateway all come from the same "
         "orders-openapi.yaml. With Kong or Apigee only the generator changes. Checkpoint 13:57. Behind? Keep takeaway 5 to one sentence and go straight to Monday morning after the pipeline slide. Transition: "
-        "and now our partner is live.")
+        "and now our partner is live.", lang="shell")
 
     s["breaking"] = step_title(
         "breaking", 5, "Breaking changes", "Now the partner is integrated",
@@ -483,7 +545,7 @@ def slides():
         "a human reads the changelog. An agent just fails, at scale, often silently.",
         "16:22 → 16:57. Clients that don't send channel today would start getting 400s. CI "
         "caught it before the partner did. If you truly need the change, it's a decision: a new "
-        "version, run both, deprecate. Never by accident. Transition: let's step back.")
+        "version, run both, deprecate. Never by accident. Transition: let's step back.", lang="lint")
 
     s["pipeline"] = section(
         "pipeline", NAVY,

@@ -67,3 +67,14 @@ def test_visible_text_has_no_trailing_period(tmp_path):
     for sid, html in slides.items():
         visible = html.split("<aside>")[0]
         assert not re.search(r"\.</(p|h1|h2|h3|li|b|span)>", visible), sid
+
+
+def test_statement_and_code_colors(tmp_path):
+    slides = build(tmp_path, "2026-09-27T00:00:00Z")
+    assert "AI-ready APIs are not a separate initiative" in slides["agents"]
+    assert "product of your API governance program" in slides["agents"]
+    for sid in ("catalogfile", "t2", "t3", "t4", "t5"):
+        code_block = re.search(r"JetBrains Mono[^>]*>(.*?)</p>", slides[sid]).group(1)
+        assert code_block.count('<span style="color:') >= 3, sid
+    assert '<span style="color:#f28b82">error</span>' in slides["t5"]
+    assert '<span style="color:#7cc8ea">apiVersion</span>' in slides["catalogfile"]
