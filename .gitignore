@@ -43,3 +43,5 @@ presentation/tools/deck-export.pdf
 presentation/tools/__pycache__/
 presentation/tools/.pytest_cache/
 presentation/.~lock.*
+# Offline exports with embedded videos: large, rebuilt locally (tools/embed_exports.py)
+presentation/DevOps-Driven API Governance*
