@@ -48,7 +48,15 @@ def test_review_round_1_changes(tmp_path):
     event = re.search(r'<p style="([^"]*)">FOST London 2026', slides["title"])
     assert event and "position:absolute" in event.group(1)
     assert "Lead of Policy as Code in API governance" in slides["about"]
-    assert "qr-book" in slides["about"] or "3199296829bbf4d44d05653409cf9797" in slides["about"]
+    assert "qr-book" in slides["about"] or "ac781fdac69e95bab1e7fc8700ebff3c" in slides["about"]
     assert "f845b612ff5c3c5f08f2e3c379bf5372" not in slides["thanks"]
     assert "f845b612ff5c3c5f08f2e3c379bf5372" in slides["feedback"]
     assert ORDER.index("feedback") == ORDER.index("thanks") + 1
+
+
+def test_review_round_2_layout_fixes(tmp_path):
+    slides = build(tmp_path, "2026-09-27T00:00:00Z")
+    for number in ("70–80%", "99.6%", "~60%"):
+        tag = re.search(r'<p style="([^"]*)">' + re.escape(number) + "</p>", slides["agents"])
+        assert tag and "white-space:nowrap" in tag.group(1), number
+    assert "fc6979b5ff4e9fec57245e41f0e67fea" in slides["catalog"]

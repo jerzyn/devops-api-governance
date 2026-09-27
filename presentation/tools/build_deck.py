@@ -232,9 +232,9 @@ def slides():
                 f'border-radius:16px; padding:40px; display:flex; flex-direction:column; gap:16px">'
                 f'<p style="font-size:28px; font-weight:700; color:{MUTED}">{label}</p>'
                 f'<div style="display:flex; flex-direction:row; align-items:center; gap:28px">'
-                f'<p style="font-family:{HEAD}; font-size:72px; color:#8a91a0">{old}</p>'
-                f'<x-shape kind="arrow-right" style="width:72px; height:36px; background:{FADED}"></x-shape>'
-                f'<p style="font-family:{HEAD}; font-size:120px; font-weight:700; '
+                f'<p style="font-family:{HEAD}; font-size:60px; white-space:nowrap; color:#8a91a0">{old}</p>'
+                f'<x-shape kind="arrow-right" style="width:56px; height:28px; background:{FADED}"></x-shape>'
+                f'<p style="font-family:{HEAD}; font-size:104px; font-weight:700; white-space:nowrap; '
                 f'color:{ACCENT_ON_LIGHT}">{new}</p></div>'
                 f'{p(caption, 28, MUTED)}</div>')
     s["agents"] = section(
@@ -325,7 +325,7 @@ def slides():
         "Thousands of APIs across the organization. Who knows they exist?", "catalog",
         "4:30 → 5:10. Behind me: an API dependency graph of an organization. Every dot an API. "
         "Nobody has the full map. Before any rule, you need to see what you have. Transition: "
-        "and the cost of that first step has to be almost zero.", backdrop="org-graph.jpg")
+        "and the cost of that first step has to be almost zero.", backdrop="org-graph-clean.jpg")
 
     s["catalogfile"] = section(
         "catalogfile", LIGHT,
