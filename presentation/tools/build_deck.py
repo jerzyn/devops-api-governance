@@ -169,8 +169,9 @@ def slides():
         f"linear-gradient(160deg, {LIGHT} 0%, {LIGHT} 60%, {NAVY} 60%, {NAVY} 100%)",
         f'<div style="display:flex; flex-direction:column; gap:28px">'
         f'{h1("DevOps-Driven API Governance", "#1f2a44", 104)}'
-        f'{p("One gate at a time: API governance in the delivery pipeline", 40, MUTED)}'
-        f'{p("FOST London 2026 · 1 October", 32, ACCENT_ON_LIGHT, "font-weight:700")}</div>'
+        f'{p("One gate at a time: API governance in the delivery pipeline", 40, MUTED)}</div>'
+        f'<p style="position:absolute; left:128px; top:760px; width:720px; font-size:32px; '
+        f'font-weight:700; line-height:1.4; color:{ACCENT_ON_LIGHT}">FOST London 2026 · 1 October</p>'
         f'<p style="position:absolute; right:128px; bottom:150px; width:640px; text-align:right; '
         f'font-family:{HEAD}; font-size:48px; font-weight:700; color:{BEIGE}">Andrzej Jarzyna</p>'
         f'<p style="position:absolute; right:128px; bottom:96px; width:640px; text-align:right; '
@@ -182,7 +183,7 @@ def slides():
     track = [
         ("PZU", "Chief API Architect: governance program from zero, 200+ external APIs, "
                 "30+ products, APIs ready for AI agents"),
-        ("ING", "API governance lead, Policy as Code for APIs and Kafka topics"),
+        ("ING", "Lead of Policy as Code in API governance"),
         ("adidas", "API Evangelist: guidelines, API contract repository, CI quality gates"),
         ("3scale · iWelcome", "API management, gateways and API products"),
         ("Author", "RESTful API Design Patterns and Best Practices (Packt)"),
@@ -200,8 +201,13 @@ def slides():
         f'{h2("Andrzej Jarzyna")}'
         f'{p("Founder of <b>API Peak</b>: API strategy and governance services, community products", 32, MUTED)}'
         f'<div style="display:flex; flex-direction:column">{rows}</div></div>'
+        f'<div style="width:500px; display:flex; flex-direction:column; gap:24px">'
         f'<img src="{asset("andrzej.jpg")}" alt="Andrzej climbing a snowy gully" '
-        f'style="width:500px; height:824px; object-fit:cover; border-radius:16px"></div>',
+        f'style="width:500px; height:580px; object-fit:cover; border-radius:16px">'
+        f'<div style="display:flex; flex-direction:row; gap:24px; align-items:center">'
+        f'<img src="{asset("qr-book-amazon.png")}" alt="QR code: the book on Amazon" '
+        f'style="width:200px; height:200px; object-fit:contain">'
+        f'{p("The book on Amazon", 28, INK, "font-weight:700")}</div></div></div>',
         "0:15 → 0:45. Founder of API Peak, my own company: API strategy and governance for "
         "companies, plus community work. Before that I built API governance at adidas, ING and "
         "most recently PZU, the largest insurer in Central-Eastern Europe. Co-author of the "
@@ -519,14 +525,23 @@ def slides():
         f'<img src="{asset("qr-codeberg.png")}" alt="QR code: the demo repository on Codeberg" '
         f'style="width:400px; height:400px; object-fit:contain">'
         f'{p("The repo, on Codeberg", 28, INK, "font-weight:700")}'
-        f'{p("codeberg.org/pierogi/devops-api-governance", 24, MUTED)}</div>'
-        f'<div style="display:flex; flex-direction:column; align-items:center; gap:16px">'
-        f'<img src="{asset("qr-fost-feedback.png")}" alt="QR code: FOST session feedback" '
-        f'style="width:400px; height:400px; object-fit:contain">'
-        f'{p("Your feedback", 28, INK, "font-weight:700")}'
-        f'{p("FOST session survey", 24, MUTED)}</div></div>',
-        "18:12 → 18:42. Thank you. Left QR: the repo, run the whole demo with docker compose. "
-        "Right QR: the FOST feedback form, it really helps. I'm here for questions.")
+        f'{p("codeberg.org/pierogi/devops-api-governance", 24, MUTED)}</div></div>',
+        "18:12 → 18:42. Thank you. The QR code is the repo: run the whole demo with docker "
+        "compose. Transition: one last thing before questions.")
+
+    s["feedback"] = section(
+        "feedback", NAVY,
+        f'<div style="display:flex; flex-direction:row; gap:96px; flex:1; align-items:center">'
+        f'<div style="flex:1; display:flex; flex-direction:column; gap:28px">'
+        f'{eyebrow("FOST London 2026", ACCENT_ON_DARK)}'
+        f'{h1("How was this session?", LIGHT, 88)}'
+        f'{p("Scan to rate it. It takes a minute and it really helps.", 40, BEIGE_TEXT)}'
+        f'{p("Questions? I’m here now, and after the session.", 32, FADED)}</div>'
+        f'<div style="background:#ffffff; border-radius:24px; padding:32px">'
+        f'<img src="{asset("qr-fost-feedback.png")}" alt="QR code: FOST session feedback form" '
+        f'style="width:520px; height:520px; object-fit:contain"></div></div>',
+        "18:42 → Q&A. Leave this slide up during questions: the FOST feedback form. "
+        "Ask people to scan it now.", color=LIGHT)
 
     qa = [
         ("Backstage is heavy. Anything lighter?",
@@ -562,7 +577,7 @@ ORDER = ["title", "about", "hook", "agents", "why", "premises", "thread",
          "contracts", "v3", "t3",
          "gateway", "v4", "t4",
          "breaking", "v5", "t5",
-         "pipeline", "monday", "thanks", "qa"]
+         "pipeline", "monday", "thanks", "feedback", "qa"]
 
 SECTIONS = {
     "s1": ("Open: agents are the new API consumers, and governance is their developer experience", "title"),
@@ -572,7 +587,7 @@ SECTIONS = {
     "s5": ("Step 3: mocks and contract testing", "contracts"),
     "s6": ("Step 4: the API gateway, generated from the contract", "gateway"),
     "s7": ("Step 5: breaking changes", "breaking"),
-    "s8": ("Close: the whole pipeline, Monday morning actions, thank you", "pipeline"),
+    "s8": ("Close: the whole pipeline, Monday morning actions, thank you, feedback", "pipeline"),
 }
 
 FACES = {

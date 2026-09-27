@@ -28,7 +28,8 @@ DevOps-Driven API Governance · 20 minutes · Q&A after (~5 min) · [deck](https
 | 22 | Takeaway 5 | 16:57 | Explicit decision, not an accident |
 | 23 | Whole pipeline | 17:27 | "You don't need five gates on day one." Audit trail. |
 | 24 | Monday morning | 18:12 | Track all APIs · top 5 rules as lint · diff your top API |
-| 25 | Thank you | **18:42** ✔ | Codeberg QR · FOST feedback QR |
+| 25 | Thank you | **18:42** ✔ | Codeberg repo QR · book |
+| 26 | Feedback | Q&A | FOST feedback QR: leave it up during questions |
 
 **Checkpoints** ✔: 4:30 · 8:52 · 13:57 · 18:42. About 1:15 of buffer.
 

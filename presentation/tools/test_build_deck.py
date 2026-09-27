@@ -41,3 +41,14 @@ def test_notes_carry_checkpoints_valid_cue_times_and_transitions(tmp_path):
         html = slides[f"v{n}"]
         assert not re.search(r"~0:[6-9]\d", html), n
         assert "Transition:" in html, n
+
+
+def test_review_round_1_changes(tmp_path):
+    slides = build(tmp_path, "2026-09-27T00:00:00Z")
+    event = re.search(r'<p style="([^"]*)">FOST London 2026', slides["title"])
+    assert event and "position:absolute" in event.group(1)
+    assert "Lead of Policy as Code in API governance" in slides["about"]
+    assert "qr-book" in slides["about"] or "3199296829bbf4d44d05653409cf9797" in slides["about"]
+    assert "f845b612ff5c3c5f08f2e3c379bf5372" not in slides["thanks"]
+    assert "f845b612ff5c3c5f08f2e3c379bf5372" in slides["feedback"]
+    assert ORDER.index("feedback") == ORDER.index("thanks") + 1
