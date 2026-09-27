@@ -1,0 +1,3 @@
+pikepdf>=9
+qrcode[pil]>=8
+pytest>=8

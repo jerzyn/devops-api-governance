@@ -1,0 +1,34 @@
+{
+  "stage1": [
+    {"src": "stage1-1080.mp4", "from": 0.0, "to": 43.3, "speed": 1.25}
+  ],
+  "stage2": [
+    {"src": "stage2a-1080.mp4", "from": 16.9, "to": 30.9, "speed": 1.0},
+    {"src": "stage2b-1080.mp4", "from": 2.8, "to": 26.0, "speed": 2.0},
+    {"src": "stage2b-1080.mp4", "from": 26.0, "to": 44.0, "speed": 1.0},
+    {"src": "stage2b-1080.mp4", "from": 44.0, "to": 86.4, "speed": 2.0}
+  ],
+  "stage3": [
+    {"src": "stage3a-1080.mp4", "from": 19.9, "to": 25.5, "speed": 1.5},
+    {"src": "stage3a-1080.mp4", "from": 42.0, "to": 62.9, "speed": 1.0},
+    {"src": "stage3b-1080.mp4", "from": 0.6, "to": 24.3, "speed": 2.0},
+    {"src": "stage3b-1080.mp4", "from": 24.3, "to": 70.5, "speed": 1.0},
+    {"src": "stage3b-1080.mp4", "from": 70.5, "to": 119.0, "speed": 2.0}
+  ],
+  "stage4": [
+    {"src": "stage4-1080.mp4", "from": 0.0, "to": 4.3, "speed": 1.0},
+    {"src": "stage4-1080.mp4", "from": 4.3, "to": 42.2, "speed": 2.0},
+    {"src": "stage4-1080.mp4", "from": 42.2, "to": 64.0, "speed": 1.0},
+    {"src": "stage4-1080.mp4", "from": 64.0, "to": 76.8, "speed": 2.0},
+    {"src": "stage4-1080.mp4", "from": 76.8, "to": 95.1, "speed": 1.0}
+  ],
+  "stage5": [
+    {"src": "stage5a-1080.mp4", "from": 22.6, "to": 35.2, "speed": 1.0},
+    {"src": "stage5a-1080.mp4", "from": 38.2, "to": 71.5, "speed": 3.0},
+    {"src": "stage5b-1080.mp4", "from": 3.3, "to": 20.4, "speed": 1.5},
+    {"src": "stage5b-1080.mp4", "from": 28.5, "to": 44.0, "speed": 2.0},
+    {"src": "stage5b-1080.mp4", "from": 44.0, "to": 64.0, "speed": 1.0},
+    {"src": "stage5b-1080.mp4", "from": 64.0, "to": 100.0, "speed": 2.0},
+    {"src": "stage5b-1080.mp4", "from": 100.0, "to": 169.7, "speed": 3.0}
+  ]
+}
