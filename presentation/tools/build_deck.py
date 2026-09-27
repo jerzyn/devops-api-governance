@@ -140,6 +140,9 @@ def code(lines, size=32, width=None, lang=None):
 
 # ---------------------------------------------------------------- pipeline
 
+PIPE_TEXT = 30  # 25% larger than the 24px minimum, for reading from the back of the room
+
+
 def _box(name, tool, look, width):
     looks = {
         "neutral": ("transparent", f"2px solid {FADED}", "#e6e9ef", "#c4cad8"),
@@ -148,15 +151,15 @@ def _box(name, tool, look, width):
         "current": (ACCENT_ON_DARK, f"2px solid {ACCENT_ON_DARK}", "#13202b", "#1f3444"),
     }
     bg, border, c1, c2 = looks[look]
-    tool_p = (f'<p style="font-size:24px; line-height:1.2; color:{c2}; text-align:center">{tool}</p>'
+    tool_p = (f'<p style="font-size:{PIPE_TEXT}px; line-height:1.2; color:{c2}; text-align:center">{tool}</p>'
               if tool else "")
-    return (f'<div style="width:{width}px; background:{bg}; border:{border}; border-radius:12px; '
-            f'padding:14px 12px; display:flex; flex-direction:column; align-items:center; gap:4px">'
-            f'<p style="font-size:24px; font-weight:700; line-height:1.2; color:{c1}; '
+    return (f'<div style="width:{width}px; background:{bg}; border:{border}; border-radius:14px; '
+            f'padding:18px 12px; display:flex; flex-direction:column; align-items:center; gap:6px">'
+            f'<p style="font-size:{PIPE_TEXT}px; font-weight:700; line-height:1.2; color:{c1}; '
             f'text-align:center">{name}</p>{tool_p}</div>')
 
 
-def _arrow(width=36):
+def _arrow(width=30):
     return (f'<x-connector style="width:{width}px; color:{FADED}; align-self:center">'
             f"</x-connector>")
 
@@ -175,17 +178,17 @@ def pipeline(state):
              ("breaking", "Breaking changes", "oasdiff"),
              ("contracts", "Contract test + mock", "Microcks"),
              ("gateway", "API gateway", "KrakenD")]
-    gate_row = _arrow(28).join(_box(n, t, look(k), 210) for k, n, t in gates)
-    ci = (f'<div style="border:2px solid #5d6679; border-radius:16px; padding:16px 20px; '
-          f'display:flex; flex-direction:column; gap:12px; align-items:center">'
-          f'<p style="font-size:24px; color:{FADED}">CI gates on every pull request</p>'
+    gate_row = _arrow(24).join(_box(n, t, look(k), 230) for k, n, t in gates)
+    ci = (f'<div style="border:2px solid #5d6679; border-radius:18px; padding:18px 20px; '
+          f'display:flex; flex-direction:column; gap:14px; align-items:center">'
+          f'<p style="font-size:{PIPE_TEXT}px; color:{FADED}">CI gates on every pull request</p>'
           f'<div style="display:flex; flex-direction:row; align-items:center">{gate_row}</div></div>')
-    right = (f'<div style="display:flex; flex-direction:column; gap:16px">'
-             f'{_box("Catalog", "Backstage", look("catalog"), 210)}'
-             f'{_box("Deploy", "", "neutral", 210)}</div>')
+    right = (f'<div style="display:flex; flex-direction:column; gap:18px">'
+             f'{_box("Catalog", "Backstage", look("catalog"), 200)}'
+             f'{_box("Deploy", "", "neutral", 200)}</div>')
     return (f'<div style="display:flex; flex-direction:row; align-items:center">'
-            f'{_box("Pull request", "", "neutral", 150)}{_arrow()}{ci}{_arrow()}'
-            f'{_box("Merge", "", "neutral", 140)}{_arrow()}{right}</div>')
+            f'{_box("Pull request", "", "neutral", 160)}{_arrow()}{ci}{_arrow()}'
+            f'{_box("Merge", "", "neutral", 130)}{_arrow()}{right}</div>')
 
 
 # ---------------------------------------------------------------- templates

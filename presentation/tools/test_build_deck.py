@@ -78,3 +78,16 @@ def test_statement_and_code_colors(tmp_path):
         assert code_block.count('<span style="color:') >= 3, sid
     assert '<span style="color:#f28b82">error</span>' in slides["t5"]
     assert '<span style="color:#7cc8ea">apiVersion</span>' in slides["catalogfile"]
+
+
+def test_pipeline_is_25_percent_larger_and_fits():
+    from build_deck import pipeline
+    html = pipeline("guidelines")
+    sizes = set(int(x) for x in re.findall(r"font-size:(\d+)px", html))
+    assert sizes == {30}  # was 24px
+    widths = [int(x) for x in re.findall(r"width:(\d+)px", html)]
+    # PR + 3 outer arrows + CI box (4 gates, 3 arrows, 2x20 padding, 2x2 border) + Merge + right column
+    gates = widths.count(230)
+    assert gates == 4
+    total = 160 + 3 * 30 + (4 * 230 + 3 * 24 + 40 + 4) + 130 + 200
+    assert total <= 1664
