@@ -30,7 +30,8 @@ def test_every_video_slide_plays_its_clip_on_click(tmp_path):
     for n in range(1, 6):
         html = slides[f"v{n}"]
         assert 'data-video="/_blob/' in html and 'data-video-start="click"' in html
-        assert f"DEMO · STEP {n}" in html
+        assert "left:0px; top:0px; width:1920px; height:1080px" in html
+        assert "<p " not in html.split("<aside>")[0]  # nothing drawn over the video
 
 
 def test_notes_carry_checkpoints_valid_cue_times_and_transitions(tmp_path):
@@ -48,7 +49,7 @@ def test_review_round_1_changes(tmp_path):
     event = re.search(r'<p style="([^"]*)">FOST London 2026', slides["title"])
     assert event and "position:absolute" in event.group(1)
     assert "Lead of Policy as Code in API governance" in slides["about"]
-    assert "qr-book" in slides["about"] or "ac781fdac69e95bab1e7fc8700ebff3c" in slides["about"]
+    assert "ac781fdac69e95bab1e7fc8700ebff3c" in slides["book"]  # book QR moved to its own slide
     assert "f845b612ff5c3c5f08f2e3c379bf5372" not in slides["thanks"]
     assert "f845b612ff5c3c5f08f2e3c379bf5372" in slides["feedback"]
     assert ORDER.index("feedback") == ORDER.index("thanks") + 1
@@ -93,9 +94,12 @@ def test_pipeline_is_25_percent_larger_and_fits():
     assert total <= 1664
 
 
-def test_about_shows_book_cover_next_to_qr(tmp_path):
+def test_about_photo_only_and_book_slide_follows(tmp_path):
     slides = build(tmp_path, "2026-09-27T00:00:00Z")
-    about = slides["about"]
-    book = re.search(r'<img src="/_blob/87da81414be4cd152ed5b1d65641ba3c"[^>]*style="([^"]*)"', about)
-    assert book and "width:300px" in book.group(1)
-    assert about.index("87da81414be4cd152ed5b1d65641ba3c") < about.index("ac781fdac69e95bab1e7fc8700ebff3c")
+    book_cover, book_qr = "87da81414be4cd152ed5b1d65641ba3c", "ac781fdac69e95bab1e7fc8700ebff3c"
+    assert book_cover not in slides["about"] and book_qr not in slides["about"]
+    assert "align-self:center" in slides["about"]
+    assert book_cover in slides["book"] and book_qr in slides["book"]
+    assert ORDER.index("book") == ORDER.index("about") + 1
+    assert book_cover not in slides["thanks"]
+    assert "One example, many uses" in slides["t3"]

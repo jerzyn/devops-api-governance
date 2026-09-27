@@ -208,10 +208,8 @@ def step_title(sid, n, name, statement, sub, state, notes, backdrop=None):
 def video(sid, n, name, clip, notes):
     body = (f'<img src="{asset(f"stage{n}-still.jpg")}" data-video="{asset(clip)}" '
             f'data-video-start="click" alt="Recorded demo, step {n}: {name}" '
-            f'style="position:absolute; left:160px; top:40px; width:1600px; height:900px; '
-            f'object-fit:contain">'
-            f'<p style="position:absolute; left:160px; top:968px; width:1600px; font-size:24px; '
-            f'color:{FADED}">DEMO · STEP {n} — {name} · click the video to play</p>')
+            f'style="position:absolute; left:0px; top:0px; width:1920px; height:1080px; '
+            f'object-fit:contain">')
     return section(sid, NAVY_DEEP, body, notes, color=LIGHT)
 
 
@@ -269,21 +267,30 @@ def slides():
         f'{h2("Andrzej Jarzyna")}'
         f'{p("Founder of <b>API Peak</b>: API strategy and governance services, community products", 32, MUTED)}'
         f'<div style="display:flex; flex-direction:column">{rows}</div></div>'
-        f'<div style="width:540px; display:flex; flex-direction:column; gap:24px">'
         f'<img src="{asset("andrzej.jpg")}" alt="Andrzej climbing a snowy gully" '
-        f'style="width:540px; height:430px; object-fit:cover; border-radius:16px">'
-        f'<div style="display:flex; flex-direction:row; gap:24px; align-items:end">'
-        f'<img src="{asset("book.jpg")}" alt="Book cover: RESTful API Design Patterns and Best Practices" '
-        f'style="width:300px; height:370px; object-fit:contain">'
-        f'<div style="display:flex; flex-direction:column; gap:12px">'
-        f'<img src="{asset("qr-book-amazon.png")}" alt="QR code: the book on Amazon" '
-        f'style="width:200px; height:200px; object-fit:contain">'
-        f'{p("The book on Amazon", 26, INK, "font-weight:700")}</div></div></div></div>',
-        "0:15 → 0:45. Founder of API Peak, my own company: API strategy and governance for "
+        f'style="width:600px; height:780px; object-fit:cover; border-radius:16px; align-self:center"></div>',
+        "0:15 → 0:35. Founder of API Peak, my own company: API strategy and governance for "
         "companies, plus community work. Before that I built API governance at adidas, ING and "
         "most recently PZU, the largest insurer in Central-Eastern Europe. Co-author of the "
         "RESTful API Design Patterns book. Fun fact: API Peak is also the made-up company in "
-        "today's demo repo. Transition: and here's why governance matters more this year than ever.")
+        "today's demo repo. Transition: and one line about the book.")
+
+    s["book"] = section(
+        "book", LIGHT,
+        f'<div style="display:flex; flex-direction:row; gap:96px; flex:1; align-items:center">'
+        f'<img src="{asset("book.jpg")}" alt="Book cover: RESTful API Design Patterns and Best Practices" '
+        f'style="width:560px; height:690px; object-fit:contain">'
+        f'<div style="flex:1; display:flex; flex-direction:column; gap:28px">'
+        f'{eyebrow("The book", ACCENT_ON_LIGHT)}'
+        f'{h2("RESTful API Design Patterns and Best Practices")}'
+        f'{p("Andrzej Jarzyna &amp; Samir Amzani · Packt", 32, MUTED)}'
+        f'<div style="display:flex; flex-direction:row; gap:32px; align-items:center">'
+        f'<img src="{asset("qr-book-amazon.png")}" alt="QR code: the book on Amazon" '
+        f'style="width:300px; height:300px; object-fit:contain">'
+        f'{p("Get it on Amazon", 32, INK, "font-weight:700")}</div></div></div>',
+        "0:35 → 0:45. Ten seconds: the book covers API design, lifecycle and governance, and "
+        "this talk is one chapter of it in practice. The QR code goes to Amazon. "
+        "Transition: and here's why governance matters more this year than ever.")
 
     s["hook"] = section(
         "hook", NAVY,
@@ -389,7 +396,7 @@ def slides():
         "fintech building an AI agent on top of it. Keep them in mind: they'll integrate in step "
         "three, and in step five we'll protect them. Here's the delivery pipeline: pull request, "
         "CI, merge, deploy. No gates yet. The demos are recordings of a real local stack; the "
-        "whole repo is open source. Checkpoint 4:30. Behind? Skip slide 9: say the one-file point in one sentence on slide 8. Transition: step one.", color=LIGHT)
+        "whole repo is open source. Checkpoint 4:30. Behind? Skip slide 10: say the one-file point in one sentence on slide 9. Transition: step one.", color=LIGHT)
 
     s["catalog"] = step_title(
         "catalog", 1, "API catalog", "You can’t govern what you can’t see",
@@ -478,10 +485,10 @@ def slides():
         "a new field, currency. ~0:40 contract-test red. ~0:49 Microcks test detail: "
         "required property currency not found. ~1:14 curl the mock (has currency) vs the "
         "backend (doesn't): the code doesn't keep the promise. ~1:23 (fast) fix: don't promise "
-        "currency until the backend returns it; green, merge. Move on at the merge. Transition: one example, two uses.")
+        "currency until the backend returns it; green, merge. Move on at the merge. Transition: one example, many uses.")
 
     s["t3"] = takeaway(
-        "t3", 3, "One example, two uses",
+        "t3", 3, "One example, many uses",
         ["examples:",
          "  order_123:",
          "    value: { orderId: \"123\", isPaid: true }",
@@ -589,9 +596,7 @@ def slides():
         f'<div style="flex:1; display:flex; flex-direction:column; gap:24px">'
         f'{h1("Thank you!", "#1f2a44", 104)}'
         f'{p("Andrzej Jarzyna · API Peak", 36, INK, "font-weight:700")}'
-        f'{p("Run the whole demo yourself: <b>docker compose up</b>", 30, MUTED)}'
-        f'<img src="{asset("book.jpg")}" alt="Book cover: RESTful API Design Patterns and Best Practices" '
-        f'style="width:240px; height:300px; object-fit:contain"></div>'
+        f'{p("Run the whole demo yourself: <b>docker compose up</b>", 30, MUTED)}</div>'
         f'<div style="display:flex; flex-direction:column; align-items:center; gap:16px">'
         f'<img src="{asset("qr-codeberg.png")}" alt="QR code: the demo repository on Codeberg" '
         f'style="width:400px; height:400px; object-fit:contain">'
@@ -642,7 +647,7 @@ def slides():
     return s
 
 
-ORDER = ["title", "about", "hook", "agents", "why", "premises", "thread",
+ORDER = ["title", "about", "book", "hook", "agents", "why", "premises", "thread",
          "catalog", "catalogfile", "v1",
          "guidelines", "v2", "t2",
          "contracts", "v3", "t3",
