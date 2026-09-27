@@ -25,14 +25,14 @@ DevOps-Driven API Governance · 20 minutes · Q&A after (~5 min) · [deck](https
 | 19 | ▶ KrakenD (70 s) | 13:27 | 404 → 200 through the gateway |
 | 20 | Takeaway 4 | **13:57** ✔ | Generated, deployed, proven |
 | 21 | Step 5: partner live | 14:27 | Innocent change |
-| 22 | ▶ oasdiff (117 s) | 16:24 | `new-required-request-parameter`; later gates skipped |
-| 23 | Takeaway 5 | 16:57 | Explicit decision, not an accident |
-| 24 | Whole pipeline | 17:27 | "You don't need five gates on day one." Audit trail. |
-| 25 | Monday morning | 18:12 | Track all APIs · top 5 rules as lint · diff your top API |
-| 26 | Thank you | **18:42** ✔ | Codeberg repo QR |
+| 22 | ▶ oasdiff (74 s) | 15:41 | `new-required-request-parameter`; later gates skipped |
+| 23 | Takeaway 5 | 16:16 | Explicit decision, not an accident |
+| 24 | Whole pipeline | 16:46 | "You don't need five gates on day one." Audit trail. |
+| 25 | Monday morning | 17:31 | Track all APIs · top 5 rules as lint · diff your top API |
+| 26 | Thank you | **18:01** ✔ | Codeberg repo QR |
 | 27 | Feedback | Q&A | FOST feedback QR: leave it up during questions |
 
-**Checkpoints** ✔: 4:30 · 8:52 · 13:57 · 18:42. About 1:15 of buffer.
+**Checkpoints** ✔: 4:30 · 8:52 · 13:57 · 18:01. About 2:00 of buffer.
 
 **Behind? Skip in this order:** slide 10 (say it in one sentence on slide 9) · talk over the Microcks UI part of clip 3 without pausing · slide 20's code (say "404 to 200").
 

@@ -577,12 +577,12 @@ def slides():
 
     s["v5"] = video(
         "v5", 5, "Breaking changes", "stage5-talk.mp4",
-        "14:27 → 16:24. Click to play (117 s). Cues: 0:00 switch to the branch, git diff --stat, push. "
+        "14:27 → 15:41. Click to play (74 s). Cues: 0:00 switch to the branch, git diff --stat, push. "
         "~0:09 (fast) open the PR. ~0:13 Files changed: the new breaking-changes job in the middle of the chain, "
-        "needs repointed. ~0:26 (fast) four gates green, merge. ~0:37 the innocent change: a new query "
-        "parameter channel, required. ~0:56 breaking-changes red; contract test and gateway Skipped, grey: "
-        "the later gates don't even run. ~1:00 oasdiff: new-required-request-parameter, channel. "
-        "~1:16 (fast) fix: make channel optional. ~1:34 (fast) all four green, merge. Move on at the merge. "
+        "needs repointed. ~0:25 (very fast) four gates green, merge. ~0:30 the innocent change: a new query "
+        "parameter channel, required. ~0:44 breaking-changes red; contract test and gateway Skipped, grey: "
+        "the later gates don't even run. ~0:46 (2x) oasdiff: new-required-request-parameter, channel. "
+        "~0:54 (2x) fix: make channel optional, push. ~1:05 (very fast) all four green, merge. Move on at the merge. "
         "Transition: blocked before anyone got hurt.")
 
     s["t5"] = takeaway(
@@ -594,7 +594,7 @@ def slides():
         "Blocked before merge, before deploy, before the incident. Make it optional, or ship a "
         "new major version on purpose (rule rest40).",
         "a human reads the changelog. An agent just fails, at scale, often silently.",
-        "16:22 → 16:57. Clients that don't send channel today would start getting 400s. CI "
+        "15:41 → 16:16. Clients that don't send channel today would start getting 400s. CI "
         "caught it before the partner did. If you truly need the change, it's a decision: a new "
         "version, run both, deprecate. Never by accident. Transition: let's step back.", lang="lint")
 
@@ -605,7 +605,7 @@ def slides():
         f'{h1("You don’t need five gates on day one", LIGHT, 72)}'
         f'{p("Add one at a time, like we just did. Every change is a pull request with recorded gate results: an audit trail for free. Open source, sovereign, one contract.", 32, BEIGE_TEXT)}</div>'
         f'<div style="flex:1"></div>{pipeline("all")}',
-        "16:57 → 17:27. Five gates, one contract. And the order we added them is the rollout "
+        "16:16 → 16:46. Five gates, one contract. And the order we added them is the rollout "
         "plan: start minimal, then nudge. For regulated industries, every contract change is a "
         "PR with recorded gate results, an audit trail you get for free. Transition: so what "
         "can you do on Monday?", color=LIGHT)
@@ -623,7 +623,7 @@ def slides():
         f'{action(2, "Turn your top 5 guideline rules into a CI lint, warnings first")}'
         f'{action(3, "Run a breaking-change diff on your most-used API")}</div>'
         f'{p("Your APIs get better for people, and ready for agents, as a by-product.", 32, MUTED)}',
-        "17:27 → 18:12. Three things, no big program needed. One: track all your APIs in one "
+        "16:46 → 17:31. Three things, no big program needed. One: track all your APIs in one "
         "place, even from a monorepo. Two: take your top five guideline rules and make them a "
         "CI lint, as warnings first. Three: run a breaking-change diff on your most-used API "
         "and see what you've been shipping. Transition: thank you.")
@@ -640,7 +640,7 @@ def slides():
         f'style="width:400px; height:400px; object-fit:contain">'
         f'{p("The repo, on Codeberg", 28, INK, "font-weight:700")}'
         f'{p("codeberg.org/pierogi/devops-api-governance", 24, MUTED)}</div></div>',
-        "18:12 → 18:42. Thank you. The QR code is the repo: run the whole demo with docker "
+        "17:31 → 18:01. Thank you. The QR code is the repo: run the whole demo with docker "
         "compose. Transition: one last thing before questions.")
 
     s["feedback"] = section(
@@ -654,7 +654,7 @@ def slides():
         f'<div style="background:#ffffff; border-radius:24px; padding:32px">'
         f'<img src="{asset("qr-fost-feedback.png")}" alt="QR code: FOST session feedback form" '
         f'style="width:520px; height:520px; object-fit:contain"></div></div>',
-        "18:42 → Q&A. Leave this slide up during questions: the FOST feedback form. "
+        "18:01 → Q&A. Leave this slide up during questions: the FOST feedback form. "
         "Ask people to scan it now.", color=LIGHT)
 
     qa = [

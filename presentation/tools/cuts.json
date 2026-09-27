@@ -97,60 +97,84 @@
       "speed": 1.0
     }
   ],
-  "stage5": [
-    {
-      "src": "stage5a-1080.mp4",
-      "from": 1.0,
-      "to": 14.0,
-      "speed": 1.5
-    },
-    {
-      "src": "stage5a-1080.mp4",
-      "from": 14.0,
-      "to": 22.6,
-      "speed": 2.0
-    },
-    {
-      "src": "stage5a-1080.mp4",
-      "from": 22.6,
-      "to": 35.2,
-      "speed": 1.0
-    },
-    {
-      "src": "stage5a-1080.mp4",
-      "from": 38.2,
-      "to": 71.5,
-      "speed": 3.0
-    },
-    {
-      "src": "stage5b-1080.mp4",
-      "from": 3.3,
-      "to": 20.4,
-      "speed": 1.5
-    },
-    {
-      "src": "stage5b-1080.mp4",
-      "from": 28.5,
-      "to": 44.0,
-      "speed": 2.0
-    },
-    {
-      "src": "stage5b-1080.mp4",
-      "from": 44.0,
-      "to": 64.0,
-      "speed": 1.0
-    },
-    {
-      "src": "stage5b-1080.mp4",
-      "from": 64.0,
-      "to": 100.0,
-      "speed": 2.0
-    },
-    {
-      "src": "stage5b-1080.mp4",
-      "from": 100.0,
-      "to": 169.7,
-      "speed": 3.0
-    }
-  ]
+  "stage5": {
+    "parts": [
+      {
+        "src": "stage5a-1080.mp4",
+        "from": 1.0,
+        "to": 14.0,
+        "speed": 1.5
+      },
+      {
+        "src": "stage5a-1080.mp4",
+        "from": 14.0,
+        "to": 22.6,
+        "speed": 2.0
+      },
+      {
+        "src": "stage5a-1080.mp4",
+        "from": 22.6,
+        "to": 35.2,
+        "speed": 1.0
+      },
+      {
+        "src": "stage5a-1080.mp4",
+        "from": 38.2,
+        "to": 71.5,
+        "speed": 3.0
+      },
+      {
+        "src": "stage5b-1080.mp4",
+        "from": 3.3,
+        "to": 20.4,
+        "speed": 1.5
+      },
+      {
+        "src": "stage5b-1080.mp4",
+        "from": 28.5,
+        "to": 44.0,
+        "speed": 2.0
+      },
+      {
+        "src": "stage5b-1080.mp4",
+        "from": 44.0,
+        "to": 64.0,
+        "speed": 1.0
+      },
+      {
+        "src": "stage5b-1080.mp4",
+        "from": 64.0,
+        "to": 100.0,
+        "speed": 2.0
+      },
+      {
+        "src": "stage5b-1080.mp4",
+        "from": 100.0,
+        "to": 169.7,
+        "speed": 3.0
+      }
+    ],
+    "retime": [
+      {
+        "from": 25,
+        "to": 34,
+        "speed": 4
+      },
+      {
+        "from": 49,
+        "to": 56,
+        "speed": 4
+      },
+      {
+        "from": 56,
+        "to": 90,
+        "speed": 2
+      },
+      {
+        "from": 95,
+        "to": 114,
+        "speed": 4
+      }
+    ]
+  }
 }

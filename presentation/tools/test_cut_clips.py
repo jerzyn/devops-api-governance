@@ -8,3 +8,10 @@ def test_filter_trims_speeds_and_concats():
     assert "[0:v]trim=start=1.0:end=3.0,setpts=(PTS-STARTPTS)/1.0[v0]" in f
     assert "[1:v]trim=start=0.0:end=4.0,setpts=(PTS-STARTPTS)/2.0[v1]" in f
     assert f.endswith("[v0][v1]concat=n=2:v=1:a=0,fps=25[out]")
+
+
+def test_retime_fills_gaps_at_normal_speed():
+    from cut_clips import retime_segments
+    segs = retime_segments(100.0, [{"from": 25, "to": 34, "speed": 4},
+                                   {"from": 56, "to": 90, "speed": 2}])
+    assert segs == [(0.0, 25, 1.0), (25, 34, 4), (34, 56, 1.0), (56, 90, 2), (90, 100.0, 1.0)]

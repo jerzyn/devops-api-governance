@@ -19,10 +19,46 @@ def build_filter(parts):
     return ";".join(chains) + f";{joined}concat=n={len(parts)}:v=1:a=0,fps=25[out]"
 
 
+def retime_segments(total, retimes):
+    """Cover [0, total] of an already-cut clip: the given ranges at their speed, the rest at 1x."""
+    segs, pos = [], 0.0
+    for r in sorted(retimes, key=lambda r: r["from"]):
+        if r["from"] > pos:
+            segs.append((pos, r["from"], 1.0))
+        segs.append((r["from"], r["to"], r["speed"]))
+        pos = r["to"]
+    if pos < total:
+        segs.append((pos, total, 1.0))
+    return segs
+
+
+def _duration(path):
+    out = subprocess.run(["ffprobe", "-v", "error", "-show_entries", "format=duration",
+                          "-of", "csv=p=0", str(path)], capture_output=True, text=True, check=True)
+    return float(out.stdout)
+
+
+def _retime(path, retimes):
+    """Second pass on the cut clip: speed up ranges given in the cut clip's own timeline."""
+    segs = retime_segments(_duration(path), retimes)
+    chains = [f"[0:v]trim=start={a}:end={b},setpts=(PTS-STARTPTS)/{sp}[r{i}]"
+              for i, (a, b, sp) in enumerate(segs)]
+    joined = "".join(f"[r{i}]" for i in range(len(segs)))
+    filt = ";".join(chains) + f";{joined}concat=n={len(segs)}:v=1:a=0,fps=25[out]"
+    tmp = path.with_suffix(".retime.mp4")
+    subprocess.run(["ffmpeg", "-v", "error", "-y", "-i", str(path), "-filter_complex", filt,
+                    "-map", "[out]", "-an", "-c:v", "libx264", "-preset", "slow", "-crf", "21",
+                    "-pix_fmt", "yuv420p", "-movflags", "+faststart", str(tmp)], check=True)
+    tmp.replace(path)
+
+
 def main(cuts_path, recordings_dir):
     cuts = json.loads(Path(cuts_path).read_text())
     outs = []
-    for stage, parts in cuts.items():
+    for stage, spec in cuts.items():
+        # a stage is a list of parts, or {"parts": [...], "retime": [...]} where
+        # retime speeds up ranges of the cut clip (times in the cut clip's timeline)
+        parts = spec["parts"] if isinstance(spec, dict) else spec
         out = Path(recordings_dir) / f"{stage}-talk.mp4"
         cmd = ["ffmpeg", "-v", "error", "-y"]
         for p in parts:
@@ -31,6 +67,8 @@ def main(cuts_path, recordings_dir):
                 "-c:v", "libx264", "-preset", "slow", "-crf", "23",
                 "-pix_fmt", "yuv420p", "-movflags", "+faststart", str(out)]
         subprocess.run(cmd, check=True)
+        if isinstance(spec, dict) and spec.get("retime"):
+            _retime(out, spec["retime"])
         if out.stat().st_size > MAX_BYTES:
             sys.exit(f"{out} is over 19.5 MB; raise -crf")
         outs.append(out)
