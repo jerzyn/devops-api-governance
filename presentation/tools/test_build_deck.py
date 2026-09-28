@@ -119,3 +119,9 @@ def test_review_round_3(tmp_path):
     g = slides["guidelines"]
     assert g.count("opacity:0.6") >= 7 and "box-shadow" in g
     assert "opacity:0.6" not in slides["pipeline"]  # final slide: everything active
+
+
+def test_t2_points_to_spotlight(tmp_path):
+    slides = build(tmp_path, "2026-09-28T00:00:00Z")
+    assert "328448ddaed6edf1c34a5d1ae7b4deb8" in slides["t2"]
+    assert "Spotlight" in slides["t2"] and "telemetry" in slides["t2"]

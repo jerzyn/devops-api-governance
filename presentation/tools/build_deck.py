@@ -239,11 +239,14 @@ def video(sid, n, name, clip, notes):
     return section(sid, NAVY_DEEP, body, notes, color=LIGHT)
 
 
-def takeaway(sid, n, title, key_lines, support, agents, notes, lang=None, extra=None):
+def takeaway(sid, n, title, key_lines, support, agents, notes, lang=None, extra=None, side=None):
     body = (f'<div style="display:flex; flex-direction:column; gap:20px">'
             f"{eyebrow(f'Step {n} — takeaway', ACCENT_ON_LIGHT)}{h2(title)}</div>"
             + (f"{code(key_lines, 30, lang=lang)}{code(extra[0], 26, lang=extra[1])}" if extra
-               else f"{code(key_lines, 36, lang=lang)}{p(support, 32, MUTED)}") +
+               else f"{code(key_lines, 36, lang=lang)}" + (
+                   f'<div style="display:flex; flex-direction:row; gap:48px; align-items:center">'
+                   f'<div style="flex:1">{p(support, 32, MUTED)}</div>{side}</div>' if side
+                   else p(support, 32, MUTED))) +
             f'<div style="flex:1"></div>'
             f'<div style="display:flex; flex-direction:row; gap:24px; align-items:center">'
             f'<p style="font-size:24px; font-weight:700; letter-spacing:2px; color:{LIGHT}; '
@@ -497,7 +500,19 @@ def slides():
         "descriptions and examples in the contract are what lifted accuracy to 99.6%.",
         "8:22 → 8:52. The review board used to find this weeks later. Now it's a red check in "
         "seconds, with the rule and the fix. Tip: warnings first, then promote rules to errors "
-        "once teams are clean. Checkpoint 8:52. Behind? Talk over the Microcks UI part of clip 3 without pausing. Transition: now, a contract is a promise.", lang="lint")
+        "once teams are clean. Checkpoint 8:52. Behind? Talk over the Microcks UI part of clip 3 without pausing. Transition: now, a contract is a promise. "
+        "Aside, if asked about the QR code: the Spectral CLI we pin (6.16.x) started sending "
+        "install-time analytics through Scarf this summer. The CI image opts out; Spotlight is an "
+        "openly governed fork of Spectral with the telemetry removed, a drop-in with the same rulesets.",
+        lang="lint",
+        side=(f'<div style="width:560px; display:flex; flex-direction:row; gap:24px; align-items:center; '
+              f'background:#ffffff; border:1px solid #e1e3e8; border-radius:16px; padding:20px">'
+              f'<img src="{asset("qr-spotlight.png")}" alt="QR code: Spotlight, the openly governed Spectral fork, on GitHub" '
+              f'style="width:170px; height:170px; object-fit:contain">'
+              f'<div style="flex:1; display:flex; flex-direction:column; gap:8px">'
+              f'{p("Spotlight", 28, INK, "font-weight:700")}'
+              f'{p("Spectral 6.16 phones home (Scarf analytics). Openly governed fork, no telemetry", 24, MUTED)}'
+              f'</div></div>'))
 
     s["contracts"] = step_title(
         "contracts", 3, "Mocks and contract testing", "A contract is a promise",
