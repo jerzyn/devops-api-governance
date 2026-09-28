@@ -511,7 +511,7 @@ def slides():
               f'style="width:170px; height:170px; object-fit:contain">'
               f'<div style="flex:1; display:flex; flex-direction:column; gap:8px">'
               f'{p("Spotlight", 28, INK, "font-weight:700")}'
-              f'{p("Spectral 6.16 phones home (Scarf analytics). Openly governed fork, no telemetry", 24, MUTED)}'
+              f'{p("Spectral 6.16 sends telemetry. Spotlight fork fixes it (will rename to OpenLint)", 24, MUTED)}'
               f'</div></div>'))
 
     s["contracts"] = step_title(

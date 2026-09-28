@@ -7,7 +7,8 @@ Material for giving the talk *"DevOps-Driven API Governance"* and for recording 
 | File | What it is |
 |------|------------|
 | [FOST London deck](https://claude.ai/artifact/AUkTCc1xev8nuvEcBELiU2) | The deck for FOST London, 1 October 2026: a Slides artifact with the five demo clips embedded. Built by `tools/build_deck.py`. |
-| `DevOps-Driven API Governance — FOST London 2026.{pdf,html,pptx}` | *Local only, not in git (about 110 MB).* Offline copies of that deck: its PDF, HTML and PowerPoint exports with the five demo clips embedded. Export the deck into `presentation/` under that name, then run `tools/embed_exports.py`. |
+| [`DevOps-Driven API Governance — FOST London 2026.pdf`](DevOps-Driven%20API%20Governance%20%E2%80%94%20FOST%20London%202026.pdf) | The talk as a PDF, with the five demo clips embedded (click a demo slide to play it in Okular or Adobe Acrobat; other viewers show a still). |
+| `DevOps-Driven API Governance — FOST London 2026.{html,pptx}` | *Local only, not in git (about 70 MB).* The same deck as HTML and PowerPoint, clips embedded. Export the deck into `presentation/` under that name, then run `tools/embed_exports.py`. |
 | [`deck-plan.md`](deck-plan.md) / [`run-sheet.md`](run-sheet.md) | The plan behind the FOST deck (timing, cuts, design) and the one-page run sheet for the talk. |
 | `tools/` | Scripts for the FOST deck: `cut_clips.py` (cuts `recordings/stage*-talk.mp4` from `cuts.json`), `build_deck.py`, `embed_videos.py`, `embed_exports.py`, `make_qr.py`. Set up with `python3 -m venv tools/.venv && tools/.venv/bin/pip install -r tools/requirements.txt`. |
 | `DevOps Driven Governance - London 2026.pdf` / `.txt` | The earlier (Munich) slide deck and its text transcript. |
