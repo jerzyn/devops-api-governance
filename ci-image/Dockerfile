@@ -12,6 +12,12 @@ ARG OASDIFF_VERSION=1.19.0
 # builds need glibc 2.32+/2.34+; bullseye has 2.31, and 2.6.2 runs on it.
 ARG KRAKEND_VERSION=2.6.2
 
+# spectral-cli 6.16.x pulls in @scarf/scarf, which sends install-time analytics.
+# Opt out (both variables are honoured by Scarf); nothing should phone home from
+# a governance toolchain. The openly governed fork, Spotlight
+# (github.com/api-commons/spotlight-tools), drops Scarf entirely.
+ENV SCARF_ANALYTICS=false \
+    DO_NOT_TRACK=1
 RUN npm install -g "@stoplight/spectral-cli@${SPECTRAL_VERSION}" "js-yaml@${JS_YAML_VERSION}" \
  && npm cache clean --force
 # The gateway generator requires js-yaml; resolve it from the global install.
