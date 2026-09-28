@@ -22,7 +22,7 @@ DevOps-Driven API Governance · 20 minutes · Q&A after (~5 min) · [deck](https
 | 16 | ▶ Microcks (100 s) | 11:07 (−5 s) | Live mock; `currency' not found` |
 | 17 | Takeaway 3 | 11:42 | One example: mock + test |
 | 18 | Step 4: gateway | 12:17 | Generated from the contract |
-| 19 | ▶ KrakenD (70 s) | 13:27 | 404 → 200 through the gateway |
+| 19 | ▶ KrakenD (49 s) | 13:06 (−21 s) | 404 → 200 through the gateway |
 | 20 | Takeaway 4 | **13:57** ✔ | Generated, deployed, proven |
 | 21 | Step 5: partner live | 14:27 | Innocent change |
 | 22 | ▶ oasdiff (74 s) | 15:41 | `new-required-request-parameter`; later gates skipped |

@@ -117,38 +117,47 @@
       }
     ]
   },
-  "stage4": [
-    {
-      "src": "stage4-1080.mp4",
-      "from": 0.0,
-      "to": 4.3,
-      "speed": 1.0
-    },
-    {
-      "src": "stage4-1080.mp4",
-      "from": 4.3,
-      "to": 42.2,
-      "speed": 2.0
-    },
-    {
-      "src": "stage4-1080.mp4",
-      "from": 42.2,
-      "to": 64.0,
-      "speed": 1.0
-    },
-    {
-      "src": "stage4-1080.mp4",
-      "from": 64.0,
-      "to": 76.8,
-      "speed": 2.0
-    },
-    {
-      "src": "stage4-1080.mp4",
-      "from": 76.8,
-      "to": 95.1,
-      "speed": 1.0
-    }
-  ],
+  "stage4": {
+    "parts": [
+      {
+        "src": "stage4-1080.mp4",
+        "from": 0.0,
+        "to": 4.3,
+        "speed": 1.0
+      },
+      {
+        "src": "stage4-1080.mp4",
+        "from": 4.3,
+        "to": 42.2,
+        "speed": 2.0
+      },
+      {
+        "src": "stage4-1080.mp4",
+        "from": 42.2,
+        "to": 64.0,
+        "speed": 1.0
+      },
+      {
+        "src": "stage4-1080.mp4",
+        "from": 64.0,
+        "to": 76.8,
+        "speed": 2.0
+      },
+      {
+        "src": "stage4-1080.mp4",
+        "from": 76.8,
+        "to": 95.1,
+        "speed": 1.0
+      }
+    ],
+    "retime": [
+      {
+        "from": 19,
+        "to": 48,
+        "speed": 3.5
+      }
+    ]
+  },
   "stage5": {
     "parts": [
       {

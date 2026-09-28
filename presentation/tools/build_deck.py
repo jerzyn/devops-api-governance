@@ -558,11 +558,12 @@ def slides():
 
     s["v4"] = video(
         "v4", 4, "API gateway", "stage4-talk.mp4",
-        "12:17 → 13:27. Click to play (70 s). Cues: 0:00 curl through KrakenD: 404, no routes "
-        "yet. ~0:04 (fast) the PR adds the gateway gate. ~0:23 the job: generate krakend.json "
-        "from the contract, validate it with krakend check, deploy it, then run the same "
-        "contract test through the gateway. ~0:45 green, merge. ~0:52 curl again: 200 through "
-        "KrakenD, same body as the backend. Move on after the second curl. Transition: generated, deployed, proven.")
+        "12:17 → 13:06 (21 s under plan). Click to play (49 s). Cues: 0:00 curl through KrakenD: "
+        "404, no routes yet. ~0:04 (fast) the PR adds the gateway gate. ~0:20 (very fast) the job: "
+        "generate krakend.json from the contract, validate it with krakend check, deploy it, then run "
+        "the same contract test through the gateway. ~0:26 green, merge. ~0:31 curl again: 200 through "
+        "KrakenD, same body as the backend. Move on after the second curl. "
+        "Transition: generated, deployed, proven.")
 
     s["t4"] = takeaway(
         "t4", 4, "Generated, deployed, proven",
