@@ -10,6 +10,18 @@
   "stage2": [
     {
       "src": "stage2a-1080.mp4",
+      "from": 2.5,
+      "to": 14.8,
+      "speed": 1.5
+    },
+    {
+      "src": "stage2a-1080.mp4",
+      "from": 14.8,
+      "to": 16.9,
+      "speed": 2.0
+    },
+    {
+      "src": "stage2a-1080.mp4",
       "from": 16.9,
       "to": 30.9,
       "speed": 1.0

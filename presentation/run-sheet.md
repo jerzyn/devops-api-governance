@@ -16,7 +16,7 @@ DevOps-Driven API Governance · 20 minutes · Q&A after (~5 min) · [deck](https
 | 10 | One file | 5:40 | `catalog-info.yaml`, that's the cost |
 | 11 | ▶ Catalog (35 s) | 6:15 | Merge → `orders-api` appears |
 | 12 | Step 2 + adidas story | 7:15 | "A guideline nobody enforces is a suggestion." |
-| 13 | ▶ Spectral (65 s) | 8:22 | `rest17` red → link to the rule → fix → green |
+| 13 | ▶ Spectral (74 s) | 8:31 (+9 s) | `rest17` red → link to the rule → fix → green |
 | 14 | Takeaway 2 | **8:52** ✔ | Feedback in seconds, not weeks |
 | 15 | Step 3: a promise | 9:27 | Integrate before it exists? Code keeps the promise? |
 | 16 | ▶ Microcks (107 s) | 11:12 | Live mock; `currency' not found` |

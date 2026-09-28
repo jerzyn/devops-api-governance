@@ -483,12 +483,14 @@ def slides():
 
     s["v2"] = video(
         "v2", 2, "Guidelines as code", "stage2-talk.mp4",
-        "7:15 → 8:22. Click to play (65 s). Cues: 0:00 the PR that adds the Spectral gate. "
-        "~0:03 Backstage, API Guidelines: the rules live in the catalog, as docs. ~0:14 "
-        "(fast) a change moves the server URL to http://. ~0:27 red check. ~0:29 the log: one "
-        "finding, api-peak:rest17:2025-https-required, with a link. ~0:36 the link opens the "
-        "same rule in Backstage: one source of truth for humans and CI. ~0:44 (fast) one-line "
-        "fix, push, green, merge. Move on at the merge. Transition: so what does that give you?")
+        "7:15 → 8:31 (9 s over plan, taken from the buffer). Click to play (74 s). Cues: 0:00 switch "
+        "to the branch; git diff --stat shows the one new file, the CI workflow; push. ~0:08 (fast) open "
+        "the PR that adds the Spectral gate. ~0:12 Backstage, API Guidelines: the rules live in the "
+        "catalog, as docs. ~0:23 (fast) a change moves the server URL to http://. ~0:36 red check. ~0:38 "
+        "the log: one finding, api-peak:rest17:2025-https-required, with a link. ~0:45 the link opens the "
+        "same rule in Backstage: one source of truth for humans and CI. ~0:53 (fast) one-line fix, push, "
+        "green, merge. Move on at the merge. "
+        "Transition: so what does that give you?")
 
     s["t2"] = takeaway(
         "t2", 2, "Feedback in seconds, not weeks",
