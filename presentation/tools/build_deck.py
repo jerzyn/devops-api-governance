@@ -526,13 +526,15 @@ def slides():
 
     s["v3"] = video(
         "v3", 3, "Mocks and contract testing", "stage3-talk.mp4",
-        "9:27 → 11:12. Click to play (107 s). Cues: 0:00 the PR adds the contract-test gate. "
-        "~0:04 curl the mock: a live response from the contract's example; the partner "
-        "integrates today. ~0:13 Microcks: the mocked service. ~0:25 (fast) a change promises "
-        "a new field, currency. ~0:40 contract-test red. ~0:49 Microcks test detail: "
-        "required property currency not found. ~1:14 curl the mock (has currency) vs the "
-        "backend (doesn't): the code doesn't keep the promise. ~1:23 (fast) fix: don't promise "
-        "currency until the backend returns it; green, merge. Move on at the merge. Transition: one example, many uses.")
+        "9:27 → 11:22 (10 s over plan, taken from the buffer). Click to play (117 s). Cues: 0:00 switch "
+        "to the branch; git diff --stat: the workflow grows by the contract-test job; push. ~0:10 the PR "
+        "adds the contract-test gate. ~0:14 curl the mock: a live response from the contract's example; "
+        "the partner integrates today. ~0:23 Microcks: the mocked service. ~0:35 (fast) a change promises "
+        "a new field, currency. ~0:50 contract-test red. ~0:59 Microcks test detail: required property "
+        "currency not found. ~1:24 curl the mock (has currency) vs the backend (doesn't): the code "
+        "doesn't keep the promise. ~1:33 (fast) fix: don't promise currency until the backend returns "
+        "it; green, merge. Move on at the merge. "
+        "Transition: one example, many uses.")
 
     s["t3"] = takeaway(
         "t3", 3, "One example, many uses",

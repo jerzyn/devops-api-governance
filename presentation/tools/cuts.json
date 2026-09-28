@@ -57,6 +57,18 @@
   "stage3": [
     {
       "src": "stage3a-1080.mp4",
+      "from": 4.0,
+      "to": 18.5,
+      "speed": 1.5
+    },
+    {
+      "src": "stage3a-1080.mp4",
+      "from": 18.5,
+      "to": 19.9,
+      "speed": 2.0
+    },
+    {
+      "src": "stage3a-1080.mp4",
       "from": 19.9,
       "to": 25.5,
       "speed": 1.5
