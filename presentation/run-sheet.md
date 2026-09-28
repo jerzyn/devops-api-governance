@@ -19,7 +19,7 @@ DevOps-Driven API Governance · 20 minutes · Q&A after (~5 min) · [deck](https
 | 13 | ▶ Spectral (68 s) | 8:25 (+3 s) | `rest17` red → link to the rule → fix → green |
 | 14 | Takeaway 2 | **8:52** ✔ | Feedback in seconds, not weeks |
 | 15 | Step 3: a promise | 9:27 | Integrate before it exists? Code keeps the promise? |
-| 16 | ▶ Microcks (117 s) | 11:22 (+10 s) | Live mock; `currency' not found` |
+| 16 | ▶ Microcks (100 s) | 11:07 (−5 s) | Live mock; `currency' not found` |
 | 17 | Takeaway 3 | 11:42 | One example: mock + test |
 | 18 | Step 4: gateway | 12:17 | Generated from the contract |
 | 19 | ▶ KrakenD (70 s) | 13:27 | 404 → 200 through the gateway |
