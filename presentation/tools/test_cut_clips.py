@@ -15,3 +15,9 @@ def test_retime_fills_gaps_at_normal_speed():
     segs = retime_segments(100.0, [{"from": 25, "to": 34, "speed": 4},
                                    {"from": 56, "to": 90, "speed": 2}])
     assert segs == [(0.0, 25, 1.0), (25, 34, 4), (34, 56, 1.0), (56, 90, 2), (90, 100.0, 1.0)]
+
+
+def test_retime_can_drop_a_range():
+    from cut_clips import retime_segments
+    segs = retime_segments(74.0, [{"from": 12, "to": 18, "drop": True}])
+    assert segs == [(0.0, 12, 1.0), (18, 74.0, 1.0)]

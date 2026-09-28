@@ -20,12 +20,13 @@ def build_filter(parts):
 
 
 def retime_segments(total, retimes):
-    """Cover [0, total] of an already-cut clip: the given ranges at their speed, the rest at 1x."""
+    """Cover [0, total] of an already-cut clip: ranges at their speed (or dropped), the rest at 1x."""
     segs, pos = [], 0.0
     for r in sorted(retimes, key=lambda r: r["from"]):
         if r["from"] > pos:
             segs.append((pos, r["from"], 1.0))
-        segs.append((r["from"], r["to"], r["speed"]))
+        if not r.get("drop"):  # a dropped range is simply left out
+            segs.append((r["from"], r["to"], r["speed"]))
         pos = r["to"]
     if pos < total:
         segs.append((pos, total, 1.0))
