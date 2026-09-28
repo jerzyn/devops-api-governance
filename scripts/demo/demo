@@ -20,17 +20,28 @@ Retakes and setup
   refresh-catalog       make Backstage rescan Gitea now
   shell                 set up this terminal for recording (prompt, cd into the clone)
 
-Checks and editing
-  rehearse              full dry run of the screenplay against the stack (~9 min)
-  cards <dir>           title cards card1..card5.mp4
-  trim <in> <from> <to> <out>
-  speed <in> <factor> <out>
-  concat <out> <in1> <in2> ...
-
 Advanced
   stage1 stage2 stage2-red stage3 stage3-red stage4 stage5 stage5-red
                         prepare one specific step's branch (next picks it for you)
 EOF
+  # Recording helpers are local-only (not in the repo); list them when present.
+  if [ -x "$D/rehearse.sh" ] || [ -x "$D/video.sh" ]; then
+    printf '\nChecks and editing (local)\n'
+    if [ -x "$D/rehearse.sh" ]; then
+      echo "  rehearse              full dry run of the screenplay against the stack (~9 min)"
+    fi
+    if [ -x "$D/video.sh" ]; then
+      printf '%s\n' \
+        "  cards <dir>           title cards card1..card5.mp4" \
+        "  trim <in> <from> <to> <out>" \
+        "  speed <in> <factor> <out>" \
+        "  concat <out> <in1> <in2> ..."
+    fi
+  fi
+}
+
+local_only() {
+  [ -x "$D/$1" ] || { echo "demo $cmd: $1 is a local recording helper, not part of this repo" >&2; exit 1; }
 }
 
 cmd="${1:-help}"; [ $# -gt 0 ] && shift
@@ -41,8 +52,8 @@ case "$cmd" in
     [ $# -ge 1 ] || { echo "usage: demo goto <1|2|2-red|3|3-red|4|5|5-red|end>" >&2; exit 1; }
     exec "$D/prep-stage.sh" goto "$@" ;;
   fresh)    exec "$D/fresh-gitea.sh" "$@" ;;
-  rehearse) exec "$D/rehearse.sh" "$@" ;;
-  cards|trim|speed|concat) exec "$D/video.sh" "$cmd" "$@" ;;
+  rehearse) local_only rehearse.sh; exec "$D/rehearse.sh" "$@" ;;
+  cards|trim|speed|concat) local_only video.sh; exec "$D/video.sh" "$cmd" "$@" ;;
   shell)
     echo "'demo shell' has to change this terminal, so it works through the shell function:" >&2
     echo "  source $D/demo-completion.bash   (or run: demo install)" >&2

@@ -47,3 +47,17 @@ presentation/.~lock.*
 presentation/DevOps-Driven API Governance*
 # ...except the PDF, which is published with the repo
 !presentation/DevOps-Driven API Governance — FOST London 2026.pdf
+
+# Local-only authoring material: agent notes, the deck's build tooling and
+# planning docs, the old Munich deck, and the recording/editing helpers.
+# The repo keeps what is needed to run the demo and the talk PDF.
+CLAUDE.md
+docs/superpowers/
+presentation/tools/
+presentation/assets/
+presentation/deck-plan.md
+presentation/run-sheet.md
+presentation/deck-changes.md
+presentation/DevOps Driven Governance - London 2026.*
+scripts/demo/rehearse.sh
+scripts/demo/video.sh

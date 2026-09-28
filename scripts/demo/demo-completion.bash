@@ -15,7 +15,11 @@ demo() {
 _demo_complete() {
   local cur="${COMP_WORDS[COMP_CWORD]}"
   if [ "$COMP_CWORD" -eq 1 ]; then
-    COMPREPLY=($(compgen -W "next status preflight goto reset fresh refresh-catalog shell rehearse cards trim speed concat install help stage1 stage2 stage2-red stage3 stage3-red stage4 stage5 stage5-red" -- "$cur"))
+    local cmds="next status preflight goto reset fresh refresh-catalog shell install help stage1 stage2 stage2-red stage3 stage3-red stage4 stage5 stage5-red"
+    # Recording helpers are local-only, not part of the repo.
+    [ -x "$_DEMO_DIR/rehearse.sh" ] && cmds="$cmds rehearse"
+    [ -x "$_DEMO_DIR/video.sh" ] && cmds="$cmds cards trim speed concat"
+    COMPREPLY=($(compgen -W "$cmds" -- "$cur"))
     return
   fi
   case "${COMP_WORDS[1]}" in

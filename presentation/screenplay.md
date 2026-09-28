@@ -12,7 +12,7 @@ Between steps there is one off-camera command, always the same: `demo next`.
 
 **While recording, use `cue-card.md`**: the same steps on one page (commands to paste, clicks, one line to say). This file explains them.
 
-Every step below was run end to end by `demo rehearse`: every command from this page in a throwaway clone, real PRs, real CI, every red/fix loop and every `goto` target. Durations are measured from that run.
+Every step below was run end to end against the stack: every command from this page in a throwaway clone, real PRs, real CI, every red/fix loop and every `goto` target. Durations are measured from that run.
 
 ## Run of show
 
@@ -353,7 +353,7 @@ About **8 minutes** of raw footage (the rehearsal's walk-through took 8.5 min, i
 
 ## Post-production
 
-`demo cards | trim | speed | concat` (ffmpeg, `scripts/demo/video.sh`) covers the usual edits:
+The talk's clips were edited with local ffmpeg helpers (`demo cards | trim | speed | concat`, not part of this repo). The usual edits:
 
 ```bash
 demo cards ~/demo/cards                       # card1.mp4 .. card5.mp4, 3 s each
@@ -385,8 +385,6 @@ demo concat demo.mp4 ~/demo/cards/card1.mp4 s1.mp4 ~/demo/cards/card2.mp4 s2.mp4
 **Backstage** rescans Gitea every 10 s (`app-config.yaml`, a demo setting). `demo refresh-catalog` still forces an immediate rescan through the catalog's scheduler endpoint, without touching any container.
 
 **backend can't be recreated while `krakend` runs** (podman: "has dependent containers"). That's why Stage 3's red demo changes the contract instead of toggling the backend's `DRIFT` mode, which is only read at startup.
-
-**Before the recording day:** `demo rehearse` (~9 min) runs the whole screenplay against the stack and prints PASS/FAIL per check. It leaves the demo at `end`: run `demo goto 1` (or `demo fresh`) afterwards.
 
 **Recording (Spectacle):**
 - One continuous recording per stage (or of the whole demo), terminal and browser side by side. Wayland asks once for screen-capture permission.

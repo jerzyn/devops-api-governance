@@ -202,7 +202,7 @@ The official `@microcks/microcks-backstage-provider` (0.0.7) isn't used: it depe
 | `ci-image/` | The CI job image. |
 | `runner-config.yaml` | Puts CI job containers on `gitea-network` and in the CI image. |
 | `scripts/` | Seed scripts; `scripts/demo/` is the `demo` helper. |
-| `presentation/` | The talk deck and the presenters' material ([`presentation/README.md`](presentation/README.md)). |
+| `presentation/` | The talk as a PDF (demo clips embedded) and the demo's screenplay ([`presentation/README.md`](presentation/README.md)). |
 | `docs/`, `tests/` | Design notes and scripted PR scenarios. |
 | `gitea-data/`, `runner-data/` | Local runtime state, git-ignored, disposable. |
 
@@ -241,7 +241,7 @@ This is a local demo. `gitea-seed`, `gitea-runner` and `krakend-deployer` get ac
 
 ## For presenters
 
-The recordings played in the talk, and the tools to make them, are described in [`presentation/README.md`](presentation/README.md).
+The talk PDF, with the recorded demo embedded, and the demo's step-by-step script are in [`presentation/`](presentation/README.md).
 
 ## Using an AI coding agent
 
