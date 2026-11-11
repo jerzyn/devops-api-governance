@@ -5,7 +5,11 @@ name: PR API governance
 #                      against the central guidelines (Stage 3)
 #   2. contract-test   listen on the broker and check that what the running
 #                      backend publishes matches the PR's contract (Stage 4)
-# Later stages add the broker policy and the breaking change check.
+#   3. broker-policy   generate the broker policy (who may publish and
+#                      subscribe to which topic) from the contract and the
+#                      catalog, apply it to the broker, check it from the
+#                      outside and re-run the contract test under it (Stage 5)
+# A later stage adds the breaking change check.
 #
 # The contract test needs the "contract" compose profile (Microcks + async
 # minion): docker compose --profile contract up -d
@@ -32,6 +36,13 @@ env:
   # The broker as the async minion reaches it.
   BROKER_ENDPOINT: mqtt://mosquitto:1883
   CONTRACT_FILE: contracts/order-events-asyncapi.yaml
+  CATALOG_FILE: catalog-info.yaml
+  # Server-to-server: job container -> broker-policy-deployer.
+  BROKER_POLICY_DEPLOYER_URL: http://broker-policy-deployer:9100
+  BROKER_URL: mqtt://mosquitto:1883
+  # Demo broker accounts the policy check connects with (mosquitto/users.txt).
+  # A real setup reads these from CI secrets.
+  MQTT_CREDENTIALS: orders-subscriber:orders-subscriber-pw,orders-backend:orders-backend-pw
 
 jobs:
   asyncapi-lint:
@@ -168,4 +179,60 @@ jobs:
           node -e "require('js-yaml')" 2>/dev/null || npm install -g js-yaml@4.1.0
           # For every send operation, Microcks listens on its topic (parameters
           # become + wildcards) and validates each message against the schema.
+          node .governance/contract-test/async-contract-test.js "${CONTRACT_FILE}"
+
+  broker-policy:
+    # Only a contract that passed the contract test reaches the broker.
+    needs: contract-test
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout PR branch
+        shell: bash
+        run: |
+          set -e
+          git init -q .
+          git remote add origin "${REPO_URL}"
+          git fetch -q origin "${CHECKOUT_REF}"
+          git checkout -q FETCH_HEAD
+
+      - name: Fetch governance broker policy tooling (linked, not vendored)
+        shell: bash
+        run: |
+          set -e
+          rm -rf .governance
+          git clone -q --depth 1 "${GOVERNANCE_REPO}" .governance
+          ls .governance/broker-policy/generate-policy.js
+
+      - name: Generate the broker policy from the contract and the catalog
+        shell: bash
+        run: |
+          set -e
+          node -e "require('js-yaml')" 2>/dev/null || npm install -g js-yaml@4.1.0
+          node .governance/broker-policy/generate-policy.js \
+            "${CONTRACT_FILE}" "${CATALOG_FILE}" broker-policy.json
+          echo "Generated broker policy:"; cat broker-policy.json
+
+      - name: Apply it to the broker
+        shell: bash
+        run: |
+          set -e
+          # Internal call: never through a proxy.
+          curl -sS --fail-with-body --noproxy '*' -X POST \
+            -H 'Content-Type: application/json' --data-binary @broker-policy.json \
+            "${BROKER_POLICY_DEPLOYER_URL}/deploy"
+          echo
+
+      - name: Check the live policy from the outside
+        shell: bash
+        run: |
+          node -e "require('mqtt')" 2>/dev/null || npm install -g mqtt@5.16.1
+          # Consumers may subscribe to the contract's topics and nothing else,
+          # providers may not read, anonymous clients are refused.
+          node .governance/broker-policy/verify-policy.js "${CONTRACT_FILE}" "${CATALOG_FILE}"
+
+      - name: Re-run the contract test under the new policy
+        shell: bash
+        run: |
+          # The contract is already in Microcks (contract-test job). Messages
+          # arriving now prove the backend may still publish what it must.
           node .governance/contract-test/async-contract-test.js "${CONTRACT_FILE}"

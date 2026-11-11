@@ -92,23 +92,81 @@ services:
       - seed-state:/seed:ro
 
   # --- The event flow: broker, provider, consumer ------------------------------
+  # Every client authenticates (demo accounts in mosquitto/users.txt). The
+  # dynamic security plugin holds the accounts and the broker policy, which
+  # broker-policy-deployer applies live.
   mosquitto:
     image: docker.io/library/eclipse-mosquitto:2.0.22
     container_name: async-mosquitto
     restart: unless-stopped
+    entrypoint: ["sh", "/mosquitto/config/policy-entrypoint.sh"]
+    environment:
+      - BROKER_ADMIN_USER=policy-admin
+      - BROKER_ADMIN_PASSWORD=policy-admin-pw
     volumes:
       - ./mosquitto/mosquitto.conf:/mosquitto/config/mosquitto.conf:ro
+      - ./mosquitto/users.txt:/mosquitto/config/users.txt:ro
+      - ./mosquitto/policy-entrypoint.sh:/mosquitto/config/policy-entrypoint.sh:ro
     ports:
       - "1883:1883"
+
+  # --- Broker policy: generated from the contract and the catalog --------------
+  # Receives a generated policy (from the PR workflow or the seed below),
+  # checks it and applies it to the broker through the plugin's $CONTROL API.
+  broker-policy-deployer:
+    build: ./governance/broker-policy/deployer
+    container_name: async-broker-policy-deployer
+    restart: unless-stopped
+    depends_on: [mosquitto]
+    environment:
+      - BROKER_URL=mqtt://mosquitto:1883
+      - BROKER_ADMIN_USER=policy-admin
+      - BROKER_ADMIN_PASSWORD=policy-admin-pw
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:9100/health"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+      start_period: 5s
+
+  # One-shot: deploys the policy for the contract on main at startup, so the
+  # backend and subscriber can talk before the first PR runs.
+  broker-policy-seed:
+    image: localhost/devops-async-api-governance-ci:latest
+    container_name: async-broker-policy-seed
+    restart: "no"
+    depends_on:
+      ci-image:
+        condition: service_completed_successfully
+      broker-policy-deployer:
+        condition: service_healthy
+    volumes:
+      - ./example:/repo:ro
+      - ./governance:/governance:ro
+    command:
+      - sh
+      - -c
+      - >
+        node /governance/broker-policy/generate-policy.js
+        /repo/contracts/order-events-asyncapi.yaml /repo/catalog-info.yaml /tmp/policy.json &&
+        curl -sf --noproxy '*' -X POST -H 'Content-Type: application/json'
+        --data-binary @/tmp/policy.json http://broker-policy-deployer:9100/deploy && echo
 
   # Provider under test: publishes the Order Events API's events.
   backend:
     build: ./example/backend
     container_name: async-backend
     restart: unless-stopped
-    depends_on: [mosquitto]
+    # Start once a policy is deployed: a subscription the broker denies is
+    # not retried.
+    depends_on:
+      broker-policy-seed:
+        condition: service_completed_successfully
     environment:
       - BROKER_URL=mqtt://mosquitto:1883
+      # Demo account; the broker policy grants it by its catalog name.
+      - MQTT_USERNAME=orders-backend
+      - MQTT_PASSWORD=orders-backend-pw
       - PUBLISH_INTERVAL_MS=${PUBLISH_INTERVAL_MS:-1000}
       # Set BACKEND_DRIFT=true to publish contract-violating events.
       - DRIFT=${BACKEND_DRIFT:-false}
@@ -118,9 +176,17 @@ services:
     build: ./example/subscriber
     container_name: async-subscriber
     restart: unless-stopped
-    depends_on: [mosquitto]
+    # Start once a policy is deployed: a subscription the broker denies is
+    # not retried.
+    depends_on:
+      broker-policy-seed:
+        condition: service_completed_successfully
     environment:
       - BROKER_URL=mqtt://mosquitto:1883
+      - MQTT_USERNAME=orders-subscriber
+      - MQTT_PASSWORD=orders-subscriber-pw
+      # The topics the contract lists; the policy denies a broader wildcard.
+      - TOPICS=orders/v1/+/created,orders/v1/+/paid
 
   # --- Mock and contract test (profile: contract) ------------------------------
   # Microcks all-in-one, plus the async minion that publishes mock events to
@@ -146,6 +212,8 @@ services:
       # The minion supports WS by default; add MQTT.
       - ASYNC_PROTOCOLS=,MQTT
       - MQTT_SERVER=mosquitto:1883
+      - MQTT_USERNAME=microcks
+      - MQTT_PASSWORD=microcks
 
   # One-shot seed: imports the AsyncAPI contract into Microcks.
   microcks-seed:
