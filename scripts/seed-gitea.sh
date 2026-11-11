@@ -61,6 +61,8 @@ rm -rf "$GOV_SRC"; mkdir -p "$GOV_SRC"
 cp /governance/spectral/asyncapi-ruleset.yaml "$GOV_SRC"/
 # functionsDir in the ruleset is relative, so the custom functions sit next to it.
 cp -r /governance/spectral/spectral-functions "$GOV_SRC"/
+# The async contract test runner the consumer CI calls.
+cp -r /governance/contract-test "$GOV_SRC"/
 # Guidelines + their TechDocs wiring, at the repo root so Backstage discovers
 # the api-guidelines Component and renders it as TechDocs.
 cp /governance/api-guidelines/mkdocs.yml "$GOV_SRC"/

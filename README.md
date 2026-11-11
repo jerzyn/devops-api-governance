@@ -9,7 +9,7 @@ An AsyncAPI contract goes through pull requests in a local Git server, next to a
 - **Microcks** (+ async minion): mock events from the contract, and async contract tests.
 - **Backstage**: the API catalog, with the contract rendered as AsyncAPI docs.
 
-> **Status: Stage 3 (guidelines as code).** The platform runs, the backend publishes events, Backstage lists the API with its producer, consumer and broker, and the PR workflow validates changed contracts and lints them against the async and MQTT API guidelines. The remaining gates (contract test, broker policy, breaking changes) arrive stage by stage; see [Build plan](#build-plan).
+> **Status: Stage 4 (contract test).** The platform runs, the backend publishes events, Backstage lists the API with its producer, consumer and broker, and the PR workflow validates changed contracts, lints them against the async and MQTT API guidelines and contract-tests the running backend in Microcks. The remaining gates (broker policy, breaking changes) arrive stage by stage; see [Build plan](#build-plan).
 
 ---
 
@@ -43,16 +43,16 @@ With Podman, follow the REST demo: enable the Podman socket and set `DOCKER_SOCK
 
 ```bash
 # The backend's events on the broker
-docker exec async-mosquitto mosquitto_sub -t 'orders/v1/+/events' -v -C 4
+docker exec async-mosquitto mosquitto_sub -t 'orders/v1/+/+' -v -C 4
 
 # What the subscriber received
 docker compose logs -f subscriber
 
 # Microcks mock events (profile contract): published every few seconds
-docker exec async-mosquitto mosquitto_sub -t 'OrderEventsAPI-1.0.0-orders/v1/{orderId}/events' -C 2
+docker exec async-mosquitto mosquitto_sub -t 'OrderEventsAPI-1.0.0-orders/v1/{orderId}/created' -C 2
 ```
 
-To publish contract-violating events (for the contract test gate later):
+To publish contract-violating events (the contract test gate goes red):
 
 ```bash
 BACKEND_DRIFT=true docker compose up -d backend   # drifted events
@@ -78,6 +78,15 @@ Each lint finding names its guideline rule and links to that section of the API 
 ```bash
 docker run --rm -v "$PWD:/w" -w /w localhost/devops-async-api-governance-ci:latest \
   openlint lint -r governance/spectral/asyncapi-ruleset.yaml governance/spectral/examples/asyncapi-invalid.yaml
+```
+
+When lint passes, the second gate, `contract-test`, checks the running backend against the PR's contract. It imports the contract into Microcks, then for every `send` operation listens on that operation's topic (`orders/v1/+/created`, `orders/v1/+/paid`) for a few seconds and validates every message against the payload schema. It fails when a message does not match, or when no message arrives at all. It needs the `contract` profile. To see it go red without touching the contract, run the backend with drift (`BACKEND_DRIFT=true docker compose up -d backend`) and re-run the PR's workflow; or, in a PR, make a field the backend does not send required.
+
+You can run the same test from your machine:
+
+```bash
+docker run --rm --network async-gitea-network -v "$PWD:/w" -w /w localhost/devops-async-api-governance-ci:latest \
+  node governance/contract-test/async-contract-test.js example/contracts/order-events-asyncapi.yaml
 ```
 
 ## How it works
@@ -121,8 +130,8 @@ CI jobs run in `localhost/devops-async-api-governance-ci:latest` ([`ci-image/Doc
 | 0 | Tooling spike on AsyncAPI 3.x | done |
 | 1 | Scaffold: platform, broker, contract, backend, subscriber, PR workflow skeleton | done |
 | 2 | Catalog: `type: asyncapi` in Backstage | done |
-| 3 | Guidelines as code: Async + MQTT rules (OpenLint) | **this** |
-| 4 | Mock and contract test (Microcks async) | |
+| 3 | Guidelines as code: Async + MQTT rules (OpenLint) | done |
+| 4 | Mock and contract test (Microcks async) | **this** |
 | 5 | Broker policy: Mosquitto ACL generated from the contract | |
 | 6 | Breaking changes: `@asyncapi/diff` + Apicurio compatibility | |
 | 7 | Kafka + Apicurio Registry | |

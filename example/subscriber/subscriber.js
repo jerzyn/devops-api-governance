@@ -9,7 +9,7 @@
 const mqtt = require('mqtt');
 
 const BROKER_URL = process.env.BROKER_URL || 'mqtt://mosquitto:1883';
-const TOPIC = process.env.TOPIC || 'orders/v1/+/events';
+const TOPIC = process.env.TOPIC || 'orders/v1/+/+';
 
 const client = mqtt.connect(BROKER_URL, {
   clientId: process.env.MQTT_CLIENT_ID || 'orders-subscriber',

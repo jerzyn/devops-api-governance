@@ -3,8 +3,14 @@ name: PR API governance
 # Gates run in order, each one gated by `needs:` as in the REST demo:
 #   1. asyncapi-lint   validate the changed AsyncAPI contracts and lint them
 #                      against the central guidelines (Stage 3)
-# Later stages add the contract test, the broker policy and the breaking
-# change check.
+#   2. contract-test   listen on the broker and check that what the running
+#                      backend publishes matches the PR's contract (Stage 4)
+# Later stages add the broker policy and the breaking change check.
+#
+# The contract test needs the "contract" compose profile (Microcks + async
+# minion): docker compose --profile contract up -d
+# To see it fail, restart the backend with drift:
+#   BACKEND_DRIFT=true docker compose up -d backend
 
 on:
   pull_request:
@@ -19,6 +25,13 @@ env:
   CHECKOUT_REF: ${{ github.event.pull_request.number && format('refs/pull/{0}/head', github.event.pull_request.number) || github.ref }}
   # The central governance repo: ruleset, custom functions and guidelines.
   GOVERNANCE_REPO: http://gitea:3000/async-governance-demo/async-api-governance.git
+  # Server-to-server: job container -> Microcks on async-gitea-network.
+  MICROCKS_URL: http://microcks:8080
+  # Browser-facing base for the report links printed in the log.
+  MICROCKS_PUBLIC_URL: http://localhost:8180
+  # The broker as the async minion reaches it.
+  BROKER_ENDPOINT: mqtt://mosquitto:1883
+  CONTRACT_FILE: contracts/order-events-asyncapi.yaml
 
 jobs:
   asyncapi-lint:
@@ -106,3 +119,53 @@ jobs:
           ${{ steps.find.outputs.files }}
           EOF
           exit $FAIL
+
+  contract-test:
+    # Don't contract-test a contract that fails validation or the guidelines.
+    needs: asyncapi-lint
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout PR branch
+        shell: bash
+        run: |
+          set -e
+          git init -q .
+          git remote add origin "${REPO_URL}"
+          git fetch -q origin "${CHECKOUT_REF}"
+          git checkout -q FETCH_HEAD
+
+      - name: Fetch governance contract test (linked, not vendored)
+        shell: bash
+        run: |
+          set -e
+          rm -rf .governance
+          git clone -q --depth 1 "${GOVERNANCE_REPO}" .governance
+          ls .governance/contract-test/async-contract-test.js
+
+      - name: Wait for Microcks to be ready
+        shell: bash
+        run: |
+          for i in $(seq 1 30); do
+            curl -sf "${MICROCKS_URL}/api/health" >/dev/null && { echo "Microcks is up."; exit 0; }
+            echo "waiting for Microcks ($i)..."; sleep 2
+          done
+          echo "Microcks is not reachable: start the contract profile (docker compose --profile contract up -d)." >&2
+          exit 1
+
+      - name: Import the PR's contract into Microcks
+        shell: bash
+        run: |
+          set -e
+          # No auth in the uber image. Re-importing the same title and version
+          # replaces the service, so the test runs against the PR's schemas.
+          curl -sf -X POST -F "file=@${CONTRACT_FILE}" \
+            "${MICROCKS_URL}/api/artifact/upload?mainArtifact=true"
+          echo; echo "Imported ${CONTRACT_FILE}."
+
+      - name: Run contract test (fail on any invalid or missing event)
+        shell: bash
+        run: |
+          node -e "require('js-yaml')" 2>/dev/null || npm install -g js-yaml@4.1.0
+          # For every send operation, Microcks listens on its topic (parameters
+          # become + wildcards) and validates each message against the schema.
+          node .governance/contract-test/async-contract-test.js "${CONTRACT_FILE}"

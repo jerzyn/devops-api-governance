@@ -5,7 +5,7 @@
  * (contracts/order-events-asyncapi.yaml).
  *
  * Every PUBLISH_INTERVAL_MS it simulates one order: it publishes OrderCreated,
- * then OrderPaid, on orders/v1/{orderId}/events. The contract test listens on
+ * then OrderPaid, on orders/v1/{orderId}/created and orders/v1/{orderId}/paid. The contract test listens on
  * the broker and validates what arrives, so the backend must keep publishing.
  *
  * Two modes, selected by the DRIFT environment variable:
@@ -61,9 +61,8 @@ client.on('error', (err) => console.error(`mqtt error: ${err.message}`));
 setInterval(() => {
   if (!client.connected) return;
   const orderId = nextOrderId();
-  const topic = `orders/v1/${orderId}/events`;
-  publish(topic, orderCreated(orderId));
-  publish(topic, orderPaid(orderId));
+  publish(`orders/v1/${orderId}/created`, orderCreated(orderId));
+  publish(`orders/v1/${orderId}/paid`, orderPaid(orderId));
 }, INTERVAL);
 
 const shutdown = () => client.end(false, () => process.exit(0));
