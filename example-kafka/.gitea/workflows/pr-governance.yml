@@ -1,0 +1,334 @@
+name: PR API governance
+
+# Gates run in order, each one gated by `needs:` as in the REST demo:
+#   1. asyncapi-lint   validate the changed AsyncAPI contracts and lint them
+#                      against the central guidelines (Stage 3)
+#   2. breaking-changes  compare each changed contract with main: structure
+#                      with @asyncapi/diff, payloads against the schema
+#                      registry's compatibility rules (Stage 6)
+#   3. contract-test   listen on the broker and check that what the running
+#                      backend publishes matches the PR's contract (Stage 4)
+#   4. broker-policy   generate the broker policy (who may publish and
+#                      subscribe to which topic) from the contract and the
+#                      catalog, apply it to the broker, check it from the
+#                      outside and re-run the contract test under it (Stage 5)
+#
+# The same gates as the MQTT repo (order-events-api); only the environment
+# below differs. Needs the "kafka" and "contract" compose profiles:
+#   docker compose --profile kafka --profile contract up -d
+# To see the contract test fail, let the backend publish drifted events past
+# its own registry check:
+#   KAFKA_BACKEND_DRIFT=true KAFKA_REGISTRY_VALIDATION=false docker compose --profile kafka up -d kafka-backend
+
+on:
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
+
+env:
+  # This repo on Gitea, as job containers on async-gitea-network reach it.
+  REPO_URL: http://gitea:3000/${{ github.repository }}.git
+  # What to check out: the PR head, or the dispatched ref on workflow_dispatch.
+  CHECKOUT_REF: ${{ github.event.pull_request.number && format('refs/pull/{0}/head', github.event.pull_request.number) || github.ref }}
+  # The central governance repo: ruleset, custom functions and guidelines.
+  GOVERNANCE_REPO: http://gitea:3000/async-governance-demo/async-api-governance.git
+  # Server-to-server: job container -> Microcks on async-gitea-network.
+  MICROCKS_URL: http://microcks:8080
+  # Browser-facing base for the report links printed in the log.
+  MICROCKS_PUBLIC_URL: http://localhost:8180
+  # The broker as the async minion reaches it: the platform listener, which
+  # needs no account (Kafka ACLs still limit what it may do).
+  BROKER_ENDPOINT: kafka://kafka:9094
+  # No Microcks secret: the platform listener has no SASL.
+  MICROCKS_SECRET: ''
+  CONTRACT_FILE: contracts/order-events-kafka-asyncapi.yaml
+  # Server-to-server: job container -> Apicurio Registry.
+  REGISTRY_URL: http://apicurio:8080/apis/registry/v3
+  CATALOG_FILE: catalog-info.yaml
+  # Server-to-server: job container -> broker-policy-deployer.
+  BROKER_POLICY_DEPLOYER_URL: http://broker-policy-deployer:9100
+  KAFKA_BROKERS: kafka:9092
+  # Demo Kafka accounts the policy check connects with (SASL/PLAIN users in
+  # docker-compose.yml). A real setup reads these from CI secrets.
+  BROKER_CREDENTIALS: orders-kafka-subscriber:orders-kafka-subscriber-pw,orders-kafka-backend:orders-kafka-backend-pw
+
+jobs:
+  asyncapi-lint:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout PR branch
+        shell: bash
+        run: |
+          # Plain git against Gitea instead of actions/checkout, which is
+          # downloaded from github.com on every job.
+          set -e
+          git init -q .
+          git remote add origin "${REPO_URL}"
+          git fetch -q origin '+refs/heads/*:refs/remotes/origin/*'
+          git fetch -q origin "${CHECKOUT_REF}"
+          git checkout -q FETCH_HEAD
+
+      - name: Find changed AsyncAPI files
+        id: find
+        shell: bash
+        run: |
+          set -e
+          if [ -n "${{ github.base_ref }}" ]; then
+            # Only the contracts this PR adds or changes.
+            FILES=$(git diff --name-only --diff-filter=AM "origin/${{ github.base_ref }}...HEAD" -- \
+              '*asyncapi*.yml' '*asyncapi*.yaml' 2>/dev/null || true)
+          else
+            # workflow_dispatch: no base, check every contract.
+            FILES=$(git ls-files '*asyncapi*.yml' '*asyncapi*.yaml')
+          fi
+          if [ -z "$FILES" ]; then
+            echo "No changed AsyncAPI files; nothing to check."
+            echo "has_files=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "AsyncAPI files:"; echo "$FILES"
+            echo "has_files=true" >> "$GITHUB_OUTPUT"
+            { echo "files<<EOF"; echo "$FILES"; echo "EOF"; } >> "$GITHUB_OUTPUT"
+          fi
+
+      # The CI image (ci-image/Dockerfile) has every tool preinstalled; the
+      # install steps only download when a tool is missing.
+      - name: Validate (fail on errors)
+        if: steps.find.outputs.has_files == 'true'
+        shell: bash
+        run: |
+          command -v asyncapi >/dev/null || npm install -g @asyncapi/cli@6.3.0
+          FAIL=0
+          while IFS= read -r f; do
+            [ -z "$f" ] && continue
+            echo "::group::asyncapi validate $f"
+            asyncapi validate "$f" || FAIL=1
+            echo "::endgroup::"
+          done <<'EOF'
+          ${{ steps.find.outputs.files }}
+          EOF
+          exit $FAIL
+
+      - name: Fetch governance ruleset (linked, not vendored)
+        if: steps.find.outputs.has_files == 'true'
+        shell: bash
+        run: |
+          set -e
+          # The "link" to central governance: clone the ruleset and its custom
+          # functions. functionsDir in the ruleset is relative, so the
+          # functions resolve from the clone.
+          rm -rf .governance
+          git clone -q --depth 1 "${GOVERNANCE_REPO}" .governance
+          echo "Linked governance ruleset at $(git -C .governance rev-parse --short HEAD):"
+          ls .governance/asyncapi-*ruleset.yaml
+
+      - name: Lint against the API guidelines (fail on errors)
+        if: steps.find.outputs.has_files == 'true'
+        shell: bash
+        run: |
+          command -v openlint >/dev/null || npm install -g openlint@1.1.3
+          # No `|| true`: openlint exits non-zero on error-severity findings,
+          # so the gate fails. Warnings (SHOULD rules) are shown but pass.
+          # The ruleset follows the contract's server protocol: the async rules
+          # plus the MQTT or the Kafka ones.
+          FAIL=0
+          while IFS= read -r f; do
+            [ -z "$f" ] && continue
+            PROTOCOL=$(grep -m1 -E '^[[:space:]]+protocol:' "$f" | awk '{print $2}')
+            case "$PROTOCOL" in
+              mqtt|secure-mqtt) RULESET=asyncapi-mqtt-ruleset.yaml ;;
+              kafka|kafka-secure) RULESET=asyncapi-kafka-ruleset.yaml ;;
+              *) RULESET=asyncapi-ruleset.yaml ;;
+            esac
+            echo "::group::openlint $f (${PROTOCOL:-no protocol}: $RULESET)"
+            openlint lint -r ".governance/$RULESET" "$f" || FAIL=1
+            echo "::endgroup::"
+          done <<'EOF'
+          ${{ steps.find.outputs.files }}
+          EOF
+          exit $FAIL
+
+  breaking-changes:
+    needs: asyncapi-lint
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout PR branch
+        shell: bash
+        run: |
+          # Full history: the base branch is needed to diff against.
+          set -e
+          git init -q .
+          git remote add origin "${REPO_URL}"
+          git fetch -q origin '+refs/heads/*:refs/remotes/origin/*'
+          git fetch -q origin "${CHECKOUT_REF}"
+          git checkout -q FETCH_HEAD
+
+      - name: Fetch governance breaking change tooling (linked, not vendored)
+        shell: bash
+        run: |
+          set -e
+          rm -rf .governance
+          git clone -q --depth 1 "${GOVERNANCE_REPO}" .governance
+          ls .governance/breaking-changes/
+
+      - name: Find changed contracts
+        id: find
+        shell: bash
+        run: |
+          set -e
+          # Modified contracts only: a new contract has nothing to break, and
+          # workflow_dispatch has no base to compare with.
+          FILES=""
+          if [ -n "${{ github.base_ref }}" ]; then
+            FILES=$(git diff --name-only --diff-filter=M "origin/${{ github.base_ref }}...HEAD" -- \
+              '*asyncapi*.yml' '*asyncapi*.yaml' 2>/dev/null || true)
+          fi
+          if [ -z "$FILES" ]; then
+            echo "No modified AsyncAPI contracts; nothing can break."
+            echo "has_files=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "Modified contracts:"; echo "$FILES"
+            echo "has_files=true" >> "$GITHUB_OUTPUT"
+            { echo "files<<EOF"; echo "$FILES"; echo "EOF"; } >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Structure (topics, operations, bindings) against main
+        if: steps.find.outputs.has_files == 'true'
+        shell: bash
+        run: |
+          FAIL=0
+          mkdir -p .base
+          while IFS= read -r f; do
+            [ -z "$f" ] && continue
+            BASE=".base/$(echo "$f" | tr '/' '_')"
+            git show "origin/${{ github.base_ref }}:$f" > "$BASE"
+            echo "::group::asyncapi diff $f"
+            node .governance/breaking-changes/asyncapi-diff.js "$BASE" "$f" || FAIL=1
+            echo "::endgroup::"
+          done <<'EOF'
+          ${{ steps.find.outputs.files }}
+          EOF
+          exit $FAIL
+
+      - name: Payloads against the schema registry (dry run)
+        if: steps.find.outputs.has_files == 'true'
+        shell: bash
+        run: |
+          # The registry holds what is published (main). Each payload must pass
+          # its topic's compatibility rule: FORWARD for events the API sends.
+          FAIL=0
+          while IFS= read -r f; do
+            [ -z "$f" ] && continue
+            echo "::group::registry compatibility $f"
+            node .governance/breaking-changes/schema-registry.js check "$f" || FAIL=1
+            echo "::endgroup::"
+          done <<'EOF'
+          ${{ steps.find.outputs.files }}
+          EOF
+          exit $FAIL
+
+  contract-test:
+    # Don't contract-test a contract that fails lint or breaks consumers.
+    needs: breaking-changes
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout PR branch
+        shell: bash
+        run: |
+          set -e
+          git init -q .
+          git remote add origin "${REPO_URL}"
+          git fetch -q origin "${CHECKOUT_REF}"
+          git checkout -q FETCH_HEAD
+
+      - name: Fetch governance contract test (linked, not vendored)
+        shell: bash
+        run: |
+          set -e
+          rm -rf .governance
+          git clone -q --depth 1 "${GOVERNANCE_REPO}" .governance
+          ls .governance/contract-test/async-contract-test.js
+
+      - name: Wait for Microcks to be ready
+        shell: bash
+        run: |
+          for i in $(seq 1 30); do
+            curl -sf "${MICROCKS_URL}/api/health" >/dev/null && { echo "Microcks is up."; exit 0; }
+            echo "waiting for Microcks ($i)..."; sleep 2
+          done
+          echo "Microcks is not reachable: start the contract profile (docker compose --profile contract up -d)." >&2
+          exit 1
+
+      - name: Import the PR's contract into Microcks
+        shell: bash
+        run: |
+          set -e
+          # No auth in the uber image. Re-importing the same title and version
+          # replaces the service, so the test runs against the PR's schemas.
+          curl -sf -X POST -F "file=@${CONTRACT_FILE}" \
+            "${MICROCKS_URL}/api/artifact/upload?mainArtifact=true"
+          echo; echo "Imported ${CONTRACT_FILE}."
+
+      - name: Run contract test (fail on any invalid or missing event)
+        shell: bash
+        run: |
+          node -e "require('js-yaml')" 2>/dev/null || npm install -g js-yaml@4.1.0
+          # For every send operation, Microcks listens on its topic (parameters
+          # become + wildcards) and validates each message against the schema.
+          node .governance/contract-test/async-contract-test.js "${CONTRACT_FILE}"
+
+  broker-policy:
+    # Only a contract that passed the contract test reaches the broker.
+    needs: contract-test
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout PR branch
+        shell: bash
+        run: |
+          set -e
+          git init -q .
+          git remote add origin "${REPO_URL}"
+          git fetch -q origin "${CHECKOUT_REF}"
+          git checkout -q FETCH_HEAD
+
+      - name: Fetch governance broker policy tooling (linked, not vendored)
+        shell: bash
+        run: |
+          set -e
+          rm -rf .governance
+          git clone -q --depth 1 "${GOVERNANCE_REPO}" .governance
+          ls .governance/broker-policy/generate-policy.js
+
+      - name: Generate the broker policy from the contract and the catalog
+        shell: bash
+        run: |
+          set -e
+          node -e "require('js-yaml')" 2>/dev/null || npm install -g js-yaml@4.1.0
+          node .governance/broker-policy/generate-policy.js \
+            "${CONTRACT_FILE}" "${CATALOG_FILE}" broker-policy.json
+          echo "Generated broker policy:"; cat broker-policy.json
+
+      - name: Apply it to the broker
+        shell: bash
+        run: |
+          set -e
+          # Internal call: never through a proxy.
+          curl -sS --fail-with-body --noproxy '*' -X POST \
+            -H 'Content-Type: application/json' --data-binary @broker-policy.json \
+            "${BROKER_POLICY_DEPLOYER_URL}/deploy"
+          echo
+
+      - name: Check the live policy from the outside
+        shell: bash
+        run: |
+          node -e "require('mqtt'); require('kafkajs')" 2>/dev/null || npm install -g mqtt@5.16.1 kafkajs@2.2.4
+          # Consumers may read the contract's topics and nothing else,
+          # providers may not read, a wrong password is refused.
+          node .governance/broker-policy/verify-policy.js "${CONTRACT_FILE}" "${CATALOG_FILE}"
+
+      - name: Re-run the contract test under the new policy
+        shell: bash
+        run: |
+          # The contract is already in Microcks (contract-test job). Messages
+          # arriving now prove the backend may still publish what it must.
+          node .governance/contract-test/async-contract-test.js "${CONTRACT_FILE}"

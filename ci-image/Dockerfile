@@ -10,6 +10,8 @@ ARG OPENLINT_VERSION=1.1.3
 ARG JS_YAML_VERSION=4.1.0
 # MQTT command line client (mqtt pub / mqtt sub), from npm instead of apt.
 ARG MQTT_VERSION=5.16.1
+# Kafka client for the broker policy check on Kafka.
+ARG KAFKAJS_VERSION=2.2.4
 
 # Nothing in a governance toolchain should phone home: opt out of install-time
 # analytics (Scarf) and update checks here, and of the AsyncAPI CLI's own
@@ -25,6 +27,7 @@ RUN npm install -g \
       "openlint@${OPENLINT_VERSION}" \
       "js-yaml@${JS_YAML_VERSION}" \
       "mqtt@${MQTT_VERSION}" \
+      "kafkajs@${KAFKAJS_VERSION}" \
  && npm cache clean --force
 # Governance scripts require the parser, diff and js-yaml; resolve them from
 # the global install.

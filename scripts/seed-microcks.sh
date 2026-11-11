@@ -6,7 +6,7 @@
 set -e
 
 MICROCKS="http://microcks:8080"
-CONTRACT="/repo/contracts/order-events-asyncapi.yaml"
+CONTRACT="${CONTRACT:-/repo/contracts/order-events-asyncapi.yaml}"
 
 echo "==> waiting for Microcks"
 i=0

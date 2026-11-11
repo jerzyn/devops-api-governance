@@ -3,14 +3,16 @@
 /**
  * broker-policy-deployer: receives a broker policy generated from an AsyncAPI
  * contract and the catalog (governance/broker-policy/generate-policy.js),
- * checks it and applies it to Mosquitto through the dynamic security
- * plugin's $CONTROL API.
+ * checks it and applies it to the broker it names:
+ *
+ *   mqtt   Mosquitto, through the dynamic security plugin's $CONTROL API
+ *   kafka  Kafka, through the admin API (topics and ACLs, see kafka.js)
  *
  *   POST /deploy   body: the policy JSON -> 200 {status: "applied", ...}
  *   GET  /policy   the policy applied last
  *   GET  /health
  *
- * Every account in the policy gets one role, "api-policy-<account>", with
+ * MQTT: every account in the policy gets one role, "api-policy-<account>", with
  * exactly the topics the policy lists. All commands go to the broker in one
  * $CONTROL message, which Mosquitto handles in one go: clients never see a
  * half-applied policy. Roles of accounts the new policy no longer lists are
@@ -28,11 +30,16 @@ const CONTROL = '$CONTROL/dynamic-security/v1';
 const ROLE_PREFIX = 'api-policy-';
 const MAX_BODY = 256 * 1024;
 
-let current = null;
+const kafka = require('./kafka');
+
+// Last applied policy per protocol (Kafka uses it to find accounts to clean up).
+const current = {};
 
 // MQTT topic filter: levels separated by '/', '+' alone in a level, '#' last.
 const validFilter = (t) => typeof t === 'string' && t.length > 0
   && t.split('/').every((lvl, i, all) => (lvl === '#' ? i === all.length - 1 : !/[+#]/.test(lvl) || lvl === '+'));
+// Kafka topic names (or "*" for every topic).
+const validKafkaTopic = (t) => t === '*' || /^[A-Za-z0-9._-]{1,249}$/.test(t);
 
 // Returns a list of problems; empty when the policy can be applied.
 function check(policy) {
@@ -40,11 +47,17 @@ function check(policy) {
     return ['policy must be an object with "clients"'];
   }
   const problems = [];
+  const isKafka = policy.protocol === 'kafka';
+  const valid = isKafka ? validKafkaTopic : validFilter;
   for (const [name, grants] of Object.entries(policy.clients)) {
     if (!/^[A-Za-z0-9._-]+$/.test(name)) problems.push(`account name not allowed: ${name}`);
     for (const key of ['publish', 'subscribe']) {
-      for (const t of grants[key] || []) if (!validFilter(t)) problems.push(`${name}: invalid ${key} topic ${t}`);
+      for (const t of grants[key] || []) if (!valid(t)) problems.push(`${name}: invalid ${key} topic ${t}`);
     }
+  }
+  for (const t of policy.topics || []) {
+    if (!validKafkaTopic(t.name) || t.name === '*') problems.push(`invalid topic name ${t.name}`);
+    if (!(t.partitions >= 1)) problems.push(`${t.name}: partitions must be at least 1`);
   }
   return problems;
 }
@@ -75,7 +88,7 @@ function control(commands) {
   });
 }
 
-async function apply(policy) {
+async function applyMqtt(policy) {
   const [listed] = await control([{ command: 'listRoles' }]);
   const existing = (listed.data?.roles || []).filter((r) => r.startsWith(ROLE_PREFIX));
   const wanted = Object.keys(policy.clients).map((c) => ROLE_PREFIX + c);
@@ -117,7 +130,10 @@ const send = (res, status, body) => {
 
 const server = http.createServer((req, res) => {
   if (req.method === 'GET' && req.url === '/health') return send(res, 200, { status: 'ok' });
-  if (req.method === 'GET' && req.url === '/policy') return send(res, current ? 200 : 404, current || { error: 'no policy applied yet' });
+  if (req.method === 'GET' && req.url.startsWith('/policy')) {
+    const proto = new URL(req.url, 'http://x').searchParams.get('protocol') || 'mqtt';
+    return send(res, current[proto] ? 200 : 404, current[proto] || { error: 'no policy applied yet' });
+  }
 
   if (req.method === 'POST' && req.url === '/deploy') {
     let body = '';
@@ -132,11 +148,14 @@ const server = http.createServer((req, res) => {
       const problems = check(policy);
       if (problems.length) return send(res, 400, { error: 'invalid policy', problems });
       try {
-        const { errors, warnings, removed } = await apply(policy);
-        if (errors.length) return send(res, 502, { error: 'the broker rejected the policy', errors });
-        current = policy;
-        console.log(`applied policy for ${policy.api} ${policy.version}`);
-        return send(res, 200, { status: 'applied', api: policy.api, version: policy.version, warnings, removed });
+        const proto = policy.protocol === 'kafka' ? 'kafka' : 'mqtt';
+        const result = proto === 'kafka'
+          ? await kafka.apply(policy, current.kafka)
+          : await applyMqtt(policy);
+        if (result.errors.length) return send(res, 502, { error: 'the broker rejected the policy', errors: result.errors });
+        current[proto] = policy;
+        console.log(`applied ${proto} policy for ${policy.api} ${policy.version}`);
+        return send(res, 200, { status: 'applied', protocol: proto, api: policy.api, version: policy.version, ...result, errors: undefined });
       } catch (err) {
         return send(res, 502, { error: err.message });
       }

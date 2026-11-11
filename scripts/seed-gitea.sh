@@ -12,6 +12,9 @@ ORG="${GITEA_ORG:-async-governance-demo}"
 # the events and the subscriber.
 # This is where PRs happen. Source: /repo (the example/ template folder).
 REPO="${GITEA_REPO:-order-events-api}"
+# The same API on Kafka, from /repo-kafka (the example-kafka/ folder). Its PRs
+# need the kafka compose profile.
+KAFKA_REPO="${GITEA_KAFKA_REPO:-order-events-kafka-api}"
 # Central governance repo: the AsyncAPI ruleset and the guidelines. The
 # consumer's CI clones this (a link, not a vendored copy). Source: /governance
 # (the project root = governance context).
@@ -28,7 +31,7 @@ echo "==> organization '$ORG'"
 curl -sf -o /dev/null -u "$U:$P" -X POST -H 'Content-Type: application/json' \
   -d "{\"username\":\"$ORG\"}" "$API/orgs" || echo "    already exists"
 
-for r in "$REPO" "$GOV_REPO"; do
+for r in "$REPO" "$KAFKA_REPO" "$GOV_REPO"; do
   echo "==> repository '$ORG/$r'"
   curl -sf -o /dev/null -u "$U:$P" -X POST -H 'Content-Type: application/json' \
     -d "{\"name\":\"$r\",\"private\":false}" "$API/orgs/$ORG/repos" || echo "    already exists"
@@ -53,12 +56,16 @@ seed_repo() {
 echo "==> push consumer repo: /repo -> '$ORG/$REPO' main"
 seed_repo /repo "$REPO" "Consumer repo: Order Events API (contract + backend + subscriber)"
 
+echo "==> push Kafka consumer repo: /repo-kafka -> '$ORG/$KAFKA_REPO' main"
+seed_repo /repo-kafka "$KAFKA_REPO" "Consumer repo: Order Events Kafka API (contract + backend + subscriber)"
+
 echo "==> push governance repo: lean policy -> '$ORG/$GOV_REPO' main"
 # The consumer CI only needs the policy (ruleset and the guidelines it
 # encodes), so publish a lean repo rather than the whole governance context.
 GOV_SRC=/tmp/gov-src
 rm -rf "$GOV_SRC"; mkdir -p "$GOV_SRC"
-cp /governance/spectral/asyncapi-ruleset.yaml "$GOV_SRC"/
+# The async rules and the MQTT and Kafka rulesets that extend them.
+cp /governance/spectral/asyncapi-*ruleset.yaml "$GOV_SRC"/
 # functionsDir in the ruleset is relative, so the custom functions sit next to it.
 cp -r /governance/spectral/spectral-functions "$GOV_SRC"/
 # The async contract test runner the consumer CI calls.

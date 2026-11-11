@@ -30,6 +30,19 @@ const OVERRIDES = {
   // Consumers size retries and deduplication by these: any change breaks them.
   '/operations/*/bindings/mqtt/qos': { add: 'breaking', remove: 'breaking', edit: 'breaking' },
   '/operations/*/bindings/mqtt/retain': { add: 'breaking', remove: 'breaking', edit: 'breaking' },
+  // Kafka. The key picks the partition: a new partition count or a changed
+  // key reshuffles which partition an entity's events land on, so consumers
+  // lose their per-entity order. Compaction changes what a replay returns.
+  '/channels/*/bindings': { add: 'non-breaking', remove: 'breaking', edit: 'unclassified' },
+  '/channels/*/bindings/kafka': { add: 'non-breaking', remove: 'breaking', edit: 'unclassified' },
+  '/channels/*/bindings/kafka/partitions': { add: 'non-breaking', remove: 'breaking', edit: 'breaking' },
+  '/channels/*/bindings/kafka/topicConfiguration': { add: 'non-breaking', remove: 'unclassified', edit: 'unclassified' },
+  '/channels/*/bindings/kafka/topicConfiguration/cleanup.policy': { add: 'breaking', remove: 'breaking', edit: 'breaking' },
+  '/channels/*/bindings/kafka/topicConfiguration/cleanup.policy/*': { add: 'breaking', remove: 'breaking', edit: 'breaking' },
+  '/channels/*/messages/*/bindings': { add: 'non-breaking', remove: 'breaking', edit: 'unclassified' },
+  '/channels/*/messages/*/bindings/kafka': { add: 'non-breaking', remove: 'breaking', edit: 'unclassified' },
+  '/channels/*/messages/*/bindings/kafka/key': { add: 'breaking', remove: 'breaking', edit: 'breaking' },
+  '/channels/*/messages/*/bindings/kafka/key/type': { add: 'breaking', remove: 'breaking', edit: 'breaking' },
 };
 
 // Unclassified paths nobody needs to look at: payloads (the registry's job),
@@ -52,7 +65,7 @@ const load = async (f) => {
   show('review      ', review);
   if (breaking.length) {
     console.log(`${breaking.length} breaking change(s). Existing consumers would miss or misread events.`);
-    console.log('Keep the old topic and operation, and publish the change as a new major version on a new topic (orders/v2/...).');
+    console.log('Keep the old topic and operation, and publish the change as a new major version on a new topic (orders/v2/... on MQTT, orders.order-created.v2 on Kafka).');
     process.exit(1);
   }
   console.log('No structural breaking changes.');
