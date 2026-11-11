@@ -46,7 +46,7 @@ env:
   BROKER_URL: mqtt://mosquitto:1883
   # Demo broker accounts the policy check connects with (mosquitto/users.txt).
   # A real setup reads these from CI secrets.
-  MQTT_CREDENTIALS: orders-subscriber:orders-subscriber-pw,orders-backend:orders-backend-pw
+  BROKER_CREDENTIALS: orders-subscriber:orders-subscriber-pw,orders-backend:orders-backend-pw
 
 jobs:
   asyncapi-lint:
@@ -115,7 +115,7 @@ jobs:
           rm -rf .governance
           git clone -q --depth 1 "${GOVERNANCE_REPO}" .governance
           echo "Linked governance ruleset at $(git -C .governance rev-parse --short HEAD):"
-          ls .governance/asyncapi-ruleset.yaml
+          ls .governance/asyncapi-*ruleset.yaml
 
       - name: Lint against the API guidelines (fail on errors)
         if: steps.find.outputs.has_files == 'true'
@@ -124,11 +124,19 @@ jobs:
           command -v openlint >/dev/null || npm install -g openlint@1.1.3
           # No `|| true`: openlint exits non-zero on error-severity findings,
           # so the gate fails. Warnings (SHOULD rules) are shown but pass.
+          # The ruleset follows the contract's server protocol: the async rules
+          # plus the MQTT or the Kafka ones.
           FAIL=0
           while IFS= read -r f; do
             [ -z "$f" ] && continue
-            echo "::group::openlint $f"
-            openlint lint -r .governance/asyncapi-ruleset.yaml "$f" || FAIL=1
+            PROTOCOL=$(grep -m1 -E '^[[:space:]]+protocol:' "$f" | awk '{print $2}')
+            case "$PROTOCOL" in
+              mqtt|secure-mqtt) RULESET=asyncapi-mqtt-ruleset.yaml ;;
+              kafka|kafka-secure) RULESET=asyncapi-kafka-ruleset.yaml ;;
+              *) RULESET=asyncapi-ruleset.yaml ;;
+            esac
+            echo "::group::openlint $f (${PROTOCOL:-no protocol}: $RULESET)"
+            openlint lint -r ".governance/$RULESET" "$f" || FAIL=1
             echo "::endgroup::"
           done <<'EOF'
           ${{ steps.find.outputs.files }}
@@ -308,7 +316,7 @@ jobs:
       - name: Check the live policy from the outside
         shell: bash
         run: |
-          node -e "require('mqtt')" 2>/dev/null || npm install -g mqtt@5.16.1
+          node -e "require('mqtt'); require('kafkajs')" 2>/dev/null || npm install -g mqtt@5.16.1 kafkajs@2.2.4
           # Consumers may subscribe to the contract's topics and nothing else,
           # providers may not read, anonymous clients are refused.
           node .governance/broker-policy/verify-policy.js "${CONTRACT_FILE}" "${CATALOG_FILE}"
