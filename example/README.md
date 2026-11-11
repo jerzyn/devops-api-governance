@@ -9,5 +9,22 @@ events and a subscriber that consumes them, owned by the platform team.
 |------|---------|
 | `contracts/order-events-asyncapi.yaml` | The AsyncAPI 3.1.0 contract (source of truth for the API). |
 | `backend/` | The provider: publishes `OrderCreated` and `OrderPaid` on `orders/v1/{orderId}/created` and `orders/v1/{orderId}/paid`. |
-| `subscriber/` | A consumer: subscribes to the contract's topics (`orders/v1/+/created`, `orders/v1/+/paid`) and logs every event; logs `DENIED` when the broker policy refuses it. |
-| `.gitea/workflows/pr-governance.yml` | The PR workflow. Stage 1: validates changed contracts. |
+| `subscriber/` | A consumer: subscribes to `orders/v1/+/created` and `orders/v1/+/paid` and logs every event. |
+| `catalog-info.yaml` | Backstage entities: the API, its provider and consumer, the broker. |
+| `.gitea/workflows/pr-governance.yml` | The PR gates (below). |
+| `.gitea/workflows/main-publish.yml` | After a merge: registers the payload schemas and applies main's broker policy. |
+
+## PR gates
+
+Each gate runs only when the one before it passed:
+
+1. **asyncapi-lint**: is the contract valid AsyncAPI, and does it follow the async and MQTT API guidelines? Each finding links to its guideline.
+2. **breaking-changes**: compares the contract with `main`: topics, operations and MQTT bindings with `@asyncapi/diff`, payloads against the schema registry's compatibility rules.
+3. **contract-test**: Microcks listens on every topic the API sends to and checks each event the running backend publishes against the contract.
+4. **broker-policy**: who may publish and subscribe to which topic, generated from the contract and the catalog, applied to the broker and checked from the outside.
+
+## PR loop
+
+1. Branch, edit `contracts/order-events-asyncapi.yaml` (and the backend if needed).
+2. Push, open a PR into `main` in Gitea (http://localhost:3100, `demo` / `demo12345`).
+3. The gates run on the PR; merge when they are green.

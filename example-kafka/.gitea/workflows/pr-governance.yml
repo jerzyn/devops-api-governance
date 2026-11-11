@@ -1,17 +1,17 @@
 name: PR API governance
 
-# Gates run in order, each one gated by `needs:` as in the REST demo:
+# Gates run in order, each one gated by `needs:`:
 #   1. asyncapi-lint   validate the changed AsyncAPI contracts and lint them
-#                      against the central guidelines (Stage 3)
+#                      against the central guidelines
 #   2. breaking-changes  compare each changed contract with main: structure
 #                      with @asyncapi/diff, payloads against the schema
-#                      registry's compatibility rules (Stage 6)
+#                      registry's compatibility rules
 #   3. contract-test   listen on the broker and check that what the running
-#                      backend publishes matches the PR's contract (Stage 4)
+#                      backend publishes matches the PR's contract
 #   4. broker-policy   generate the broker policy (who may publish and
 #                      subscribe to which topic) from the contract and the
 #                      catalog, apply it to the broker, check it from the
-#                      outside and re-run the contract test under it (Stage 5)
+#                      outside and re-run the contract test under it
 #
 # The same gates as the MQTT repo (order-events-api); only the environment
 # below differs. Needs the "kafka" and "contract" compose profiles:
