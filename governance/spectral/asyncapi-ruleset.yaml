@@ -199,6 +199,18 @@ rules:
       functionOptions:
         match: '(^|/)v[0-9]+(/|$)'
 
+  api-peak:mqtt6:2026-one-event-type-per-topic:
+    description: Every channel MUST carry exactly one message type.
+    message: "Channel MUST carry exactly one message type; give each event type its own topic. \n http://localhost:7107/docs/default/component/api-guidelines/#one-event-type-per-topic-api-peakmqtt62026-one-event-type-per-topic"
+    severity: error
+    given: $.channels[*]
+    then:
+      field: messages
+      function: length
+      functionOptions:
+        min: 1
+        max: 1
+
   api-peak:mqtt3:2026-qos:
     description: Every operation MUST declare bindings.mqtt.qos.
     message: "Operation MUST declare its MQTT quality of service in bindings.mqtt.qos. \n http://localhost:7107/docs/default/component/api-guidelines/#quality-of-service-api-peakmqtt32026-qos"

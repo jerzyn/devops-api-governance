@@ -16,6 +16,17 @@ until curl -sf -o /dev/null "$MICROCKS/api/health"; do
   sleep 2
 done
 
+# The async minion's contract tests connect to the broker with the account
+# named in the test's secret (the broker refuses anonymous clients).
+echo "==> broker secret for contract tests"
+if curl -sf "$MICROCKS/api/secrets" | grep -q '"name":"mqtt-broker"'; then
+  echo "    exists"
+else
+  curl -sf -X POST "$MICROCKS/api/secrets" -H 'Content-Type: application/json' \
+    -d '{"name":"mqtt-broker","description":"Broker account of the Microcks async minion","username":"microcks","password":"microcks"}'
+  echo
+fi
+
 echo "==> importing $CONTRACT"
 curl -sf -X POST -F "file=@$CONTRACT" \
   "$MICROCKS/api/artifact/upload?mainArtifact=true"

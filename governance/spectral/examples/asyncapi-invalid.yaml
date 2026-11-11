@@ -21,7 +21,7 @@ servers:
 
 channels:
   orderEvents:
-    address: /Orders/{order_id}/#     # mqtt1: leading /, uppercase, snake param, wildcard; mqtt2: no v1
+    address: /Orders/{order_id}/#     # mqtt1: leading /, uppercase, snake param, wildcard; mqtt2: no v1; mqtt6: two messages
     description: Lifecycle events of one order.
     parameters:
       order_id:

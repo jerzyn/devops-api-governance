@@ -23,15 +23,24 @@ servers:
     description: Local Mosquitto broker of the demo (plain MQTT, no TLS).
 
 channels:
-  orderEvents:
-    address: orders/v1/{orderId}/events
-    description: Lifecycle events of one order.
+  # One topic per event type: MQTT has no message type header, so subscribers
+  # pick the events they want by topic, and a contract test listens to one.
+  orderCreated:
+    address: orders/v1/{orderId}/created
+    description: An order was accepted.
     parameters:
       orderId:
         description: Identifier of the order.
     messages:
       orderCreated:
         $ref: '#/components/messages/OrderCreated'
+  orderPaid:
+    address: orders/v1/{orderId}/paid
+    description: The payment for an order was confirmed.
+    parameters:
+      orderId:
+        description: Identifier of the order.
+    messages:
       orderPaid:
         $ref: '#/components/messages/OrderPaid'
 
@@ -41,11 +50,11 @@ operations:
   sendOrderCreated:
     action: send
     channel:
-      $ref: '#/channels/orderEvents'
+      $ref: '#/channels/orderCreated'
     summary: Publish an order created event
     description: Sent once, when the backend accepts a new order.
     messages:
-      - $ref: '#/channels/orderEvents/messages/orderCreated'
+      - $ref: '#/channels/orderCreated/messages/orderCreated'
     bindings:
       mqtt:
         qos: 1
@@ -53,11 +62,11 @@ operations:
   sendOrderPaid:
     action: send
     channel:
-      $ref: '#/channels/orderEvents'
+      $ref: '#/channels/orderPaid'
     summary: Publish an order paid event
     description: Sent once, when the payment for an order is confirmed.
     messages:
-      - $ref: '#/channels/orderEvents/messages/orderPaid'
+      - $ref: '#/channels/orderPaid/messages/orderPaid'
     bindings:
       mqtt:
         qos: 1
