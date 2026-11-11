@@ -11,7 +11,7 @@ An AsyncAPI contract goes through pull requests in a local Git server, next to a
 - **Apicurio Registry**: the payload schema of every topic, with compatibility rules.
 - **Backstage**: the API catalog, with the contract rendered as AsyncAPI docs.
 
-> **Status: Stage 7 (Kafka).** The platform runs, the backends publish events, Backstage lists both APIs with their producers, consumers and brokers, and the PR workflow validates changed contracts, lints them against the async and the MQTT or Kafka API guidelines, checks them for breaking changes (structure and payload compatibility in Apicurio), contract-tests the running backend in Microcks, and applies a broker policy generated from the contract and the catalog: Mosquitto ACLs, or Kafka topics and ACLs. The demo helper is next; see [Build plan](#build-plan).
+> **Status: Stage 8 (demo and docs).** The platform runs, the backends publish events, Backstage lists both APIs with their producers, consumers and brokers, and the PR workflow validates changed contracts, lints them against the async and the MQTT or Kafka API guidelines, checks them for breaking changes (structure and payload compatibility in Apicurio), contract-tests the running backend in Microcks, and applies a broker policy generated from the contract and the catalog: Mosquitto ACLs, or Kafka topics and ACLs. A `demo` command replays the talk's demo step by step; see [Recorded demo](#recorded-demo).
 
 ---
 
@@ -106,6 +106,32 @@ docker run --rm --network async-gitea-network -v "$PWD:/w" -w /w localhost/devop
 ```
 
 The fourth gate, `broker-policy`, puts the contract in charge of the broker. It generates who may publish and subscribe to which topic from the contract and the catalog, applies that to Mosquitto, checks it from the outside and re-runs the contract test under it. See [Broker policy](#broker-policy) for the moments to show live.
+
+## Recorded demo
+
+The talk plays back a demo in which the PR workflow grows one gate at a time, on the MQTT repo, then shows the same gates on Kafka. [`scripts/demo/`](scripts/demo/) prepares every step, and [`presentation/`](presentation/) has the script:
+
+| Step | Adds | What the audience sees |
+|------|------|------------------------|
+| 1 | Catalog | Merge `catalog-info.yaml`, and the API appears in Backstage with its producer and consumer. |
+| 2 | Lint | `paid_at` goes red with `api-peak:async11`, whose link opens the guideline; `paidAt` goes green. |
+| 3 | Contract test | A required `currency` the backend never sends goes red in Microcks; optional goes green. |
+| 4 | Broker policy | The policy is generated from the contract and the catalog; `demo deny` shows the broker saying no. |
+| 5 | Breaking changes | Removing `isPaid` goes red in the registry; deprecating it goes green. |
+| Kafka | Same gates on Kafka | An optional field passes all four gates; removing `isPaid` is red there too. |
+
+Install the command once with `scripts/demo/demo install` (one line in `~/.bashrc`). Then:
+
+| Command | What it does |
+|---------|--------------|
+| `demo goto <1\|2\|2-red\|3\|3-red\|4\|5\|5-red\|kafka\|end>` | Puts Gitea main (both repos), Backstage, Microcks, the registry and the broker policy at the start of that step, and prepares its branch, not pushed, in `~/demo/order-events-api` (Kafka steps: `~/demo/order-events-kafka-api`). |
+| `demo next` / `demo status` | After each merge: prepares the next step's branch / says where the demo is. |
+| `demo preflight` | Checks the stack, the state and the clones; ends with `READY` or the problems and their fixes. |
+| `demo deny` | The broker refusing subscriptions and clients the policy does not grant, on MQTT and Kafka. |
+| `demo fresh` | Wipes the demo Gitea so PR numbers start at #1, then `goto 1`. Asks first. |
+| `demo shell` | `cd` into the demo clone with a short prompt showing the branch. |
+
+[`tests/pr-governance.feature.md`](tests/pr-governance.feature.md) lists the same steps, and the other red and green cases, as acceptance scenarios. [`presentation/acl-animation.html`](presentation/acl-animation.html) animates the broker policy for the slides (Space steps, `K` switches to Kafka).
 
 ## How it works
 
@@ -211,8 +237,22 @@ CI jobs run in `localhost/devops-async-api-governance-ci:latest` ([`ci-image/Doc
 | 4 | Mock and contract test (Microcks async) | done |
 | 5 | Broker policy: generated from the contract and the catalog | done |
 | 6 | Breaking changes: `@asyncapi/diff` + Apicurio compatibility | done |
-| 7 | Kafka + Apicurio Registry | **this** |
-| 8 | Demo helper, scenarios, docs | |
+| 7 | Kafka + Apicurio Registry | done |
+| 8 | Demo helper, scenarios, docs | **this** |
+
+## Troubleshooting
+
+| Symptom | Cause and fix |
+|---------|---------------|
+| A gate in a PR says "skipping" or the `contract-test` job fails with "Microcks is not reachable" | The `contract` profile is not up: `docker compose --profile contract up -d`. |
+| `contract-test` fails with "no message arrived within the listening window" | The backend is not publishing, or the broker policy no longer lets it: `docker compose logs backend`, then `docker compose up -d broker-policy-seed` (or `demo goto <step>`) to restore main's policy. |
+| The subscriber logs `DENIED ... not granted by the broker policy` | A PR applied a policy without the subscriber (for example a catalog change). `docker compose up -d broker-policy-seed` restores main's. |
+| `breaking-changes` fails for a change that looks harmless | Read the `review` and `FAIL` lines: a payload must pass the topic's compatibility rule against the latest registered schema (http://localhost:8280). After experiments, `demo goto <step>` resets the registry to that step's main. |
+| Kafka PRs fail at once, or `kafka-backend` restarts | The `kafka` profile is not up, or Kafka is still starting: `docker compose --profile kafka up -d` and wait for `async-kafka` to be healthy. |
+| Backstage does not list a merged change | The Gitea provider rescans every 10 s; `demo refresh-catalog` triggers it now. |
+| The API guidelines page shows "building" | TechDocs builds on first open; `demo goto` prebuilds it. |
+| `git push` from a demo clone is refused | You are on `main`, or the branch already exists on Gitea from an earlier take: `demo goto <step>`. |
+| Everything after `docker compose up` looks reset | `gitea-seed` force-pushes the template repos on every `up`. Mid-demo, never run `up`; use `demo goto <step>`. |
 
 ## Stop / reset
 
