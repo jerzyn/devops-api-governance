@@ -64,6 +64,8 @@ cp -r /governance/spectral/spectral-functions "$GOV_SRC"/
 # The async contract test runner the consumer CI calls.
 cp -r /governance/contract-test "$GOV_SRC"/
 # The broker policy generator and its check (the deployer runs as a service).
+# Breaking change checks: structural diff and registry compatibility.
+cp -r /governance/breaking-changes "$GOV_SRC"/
 mkdir -p "$GOV_SRC"/broker-policy
 cp /governance/broker-policy/*.js "$GOV_SRC"/broker-policy/
 # Guidelines + their TechDocs wiring, at the repo root so Backstage discovers
