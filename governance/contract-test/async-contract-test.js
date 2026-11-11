@@ -17,6 +17,8 @@
  *        MICROCKS_PUBLIC_URL  browser-facing base for report links
  *        BROKER_ENDPOINT      broker as Microcks reaches it (default mqtt://mosquitto:1883)
  *        LISTEN_MS            how long to listen per operation (default 5000)
+ *        MICROCKS_SECRET      Microcks secret with the broker account the
+ *                             test connects with (default mqtt-broker)
  * Exit:  0 when every operation passed, 1 otherwise.
  */
 
@@ -27,6 +29,7 @@ const MICROCKS = process.env.MICROCKS_URL || 'http://microcks:8080';
 const PUBLIC = process.env.MICROCKS_PUBLIC_URL || 'http://localhost:8180';
 const BROKER = process.env.BROKER_ENDPOINT || 'mqtt://mosquitto:1883';
 const LISTEN_MS = Number(process.env.LISTEN_MS) || 5000;
+const SECRET = process.env.MICROCKS_SECRET ?? 'mqtt-broker';
 
 const file = process.argv[2];
 if (!file) {
@@ -69,6 +72,7 @@ async function testOperation(op) {
       runnerType: 'ASYNC_API_SCHEMA',
       timeout: LISTEN_MS,
       filteredOperations: [operation],
+      ...(SECRET ? { secretName: SECRET } : {}),
     }),
   });
 
