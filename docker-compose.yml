@@ -1,0 +1,188 @@
+# Async API governance demo: an AsyncAPI contract for an MQTT API goes through
+# pull requests in a local Gitea, with the broker, the provider and a consumer
+# running next to it.
+#
+# Host ports are shifted from the REST demo (devops-api-governance), so both
+# can run on one machine: Gitea 3100, SSH 2322, Backstage 7107, Microcks 8180,
+# MQTT 1883. Container names carry an "async-" prefix for the same reason.
+#
+#   docker compose up -d                                         # platform + broker + backend
+#   docker compose --profile contract --profile catalog up -d    # + Microcks, Backstage
+
+services:
+  gitea:
+    image: docker.io/gitea/gitea:28.3
+    container_name: async-gitea
+    restart: unless-stopped
+    environment:
+      - GITEA__database__DB_TYPE=sqlite3
+      - GITEA__database__PATH=/data/gitea/gitea.db
+      - GITEA__server__ROOT_URL=http://localhost:3100/
+      - GITEA__server__HTTP_PORT=3000
+      - GITEA__actions__ENABLED=true
+      # Skip the first-run web installer so the seed service can use the API.
+      - GITEA__security__INSTALL_LOCK=true
+      - GITEA__session__PROVIDER=file
+      - GITEA__session__PROVIDER_CONFIG=/data/gitea/sessions
+      - GITEA__openid__ENABLE_OPENID_SIGNIN=false
+      - GITEA__openid__ENABLE_OPENID_SIGNUP=false
+    volumes:
+      - ./gitea-data:/data
+    ports:
+      - "3100:3000"
+      - "2322:22"
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:3000/api/healthz"]
+      interval: 5s
+      timeout: 3s
+      retries: 40
+      start_period: 10s
+
+  # One-shot seed: Gitea admin, organization, the consumer and governance
+  # repos, and the CI runner's registration token. Needs the engine socket to
+  # run the `gitea` CLI inside the gitea container.
+  gitea-seed:
+    image: docker.io/library/docker:27-cli
+    container_name: async-gitea-seed
+    restart: "no"
+    depends_on:
+      gitea:
+        condition: service_healthy
+    environment:
+      - GITEA_ADMIN_USER=${GITEA_ADMIN_USER:-demo}
+      - GITEA_ADMIN_PASSWORD=${GITEA_ADMIN_PASSWORD:-demo12345}
+      - GITEA_CONTAINER=async-gitea
+    volumes:
+      - ./example:/repo
+      - ./governance:/governance
+      - ./scripts:/scripts:ro
+      - seed-state:/seed
+      - ${DOCKER_SOCK:-/var/run/docker.sock}:/var/run/docker.sock
+    command: >
+      sh -c "apk add --no-cache git curl >/dev/null && sh /scripts/seed-gitea.sh"
+
+  # Builds the image every CI job runs in (tools preinstalled). Runs once.
+  ci-image:
+    build: ./ci-image
+    image: localhost/devops-async-api-governance-ci:latest
+    container_name: async-ci-image
+    restart: "no"
+    command: ["true"]
+
+  gitea-runner:
+    image: docker.io/gitea/act_runner:0.6.1
+    container_name: async-gitea-runner
+    restart: unless-stopped
+    depends_on:
+      gitea-seed:
+        condition: service_completed_successfully
+      ci-image:
+        condition: service_completed_successfully
+    environment:
+      - GITEA_INSTANCE_URL=http://gitea:3000/
+      - GITEA_RUNNER_REGISTRATION_TOKEN_FILE=/seed/runner-token
+      - GITEA_RUNNER_NAME=async-local-runner
+      - GITEA_RUNNER_LABELS=ubuntu-latest:docker://localhost/devops-async-api-governance-ci:latest
+      - DOCKER_API_VERSION=1.44
+      - CONFIG_FILE=/config.yaml
+    volumes:
+      - ./runner-data:/data
+      - ./runner-config.yaml:/config.yaml:ro
+      - ${DOCKER_SOCK:-/var/run/docker.sock}:/var/run/docker.sock
+      - seed-state:/seed:ro
+
+  # --- The event flow: broker, provider, consumer ------------------------------
+  mosquitto:
+    image: docker.io/library/eclipse-mosquitto:2.0.22
+    container_name: async-mosquitto
+    restart: unless-stopped
+    volumes:
+      - ./mosquitto/mosquitto.conf:/mosquitto/config/mosquitto.conf:ro
+    ports:
+      - "1883:1883"
+
+  # Provider under test: publishes the Order Events API's events.
+  backend:
+    build: ./example/backend
+    container_name: async-backend
+    restart: unless-stopped
+    depends_on: [mosquitto]
+    environment:
+      - BROKER_URL=mqtt://mosquitto:1883
+      - PUBLISH_INTERVAL_MS=${PUBLISH_INTERVAL_MS:-1000}
+      # Set BACKEND_DRIFT=true to publish contract-violating events.
+      - DRIFT=${BACKEND_DRIFT:-false}
+
+  # Consumer: logs every order event (docker compose logs -f subscriber).
+  subscriber:
+    build: ./example/subscriber
+    container_name: async-subscriber
+    restart: unless-stopped
+    depends_on: [mosquitto]
+    environment:
+      - BROKER_URL=mqtt://mosquitto:1883
+
+  # --- Mock and contract test (profile: contract) ------------------------------
+  # Microcks all-in-one, plus the async minion that publishes mock events to
+  # the broker and runs the async contract tests. Images from Docker Hub.
+  microcks:
+    image: docker.io/microcks/microcks-uber:1.14.0
+    container_name: async-microcks
+    restart: unless-stopped
+    profiles: ["contract"]
+    environment:
+      - ASYNC_MINION_URL=http://async-minion:8081
+    ports:
+      - "8180:8080"
+
+  async-minion:
+    image: docker.io/microcks/microcks-uber-async-minion:1.14.0
+    container_name: async-microcks-minion
+    restart: on-failure
+    profiles: ["contract"]
+    depends_on: [microcks, mosquitto]
+    environment:
+      - MICROCKS_HOST_PORT=microcks:8080
+      # The minion supports WS by default; add MQTT.
+      - ASYNC_PROTOCOLS=,MQTT
+      - MQTT_SERVER=mosquitto:1883
+
+  # One-shot seed: imports the AsyncAPI contract into Microcks.
+  microcks-seed:
+    image: docker.io/curlimages/curl:8.11.1
+    container_name: async-microcks-seed
+    restart: "no"
+    profiles: ["contract"]
+    depends_on: [microcks]
+    volumes:
+      - ./example:/repo:ro
+      - ./scripts:/scripts:ro
+    entrypoint: ["sh", "/scripts/seed-microcks.sh"]
+
+  # --- Catalog (profile: catalog) ----------------------------------------------
+  # Backstage, built from governance/api-catalog (Node in the image). The
+  # AsyncAPI catalog entries arrive in Stage 2.
+  backstage:
+    build:
+      context: ./governance/api-catalog
+      dockerfile: packages/backend/Dockerfile
+    container_name: async-backstage
+    restart: unless-stopped
+    profiles: ["catalog"]
+    depends_on:
+      gitea-seed:
+        condition: service_completed_successfully
+    environment:
+      - GITEA_USER=${GITEA_ADMIN_USER:-demo}
+      - GITEA_PASSWORD=${GITEA_ADMIN_PASSWORD:-demo12345}
+    volumes:
+      - ./governance/api-catalog/app-config.yaml:/app/app-config.yaml:ro
+    ports:
+      - "7107:7007"
+
+volumes:
+  seed-state:
+
+networks:
+  default:
+    name: async-gitea-network

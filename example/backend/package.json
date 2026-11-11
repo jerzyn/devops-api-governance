@@ -1,0 +1,14 @@
+{
+  "name": "orders-backend",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Order Events API provider: publishes order events over MQTT.",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "license": "CC-BY-4.0",
+  "dependencies": {
+    "mqtt": "5.16.1"
+  }
+}
