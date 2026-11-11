@@ -9,7 +9,7 @@ An AsyncAPI contract goes through pull requests in a local Git server, next to a
 - **Microcks** (+ async minion): mock events from the contract, and async contract tests.
 - **Backstage**: the API catalog, with the contract rendered as AsyncAPI docs.
 
-> **Status: Stage 2 (catalog).** The platform runs, the backend publishes events, the PR workflow validates changed contracts, and Backstage lists the API with its producer, consumer and broker. The governance gates (lint, contract test, broker policy, breaking changes) arrive stage by stage; see [Build plan](#build-plan).
+> **Status: Stage 3 (guidelines as code).** The platform runs, the backend publishes events, Backstage lists the API with its producer, consumer and broker, and the PR workflow validates changed contracts and lints them against the async and MQTT API guidelines. The remaining gates (contract test, broker policy, breaking changes) arrive stage by stage; see [Build plan](#build-plan).
 
 ---
 
@@ -68,7 +68,17 @@ mkdir -p ~/demo && cd ~/demo
 git clone http://demo:demo12345@localhost:3100/async-governance-demo/order-events-api.git
 ```
 
-In Stage 1 the PR workflow has one job, `asyncapi-validate`: it validates every changed AsyncAPI file and goes red on an invalid contract (try `action: publish`, a v2 keyword, in an operation).
+The PR workflow's first gate, `asyncapi-lint`, checks every changed AsyncAPI file in two steps:
+
+1. `asyncapi validate`: is it a valid AsyncAPI document? Try `action: publish` (a v2 keyword) in an operation.
+2. `openlint lint` against the central ruleset: does it follow the API guidelines? Try renaming the topic to `Orders/{orderId}/events` (uppercase, no version level) or adding `additionalProperties: false` to a payload schema.
+
+Each lint finding names its guideline rule and links to that section of the API guidelines in Backstage TechDocs. To see every rule fire at once, lint the intentionally broken example locally:
+
+```bash
+docker run --rm -v "$PWD:/w" -w /w localhost/devops-async-api-governance-ci:latest \
+  openlint lint -r governance/spectral/asyncapi-ruleset.yaml governance/spectral/examples/asyncapi-invalid.yaml
+```
 
 ## How it works
 
@@ -110,8 +120,8 @@ CI jobs run in `localhost/devops-async-api-governance-ci:latest` ([`ci-image/Doc
 |-------|--------------|-------|
 | 0 | Tooling spike on AsyncAPI 3.x | done |
 | 1 | Scaffold: platform, broker, contract, backend, subscriber, PR workflow skeleton | done |
-| 2 | Catalog: `type: asyncapi` in Backstage | **this** |
-| 3 | Guidelines as code: Async + MQTT rules (OpenLint) | |
+| 2 | Catalog: `type: asyncapi` in Backstage | done |
+| 3 | Guidelines as code: Async + MQTT rules (OpenLint) | **this** |
 | 4 | Mock and contract test (Microcks async) | |
 | 5 | Broker policy: Mosquitto ACL generated from the contract | |
 | 6 | Breaking changes: `@asyncapi/diff` + Apicurio compatibility | |
