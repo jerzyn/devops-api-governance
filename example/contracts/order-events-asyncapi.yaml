@@ -1,0 +1,110 @@
+asyncapi: 3.1.0
+info:
+  title: Order Events API
+  version: 1.0.0
+  description: >
+    Events the Orders backend publishes when an order changes state.
+    Consumers subscribe to the order's topic to follow its lifecycle.
+  contact:
+    name: Platform team
+    url: http://localhost:7107/catalog/default/group/platform-team
+    email: platform-team@example.com
+  license:
+    name: CC-BY-4.0
+    url: https://creativecommons.org/licenses/by/4.0/
+  tags:
+    - name: orders
+defaultContentType: application/json
+
+servers:
+  local:
+    host: mosquitto:1883
+    protocol: mqtt
+    description: Local Mosquitto broker of the demo (plain MQTT, no TLS).
+
+channels:
+  orderEvents:
+    address: orders/v1/{orderId}/events
+    description: Lifecycle events of one order.
+    parameters:
+      orderId:
+        description: Identifier of the order.
+    messages:
+      orderCreated:
+        $ref: '#/components/messages/OrderCreated'
+      orderPaid:
+        $ref: '#/components/messages/OrderPaid'
+
+# One message per operation: Microcks mocks one example per operation, and
+# only operations with an mqtt binding (Stage 0 findings).
+operations:
+  sendOrderCreated:
+    action: send
+    channel:
+      $ref: '#/channels/orderEvents'
+    summary: Publish an order created event
+    description: Sent once, when the backend accepts a new order.
+    messages:
+      - $ref: '#/channels/orderEvents/messages/orderCreated'
+    bindings:
+      mqtt:
+        qos: 1
+        retain: false
+  sendOrderPaid:
+    action: send
+    channel:
+      $ref: '#/channels/orderEvents'
+    summary: Publish an order paid event
+    description: Sent once, when the payment for an order is confirmed.
+    messages:
+      - $ref: '#/channels/orderEvents/messages/orderPaid'
+    bindings:
+      mqtt:
+        qos: 1
+        retain: false
+
+components:
+  messages:
+    OrderCreated:
+      name: OrderCreated
+      title: Order created
+      contentType: application/json
+      payload:
+        $ref: '#/components/schemas/OrderCreatedPayload'
+      examples:
+        - name: newOrder
+          payload:
+            orderId: '123'
+            createdAt: '2026-11-11T10:00:00Z'
+    OrderPaid:
+      name: OrderPaid
+      title: Order paid
+      contentType: application/json
+      payload:
+        $ref: '#/components/schemas/OrderPaidPayload'
+      examples:
+        - name: paidOrder
+          payload:
+            orderId: '123'
+            isPaid: true
+
+  # Payload schemas stay open (no additionalProperties: false), so adding an
+  # optional field is not a breaking change for consumers (Stage 0 findings).
+  schemas:
+    OrderCreatedPayload:
+      type: object
+      required: [orderId, createdAt]
+      properties:
+        orderId:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+    OrderPaidPayload:
+      type: object
+      required: [orderId, isPaid]
+      properties:
+        orderId:
+          type: string
+        isPaid:
+          type: boolean

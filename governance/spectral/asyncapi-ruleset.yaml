@@ -1,0 +1,5 @@
+# Async API guidelines as code. Runs with OpenLint (or Spectral: same format).
+# Stage 1: the built-in AsyncAPI rules only. Stage 3 adds the rules written
+# from the Async and MQTT sections of the API guidelines.
+extends:
+  - spectral:asyncapi

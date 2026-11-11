@@ -1,0 +1,69 @@
+name: PR API governance
+
+# Stage 1 skeleton: one job that checks out the PR and validates every
+# changed AsyncAPI contract. The governance gates are added stage by stage
+# (lint, contract test, broker policy, breaking changes), each gated by
+# `needs:` as in the REST demo.
+
+on:
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
+
+env:
+  # This repo on Gitea, as job containers on async-gitea-network reach it.
+  REPO_URL: http://gitea:3000/${{ github.repository }}.git
+  # What to check out: the PR head, or the dispatched ref on workflow_dispatch.
+  CHECKOUT_REF: ${{ github.event.pull_request.number && format('refs/pull/{0}/head', github.event.pull_request.number) || github.ref }}
+
+jobs:
+  asyncapi-validate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout PR branch
+        shell: bash
+        run: |
+          set -e
+          git init -q .
+          git remote add origin "${REPO_URL}"
+          git fetch -q origin '+refs/heads/*:refs/remotes/origin/*'
+          git fetch -q origin "${CHECKOUT_REF}"
+          git checkout -q FETCH_HEAD
+
+      - name: Find changed AsyncAPI files
+        id: find
+        shell: bash
+        run: |
+          set -e
+          if [ -n "${{ github.base_ref }}" ]; then
+            FILES=$(git diff --name-only --diff-filter=AM "origin/${{ github.base_ref }}...HEAD" -- \
+              '*asyncapi*.yml' '*asyncapi*.yaml' 2>/dev/null || true)
+          else
+            # workflow_dispatch: no base, validate every contract.
+            FILES=$(git ls-files '*asyncapi*.yml' '*asyncapi*.yaml')
+          fi
+          if [ -z "$FILES" ]; then
+            echo "No changed AsyncAPI files; nothing to validate."
+            echo "has_files=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "AsyncAPI files:"; echo "$FILES"
+            echo "has_files=true" >> "$GITHUB_OUTPUT"
+            { echo "files<<EOF"; echo "$FILES"; echo "EOF"; } >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Validate (fail on errors)
+        if: steps.find.outputs.has_files == 'true'
+        shell: bash
+        run: |
+          command -v asyncapi >/dev/null || npm install -g @asyncapi/cli@6.3.0
+          FAIL=0
+          while IFS= read -r f; do
+            [ -z "$f" ] && continue
+            echo "::group::asyncapi validate $f"
+            asyncapi validate "$f" || FAIL=1
+            echo "::endgroup::"
+          done <<'EOF'
+          ${{ steps.find.outputs.files }}
+          EOF
+          exit $FAIL

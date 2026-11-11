@@ -1,0 +1,15 @@
+# act_runner config: job containers join async-gitea-network so checkout can
+# reach Gitea at http://gitea:3000/ and the gates can reach the broker and
+# Microcks. Mounted read-only by the gitea-runner service.
+runner:
+  # Overrides the labels stored at registration. Jobs run in the CI image
+  # (ci-image/Dockerfile, built by the ci-image compose service).
+  labels:
+    - "ubuntu-latest:docker://localhost/devops-async-api-governance-ci:latest"
+container:
+  network: async-gitea-network
+  # No PR-governance job runs docker itself: don't pass the engine socket
+  # into job containers ("-" still lets act_runner manage its own containers).
+  docker_host: "-"
+  # The CI image exists only locally; never try to pull it from a registry.
+  force_pull: false
