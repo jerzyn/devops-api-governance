@@ -1,5 +1,228 @@
 # Async API guidelines as code. Runs with OpenLint (or Spectral: same format).
-# Stage 1: the built-in AsyncAPI rules only. Stage 3 adds the rules written
-# from the Async and MQTT sections of the API guidelines.
+#
+# Every api-peak rule below is one section of the API guidelines
+# (api-guidelines repo, rendered in Backstage TechDocs). The rule name is the
+# section's identifier and every message links to that section.
+# Severity follows the guideline wording: MUST -> error, SHOULD -> warn.
 extends:
   - spectral:asyncapi
+functionsDir: ./spectral-functions
+functions:
+  - openPayloadSchema
+rules:
+  # Replaced by api-peak:async4:2026-contact, which links to the guideline.
+  asyncapi-info-contact-properties: off
+
+  # ------------------------------------------------------------------------- #
+  # Async API guidelines                                                       #
+  # ------------------------------------------------------------------------- #
+
+  api-peak:async1:2026-asyncapi:
+    description: The API MUST be described with AsyncAPI 3.x.
+    message: "AsyncAPI version MUST be 3.x.y, found '{{value}}'. \n http://localhost:7107/docs/default/component/api-guidelines/#asyncapi-specification-api-peakasync12026-asyncapi"
+    severity: error
+    given: $.asyncapi
+    then:
+      function: pattern
+      functionOptions:
+        match: '^3\.[0-9]+\.[0-9]+$'
+
+  api-peak:async2:2026-api-title:
+    description: info.title MUST be Title Case and end with "API".
+    message: "info.title '{{value}}' MUST be Title Case and end with 'API'. \n http://localhost:7107/docs/default/component/api-guidelines/#api-title-api-peakasync22026-api-title"
+    severity: error
+    given: $.info.title
+    then:
+      function: pattern
+      functionOptions:
+        match: '^([A-Z][A-Za-z0-9]*)( [A-Z][A-Za-z0-9]*)* API$'
+
+  api-peak:async3:2026-api-version:
+    description: info.version MUST be a semantic version.
+    message: "info.version '{{value}}' MUST be MAJOR.MINOR.PATCH. \n http://localhost:7107/docs/default/component/api-guidelines/#api-version-api-peakasync32026-api-version"
+    severity: error
+    given: $.info.version
+    then:
+      function: pattern
+      functionOptions:
+        match: '^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)(-[0-9A-Za-z.-]+)?$'
+
+  api-peak:async4:2026-contact:
+    description: info.contact SHOULD have name, url and email.
+    message: "info.contact SHOULD have {{property}}. \n http://localhost:7107/docs/default/component/api-guidelines/#contact-and-ownership-api-peakasync42026-contact"
+    severity: warn
+    given: $.info
+    then:
+      - field: contact.name
+        function: truthy
+      - field: contact.url
+        function: truthy
+      - field: contact.email
+        function: truthy
+
+  api-peak:async5:2026-operation-summary:
+    description: Every operation MUST have a summary that starts with a capital letter, at most 75 characters.
+    message: "{{error}} (operation summary: required, capital first letter, at most 75 characters). \n http://localhost:7107/docs/default/component/api-guidelines/#operation-summary-api-peakasync52026-operation-summary"
+    severity: error
+    given: $.operations[*]
+    then:
+      - field: summary
+        function: truthy
+      - field: summary
+        function: pattern
+        functionOptions:
+          match: '^[A-Z]'
+      - field: summary
+        function: length
+        functionOptions:
+          max: 75
+
+  api-peak:async6:2026-operation-naming:
+    description: Operation ids SHOULD be camelCase and start with send or receive.
+    message: "Operation id '{{property}}' SHOULD be camelCase and start with 'send' or 'receive'. \n http://localhost:7107/docs/default/component/api-guidelines/#operation-naming-api-peakasync62026-operation-naming"
+    severity: warn
+    given: $.operations
+    then:
+      field: '@key'
+      function: pattern
+      functionOptions:
+        match: '^(send|receive)[A-Z][A-Za-z0-9]*$'
+
+  api-peak:async7:2026-one-message-per-operation:
+    description: An operation MUST reference exactly one message.
+    message: "An operation MUST reference exactly one message. \n http://localhost:7107/docs/default/component/api-guidelines/#one-message-per-operation-api-peakasync72026-one-message-per-operation"
+    severity: error
+    given: $.operations[*]
+    then:
+      field: messages
+      function: length
+      functionOptions:
+        min: 1
+        max: 1
+
+  api-peak:async8:2026-message-metadata:
+    description: Every message MUST have a PascalCase name, a title, a contentType and a payload.
+    message: "Message MUST have a name in PascalCase, a title, a contentType and a payload. \n http://localhost:7107/docs/default/component/api-guidelines/#message-metadata-api-peakasync82026-message-metadata"
+    severity: error
+    given: $.channels[*].messages[*]
+    then:
+      - field: name
+        function: truthy
+      - field: name
+        function: casing
+        functionOptions:
+          type: pascal
+      - field: title
+        function: truthy
+      - field: contentType
+        function: truthy
+      - field: payload
+        function: truthy
+
+  api-peak:async9:2026-message-examples:
+    description: Every message MUST have at least one example.
+    message: "Message MUST have at least one example. \n http://localhost:7107/docs/default/component/api-guidelines/#message-examples-api-peakasync92026-message-examples"
+    severity: error
+    given: $.channels[*].messages[*]
+    then:
+      - field: examples
+        function: truthy
+      - field: examples
+        function: length
+        functionOptions:
+          min: 1
+
+  api-peak:async10:2026-json-payloads:
+    description: Payloads MUST be JSON.
+    message: "Content type '{{value}}' is not allowed: payloads MUST be application/json. \n http://localhost:7107/docs/default/component/api-guidelines/#json-payloads-api-peakasync102026-json-payloads"
+    severity: error
+    given:
+      - $.defaultContentType
+      - $.channels[*].messages[*].contentType
+    then:
+      function: pattern
+      functionOptions:
+        match: '^application/json$'
+
+  api-peak:async11:2026-property-naming:
+    description: Payload property names MUST be camelCase.
+    message: "Property '{{property}}' MUST be camelCase. \n http://localhost:7107/docs/default/component/api-guidelines/#property-naming-api-peakasync112026-property-naming"
+    severity: error
+    given:
+      - $.channels[*].messages[*].payload..properties
+    then:
+      field: '@key'
+      function: casing
+      functionOptions:
+        type: camel
+
+  api-peak:async12:2026-schema-naming:
+    description: Reusable schema names SHOULD be PascalCase.
+    message: "Schema name '{{property}}' SHOULD be PascalCase. \n http://localhost:7107/docs/default/component/api-guidelines/#schema-naming-api-peakasync122026-schema-naming"
+    severity: warn
+    given: $.components.schemas
+    then:
+      field: '@key'
+      function: casing
+      functionOptions:
+        type: pascal
+
+  api-peak:async13:2026-open-payloads:
+    description: Payload schemas MUST NOT set additionalProperties to false.
+    message: "{{error}} Adding an optional field would break consumers. \n http://localhost:7107/docs/default/component/api-guidelines/#open-payload-schemas-api-peakasync132026-open-payloads"
+    severity: error
+    given: $.channels[*].messages[*].payload
+    then:
+      function: openPayloadSchema
+
+  # ------------------------------------------------------------------------- #
+  # MQTT API guidelines                                                        #
+  # ------------------------------------------------------------------------- #
+
+  api-peak:mqtt1:2026-topic-naming:
+    description: Topics MUST be lowercase levels separated by '/', with {camelCase} parameters and no wildcards.
+    message: "Topic '{{value}}' MUST be lowercase levels (a-z, 0-9, -) or {camelCase} parameters separated by '/', without leading or trailing '/', wildcards or '$'. \n http://localhost:7107/docs/default/component/api-guidelines/#topic-naming-api-peakmqtt12026-topic-naming"
+    severity: error
+    given: $.channels[?(@.address)].address
+    then:
+      function: pattern
+      functionOptions:
+        match: '^(?:[a-z0-9-]+|\{[a-z][a-zA-Z0-9]*\})(?:/(?:[a-z0-9-]+|\{[a-z][a-zA-Z0-9]*\}))*$'
+
+  api-peak:mqtt2:2026-topic-version:
+    description: Every topic MUST contain a major version level v{MAJOR}.
+    message: "Topic '{{value}}' MUST contain a version level such as 'v1'. \n http://localhost:7107/docs/default/component/api-guidelines/#topic-versioning-api-peakmqtt22026-topic-version"
+    severity: error
+    given: $.channels[?(@.address)].address
+    then:
+      function: pattern
+      functionOptions:
+        match: '(^|/)v[0-9]+(/|$)'
+
+  api-peak:mqtt3:2026-qos:
+    description: Every operation MUST declare bindings.mqtt.qos.
+    message: "Operation MUST declare its MQTT quality of service in bindings.mqtt.qos. \n http://localhost:7107/docs/default/component/api-guidelines/#quality-of-service-api-peakmqtt32026-qos"
+    severity: error
+    given: $.operations[*]
+    then:
+      field: bindings.mqtt.qos
+      function: defined
+
+  api-peak:mqtt4:2026-retain:
+    description: Every operation SHOULD declare bindings.mqtt.retain.
+    message: "Operation SHOULD declare bindings.mqtt.retain. \n http://localhost:7107/docs/default/component/api-guidelines/#retained-messages-api-peakmqtt42026-retain"
+    severity: warn
+    given: $.operations[*]
+    then:
+      field: bindings.mqtt.retain
+      function: defined
+
+  api-peak:mqtt5:2026-secure-transport:
+    description: Servers MUST use secure-mqtt; plain mqtt only for a local broker.
+    message: "Server host '{{value}}' uses plain mqtt: use secure-mqtt (TLS); plain mqtt is only for localhost, 127.0.0.1 or mosquitto. \n http://localhost:7107/docs/default/component/api-guidelines/#secure-transport-api-peakmqtt52026-secure-transport"
+    severity: error
+    given: $.servers[?(@.protocol === 'mqtt')].host
+    then:
+      function: pattern
+      functionOptions:
+        match: '^(localhost|127\.0\.0\.1|mosquitto)(:[0-9]+)?$'
