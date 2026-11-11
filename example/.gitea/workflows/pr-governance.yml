@@ -3,13 +3,15 @@ name: PR API governance
 # Gates run in order, each one gated by `needs:` as in the REST demo:
 #   1. asyncapi-lint   validate the changed AsyncAPI contracts and lint them
 #                      against the central guidelines (Stage 3)
-#   2. contract-test   listen on the broker and check that what the running
+#   2. breaking-changes  compare each changed contract with main: structure
+#                      with @asyncapi/diff, payloads against the schema
+#                      registry's compatibility rules (Stage 6)
+#   3. contract-test   listen on the broker and check that what the running
 #                      backend publishes matches the PR's contract (Stage 4)
-#   3. broker-policy   generate the broker policy (who may publish and
+#   4. broker-policy   generate the broker policy (who may publish and
 #                      subscribe to which topic) from the contract and the
 #                      catalog, apply it to the broker, check it from the
 #                      outside and re-run the contract test under it (Stage 5)
-# A later stage adds the breaking change check.
 #
 # The contract test needs the "contract" compose profile (Microcks + async
 # minion): docker compose --profile contract up -d
@@ -36,6 +38,8 @@ env:
   # The broker as the async minion reaches it.
   BROKER_ENDPOINT: mqtt://mosquitto:1883
   CONTRACT_FILE: contracts/order-events-asyncapi.yaml
+  # Server-to-server: job container -> Apicurio Registry.
+  REGISTRY_URL: http://apicurio:8080/apis/registry/v3
   CATALOG_FILE: catalog-info.yaml
   # Server-to-server: job container -> broker-policy-deployer.
   BROKER_POLICY_DEPLOYER_URL: http://broker-policy-deployer:9100
@@ -131,9 +135,88 @@ jobs:
           EOF
           exit $FAIL
 
-  contract-test:
-    # Don't contract-test a contract that fails validation or the guidelines.
+  breaking-changes:
     needs: asyncapi-lint
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout PR branch
+        shell: bash
+        run: |
+          # Full history: the base branch is needed to diff against.
+          set -e
+          git init -q .
+          git remote add origin "${REPO_URL}"
+          git fetch -q origin '+refs/heads/*:refs/remotes/origin/*'
+          git fetch -q origin "${CHECKOUT_REF}"
+          git checkout -q FETCH_HEAD
+
+      - name: Fetch governance breaking change tooling (linked, not vendored)
+        shell: bash
+        run: |
+          set -e
+          rm -rf .governance
+          git clone -q --depth 1 "${GOVERNANCE_REPO}" .governance
+          ls .governance/breaking-changes/
+
+      - name: Find changed contracts
+        id: find
+        shell: bash
+        run: |
+          set -e
+          # Modified contracts only: a new contract has nothing to break, and
+          # workflow_dispatch has no base to compare with.
+          FILES=""
+          if [ -n "${{ github.base_ref }}" ]; then
+            FILES=$(git diff --name-only --diff-filter=M "origin/${{ github.base_ref }}...HEAD" -- \
+              '*asyncapi*.yml' '*asyncapi*.yaml' 2>/dev/null || true)
+          fi
+          if [ -z "$FILES" ]; then
+            echo "No modified AsyncAPI contracts; nothing can break."
+            echo "has_files=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "Modified contracts:"; echo "$FILES"
+            echo "has_files=true" >> "$GITHUB_OUTPUT"
+            { echo "files<<EOF"; echo "$FILES"; echo "EOF"; } >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Structure (topics, operations, bindings) against main
+        if: steps.find.outputs.has_files == 'true'
+        shell: bash
+        run: |
+          FAIL=0
+          mkdir -p .base
+          while IFS= read -r f; do
+            [ -z "$f" ] && continue
+            BASE=".base/$(echo "$f" | tr '/' '_')"
+            git show "origin/${{ github.base_ref }}:$f" > "$BASE"
+            echo "::group::asyncapi diff $f"
+            node .governance/breaking-changes/asyncapi-diff.js "$BASE" "$f" || FAIL=1
+            echo "::endgroup::"
+          done <<'EOF'
+          ${{ steps.find.outputs.files }}
+          EOF
+          exit $FAIL
+
+      - name: Payloads against the schema registry (dry run)
+        if: steps.find.outputs.has_files == 'true'
+        shell: bash
+        run: |
+          # The registry holds what is published (main). Each payload must pass
+          # its topic's compatibility rule: FORWARD for events the API sends.
+          FAIL=0
+          while IFS= read -r f; do
+            [ -z "$f" ] && continue
+            echo "::group::registry compatibility $f"
+            node .governance/breaking-changes/schema-registry.js check "$f" || FAIL=1
+            echo "::endgroup::"
+          done <<'EOF'
+          ${{ steps.find.outputs.files }}
+          EOF
+          exit $FAIL
+
+  contract-test:
+    # Don't contract-test a contract that fails lint or breaks consumers.
+    needs: breaking-changes
     runs-on: ubuntu-latest
     steps:
       - name: Checkout PR branch

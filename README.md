@@ -7,9 +7,10 @@ An AsyncAPI contract goes through pull requests in a local Git server, next to a
 - **Gitea** + **Gitea Actions** (`act_runner`): local Git server, pull requests and CI.
 - **Eclipse Mosquitto**: the MQTT broker, with a broker policy generated from the contract and the catalog.
 - **Microcks** (+ async minion): mock events from the contract, and async contract tests.
+- **Apicurio Registry**: the payload schema of every topic, with compatibility rules.
 - **Backstage**: the API catalog, with the contract rendered as AsyncAPI docs.
 
-> **Status: Stage 5 (broker policy).** The platform runs, the backend publishes events, Backstage lists the API with its producer, consumer and broker, and the PR workflow validates changed contracts, lints them against the async and MQTT API guidelines contract-tests the running backend in Microcks, and applies a broker policy generated from the contract and the catalog. The breaking change gate is next; see [Build plan](#build-plan).
+> **Status: Stage 6 (breaking changes).** The platform runs, the backend publishes events, Backstage lists the API with its producer, consumer and broker, and the PR workflow validates changed contracts, lints them against the async and MQTT API guidelines checks it for breaking changes (structure and payload compatibility in Apicurio), contract-tests the running backend in Microcks, and applies a broker policy generated from the contract and the catalog. Kafka is next; see [Build plan](#build-plan).
 
 ---
 
@@ -24,6 +25,7 @@ Host ports are shifted from the REST demo so both can run at once:
 | Gitea | http://localhost:3100 | sign in as `demo` / `demo12345` |
 | MQTT (Mosquitto) | `localhost:1883` | plain MQTT; demo accounts in [`mosquitto/users.txt`](mosquitto/users.txt) |
 | Microcks | http://localhost:8180 | profile `contract` |
+| Apicurio Registry | http://localhost:8280 | REST API at `/apis/registry/v3` |
 | Backstage | http://localhost:7107 | profile `catalog` |
 
 ## Start
@@ -37,7 +39,7 @@ docker compose --profile contract --profile catalog up -d    # + Microcks and Ba
 
 With Podman, follow the REST demo: enable the Podman socket and set `DOCKER_SOCK` in `.env` (see [`.env.example`](.env.example)).
 
-`up` seeds Gitea: the admin user, the `async-governance-demo` organization, the consumer repo `order-events-api` (from [`example/`](example/)) and the governance repo `async-api-governance` (from [`governance/`](governance/)), and the CI runner's token. `broker-policy-seed` applies the broker policy for the contract on `main`. With the `contract` profile, `microcks-seed` also imports the contract into Microcks.
+`up` seeds Gitea: the admin user, the `async-governance-demo` organization, the consumer repo `order-events-api` (from [`example/`](example/)) and the governance repo `async-api-governance` (from [`governance/`](governance/)), and the CI runner's token. `broker-policy-seed` applies the broker policy for the contract on `main`, and `registry-seed` registers its payload schemas in Apicurio. With the `contract` profile, `microcks-seed` also imports the contract into Microcks.
 
 ### Check that it runs
 
@@ -80,7 +82,14 @@ docker run --rm -v "$PWD:/w" -w /w localhost/devops-async-api-governance-ci:late
   openlint lint -r governance/spectral/asyncapi-ruleset.yaml governance/spectral/examples/asyncapi-invalid.yaml
 ```
 
-When lint passes, the second gate, `contract-test`, checks the running backend against the PR's contract. It imports the contract into Microcks, then for every `send` operation listens on that operation's topic (`orders/v1/+/created`, `orders/v1/+/paid`) for a few seconds and validates every message against the payload schema. It fails when a message does not match, or when no message arrives at all. It needs the `contract` profile. To see it go red without touching the contract, run the backend with drift (`BACKEND_DRIFT=true docker compose up -d backend`) and re-run the PR's workflow; or, in a PR, make a field the backend does not send required.
+When lint passes, the second gate, `breaking-changes`, compares every modified contract with `main`:
+
+1. **Structure**, with `@asyncapi/diff`: a changed or removed topic, a removed operation, a flipped `send`/`receive`, a changed `qos` or `retain` is breaking. Try changing `orders/v1/{orderId}/paid` to `.../payment`.
+2. **Payloads**, against Apicurio: each topic's payload schema is an artifact with a compatibility rule, FORWARD for events the API sends. The gate asks the registry whether the PR's schema would be accepted as the next version (dry run). Removing `isPaid` or making it a string fails; adding an optional `paidAt` passes.
+
+After a merge, the `Publish API (main)` workflow registers the new schemas, so the next PR is compared with them, and applies `main`'s broker policy.
+
+The third gate, `contract-test`, checks the running backend against the PR's contract. It imports the contract into Microcks, then for every `send` operation listens on that operation's topic (`orders/v1/+/created`, `orders/v1/+/paid`) for a few seconds and validates every message against the payload schema. It fails when a message does not match, or when no message arrives at all. It needs the `contract` profile. To see it go red without touching the contract, run the backend with drift (`BACKEND_DRIFT=true docker compose up -d backend`) and re-run the PR's workflow; or, in a PR, make a field the backend does not send required.
 
 You can run the same test from your machine:
 
@@ -89,7 +98,7 @@ docker run --rm --network async-gitea-network -v "$PWD:/w" -w /w localhost/devop
   node governance/contract-test/async-contract-test.js example/contracts/order-events-asyncapi.yaml
 ```
 
-The third gate, `broker-policy`, puts the contract in charge of the broker. It generates who may publish and subscribe to which topic from the contract and the catalog, applies that to Mosquitto, checks it from the outside and re-runs the contract test under it. See [Broker policy](#broker-policy) for the moments to show live.
+The fourth gate, `broker-policy`, puts the contract in charge of the broker. It generates who may publish and subscribe to which topic from the contract and the catalog, applies that to Mosquitto, checks it from the outside and re-runs the contract test under it. See [Broker policy](#broker-policy) for the moments to show live.
 
 ## How it works
 
@@ -97,7 +106,7 @@ The third gate, `broker-policy`, puts the contract in charge of the broker. It g
 
 As in the REST demo, a product team's repo stays separate from the platform that governs it:
 
-- **Governance**: [`governance/`](governance/): the AsyncAPI ruleset (`spectral/`), the API guidelines (`api-guidelines/`), the contract test runner (`contract-test/`), the broker policy generator and deployer (`broker-policy/`) and the catalog app (`api-catalog/`).
+- **Governance**: [`governance/`](governance/): the AsyncAPI ruleset (`spectral/`), the API guidelines (`api-guidelines/`), the contract test runner (`contract-test/`), the breaking change checks (`breaking-changes/`), the broker policy generator and deployer (`broker-policy/`) and the catalog app (`api-catalog/`).
 - **Consumer**: [`example/`](example/): the AsyncAPI contract, the backend, the subscriber and a thin PR workflow. `gitea-seed` pushes it into a fresh Gitea repo on each `up`, and PRs happen against that Gitea repo.
 
 ### The contract
@@ -162,8 +171,8 @@ CI jobs run in `localhost/devops-async-api-governance-ci:latest` ([`ci-image/Doc
 | 2 | Catalog: `type: asyncapi` in Backstage | done |
 | 3 | Guidelines as code: Async + MQTT rules (OpenLint) | done |
 | 4 | Mock and contract test (Microcks async) | done |
-| 5 | Broker policy: generated from the contract and the catalog | **this** |
-| 6 | Breaking changes: `@asyncapi/diff` + Apicurio compatibility | |
+| 5 | Broker policy: generated from the contract and the catalog | done |
+| 6 | Breaking changes: `@asyncapi/diff` + Apicurio compatibility | **this** |
 | 7 | Kafka + Apicurio Registry | |
 | 8 | Demo helper, scenarios, docs | |
 

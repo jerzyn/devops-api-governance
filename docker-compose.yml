@@ -188,6 +188,44 @@ services:
       # The topics the contract lists; the policy denies a broader wildcard.
       - TOPICS=orders/v1/+/created,orders/v1/+/paid
 
+  # --- Schema registry -----------------------------------------------------------
+  # Apicurio Registry: the payload schema of every topic, with a compatibility
+  # rule. The breaking-changes gate dry-runs a PR's payloads against it.
+  # In-memory storage: registry-seed registers main's schemas on every up.
+  apicurio:
+    image: docker.io/apicurio/apicurio-registry:3.3.4
+    container_name: async-apicurio
+    restart: unless-stopped
+    environment:
+      - QUARKUS_HTTP_CORS_ORIGINS=*
+    ports:
+      - "8280:8080"
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://localhost:8080/apis/registry/v3/system/info >/dev/null"]
+      interval: 5s
+      timeout: 3s
+      retries: 30
+      start_period: 10s
+
+  # One-shot: registers the payload schemas of the contract on main.
+  registry-seed:
+    image: localhost/devops-async-api-governance-ci:latest
+    container_name: async-registry-seed
+    restart: "no"
+    depends_on:
+      ci-image:
+        condition: service_completed_successfully
+      apicurio:
+        condition: service_healthy
+    environment:
+      - REGISTRY_URL=http://apicurio:8080/apis/registry/v3
+      - NO_PROXY=*
+      - no_proxy=*
+    volumes:
+      - ./example:/repo:ro
+      - ./governance:/governance:ro
+    command: ["node", "/governance/breaking-changes/schema-registry.js", "register", "/repo/contracts/order-events-asyncapi.yaml"]
+
   # --- Mock and contract test (profile: contract) ------------------------------
   # Microcks all-in-one, plus the async minion that publishes mock events to
   # the broker and runs the async contract tests. Images from Docker Hub.

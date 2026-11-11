@@ -222,6 +222,22 @@ Payload schemas **MUST NOT** set `additionalProperties: false`. Producers add op
 
 ---
 
+## [Compatibility (api-peak:async14:2026-compatibility)](#compatibility)
+
+A change to a published API **MUST NOT** break its existing consumers. For an event the API sends, these are breaking:
+
+- changing or removing a topic, an operation or a channel, or flipping an operation's action;
+- changing the MQTT `qos` or `retain` of an operation;
+- a payload that consumers built on the previous schema cannot read: removing a field, changing a field's type, or narrowing an allowed value.
+
+Adding an optional or required field to an event is not breaking: consumers ignore what they do not know (see [Open Payload Schemas](#open-payload-schemas-api-peakasync132026-open-payloads)).
+
+A breaking change **MUST** be published as a new MAJOR version on a new topic version level (for example `orders/v2/...`), next to the old one, until its consumers have moved.
+
+The PR gate checks the structure with `@asyncapi/diff` and every payload against the schema registry. The registry rule follows who reads the payload: **FORWARD** for events the API sends, **BACKWARD** for messages it receives.
+
+---
+
 # MQTT API Guidelines
 
 These rules apply to APIs whose servers use MQTT.
