@@ -100,9 +100,10 @@ As in the REST demo, a product team's repo stays separate from the platform that
 
 ### The contract
 
-[`example/contracts/order-events-asyncapi.yaml`](example/contracts/order-events-asyncapi.yaml) describes the Order Events API: the backend sends `OrderCreated` and `OrderPaid` on `orders/v1/{orderId}/events`. Two conventions come from the tooling spike (Stage 0):
+[`example/contracts/order-events-asyncapi.yaml`](example/contracts/order-events-asyncapi.yaml) describes the Order Events API: the backend sends `OrderCreated` on `orders/v1/{orderId}/created` and `OrderPaid` on `orders/v1/{orderId}/paid`. Three conventions come from the tooling:
 
 - **One message per operation, and every operation has an `mqtt` binding.** Microcks mocks one example per operation, and only operations with an MQTT binding.
+- **One event type per topic.** Microcks validates every message on a topic against the tested operation's schema, and MQTT has no type header, so each event type gets its own topic (guideline `api-peak:mqtt6`).
 - **Payload schemas stay open** (no `additionalProperties: false`), so adding an optional field to an event is not a breaking change for consumers.
 
 ### Catalog
