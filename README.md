@@ -7,9 +7,9 @@ An AsyncAPI contract goes through pull requests in a local Git server, next to a
 - **Gitea** + **Gitea Actions** (`act_runner`): local Git server, pull requests and CI.
 - **Eclipse Mosquitto**: the MQTT broker.
 - **Microcks** (+ async minion): mock events from the contract, and async contract tests.
-- **Backstage**: the API catalog (AsyncAPI entries arrive in Stage 2).
+- **Backstage**: the API catalog, with the contract rendered as AsyncAPI docs.
 
-> **Status: Stage 1 (scaffold).** The platform runs, the backend publishes events, and the PR workflow validates changed contracts. The governance gates (lint, contract test, broker policy, breaking changes) arrive stage by stage; see [Build plan](#build-plan).
+> **Status: Stage 2 (catalog).** The platform runs, the backend publishes events, the PR workflow validates changed contracts, and Backstage lists the API with its producer, consumer and broker. The governance gates (lint, contract test, broker policy, breaking changes) arrive stage by stage; see [Build plan](#build-plan).
 
 ---
 
@@ -86,6 +86,20 @@ As in the REST demo, a product team's repo stays separate from the platform that
 - **One message per operation, and every operation has an `mqtt` binding.** Microcks mocks one example per operation, and only operations with an MQTT binding.
 - **Payload schemas stay open** (no `additionalProperties: false`), so adding an optional field to an event is not a breaking change for consumers.
 
+### Catalog
+
+[`example/catalog-info.yaml`](example/catalog-info.yaml) puts the event flow into Backstage (http://localhost:7107, profile `catalog`):
+
+| Entity | Kind | Relation |
+|--------|------|----------|
+| `order-events-api` | API, `type: asyncapi` | definition from the contract, rendered as AsyncAPI docs |
+| `orders-backend` | Component | `providesApis: order-events-api`, depends on the broker |
+| `orders-subscriber` | Component | `consumesApis: order-events-api`, depends on the broker |
+| `mqtt-broker` | Resource, `type: message-broker` | the Mosquitto broker |
+| `orders` | System | groups all of the above |
+
+Backstage → **APIs** → *Order Events API* → **Documentation** shows servers, operations, messages and the MQTT bindings; **Catalog Graph** shows who produces and who consumes the events. The Gitea provider rescans every 10 s, so a merged change shows up within seconds.
+
 ### CI image
 
 CI jobs run in `localhost/devops-async-api-governance-ci:latest` ([`ci-image/Dockerfile`](ci-image/Dockerfile)): Node 24 with the AsyncAPI CLI, parser and diff, OpenLint and the `mqtt` command line client preinstalled, analytics off.
@@ -95,8 +109,8 @@ CI jobs run in `localhost/devops-async-api-governance-ci:latest` ([`ci-image/Doc
 | Stage | What it adds | State |
 |-------|--------------|-------|
 | 0 | Tooling spike on AsyncAPI 3.x | done |
-| 1 | Scaffold: platform, broker, contract, backend, subscriber, PR workflow skeleton | **this** |
-| 2 | Catalog: `type: asyncapi` in Backstage | |
+| 1 | Scaffold: platform, broker, contract, backend, subscriber, PR workflow skeleton | done |
+| 2 | Catalog: `type: asyncapi` in Backstage | **this** |
 | 3 | Guidelines as code: Async + MQTT rules (OpenLint) | |
 | 4 | Mock and contract test (Microcks async) | |
 | 5 | Broker policy: Mosquitto ACL generated from the contract | |
