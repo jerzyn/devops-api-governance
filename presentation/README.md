@@ -15,7 +15,7 @@ The talk *"DevOps-Driven API Governance"* and the script of the demo it plays ba
 The talk plays back five recordings in which the CI pipeline grows one gate at a time:
 
 1. **Catalog**: merge a `catalog-info.yaml`; the API appears in Backstage.
-2. **Spectral**: the gate catches an `http://` server URL; the error links to the rule in the catalog.
+2. **OpenLint**: the gate catches an `http://` server URL; the error links to the rule in the catalog.
 3. **Mocks & contract testing**: the contract is a live mock; the contract test catches a field the backend doesn't return.
 4. **API gateway**: the gateway config is generated from the contract; `curl` through KrakenD goes from 404 to 200.
 5. **Backwards compatibility**: oasdiff blocks a new required parameter; the later gates are skipped.

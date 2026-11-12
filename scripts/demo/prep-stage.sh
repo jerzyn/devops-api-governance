@@ -19,7 +19,7 @@
 # touching what is checked out, so it is safe to run while the recording
 # terminal sits in the clone.
 #   prep-stage.sh stage1           feat/add-catalog-entry
-#   prep-stage.sh stage2           feat/add-spectral-gate
+#   prep-stage.sh stage2           feat/add-openlint-gate
 #   prep-stage.sh stage2-red       feat/orders-server-url     (after stage2 is merged)
 #   prep-stage.sh stage3           feat/add-contract-test-gate
 #   prep-stage.sh stage3-red       feat/orders-currency       (after stage3 is merged)
@@ -33,7 +33,7 @@
 # again if your terminal was inside the old one.
 #   prep-stage.sh goto 1           start of stage 1 (nothing merged; same as reset)
 #   prep-stage.sh goto 2           start of stage 2 part 1 (stage 1 merged)
-#   prep-stage.sh goto 2-red       start of stage 2 part 2 (spectral gate merged)
+#   prep-stage.sh goto 2-red       start of stage 2 part 2 (openlint gate merged)
 #   prep-stage.sh goto 3           start of stage 3 part 1 (stage 2 fully merged)
 #   prep-stage.sh goto 3-red       start of stage 3 part 2 (contract-test gate merged)
 #   prep-stage.sh goto 4           start of stage 4 (stage 3 fully merged)
@@ -76,7 +76,7 @@ do_stage1() {
   use_readme "$1" "$RD/stage1.md"
 }
 
-do_stage2() { use_workflow "$1" "$WF/stage2-spectral.yml"; use_readme "$1" "$RD/stage2.md"; }
+do_stage2() { use_workflow "$1" "$WF/stage2-openlint.yml"; use_readme "$1" "$RD/stage2.md"; }
 do_stage2_red() { sed -i 's#url: https://api.api-peak.com#url: http://orders.api-peak.com#' "$1/$CONTRACT"; }
 do_stage2_fix() { sed -i 's#http://orders.api-peak.com#https://orders.api-peak.com#' "$1/$CONTRACT"; }
 
@@ -129,7 +129,7 @@ do_stage5_fix() { sed -i '/name: channel/,/required:/ s/required: true/required:
 # What lands on main, in order. "goto" replays the first N of these.
 LAYERS=(
   "do_stage1"                       # 1  stage 1: catalog entry
-  "do_stage2"                       # 2  stage 2 part 1: spectral gate
+  "do_stage2"                       # 2  stage 2 part 1: openlint gate
   "do_stage2_red do_stage2_fix"     # 3  stage 2 part 2: http -> https fix merged
   "do_stage3"                       # 4  stage 3 part 1: contract-test gate
   "do_stage3_red do_stage3_fix"     # 5  stage 3 part 2: optional currency merged
@@ -152,15 +152,15 @@ layers_before() {
 sync_governance_repo() {
   local g="$WORK/gov"
   mkdir -p "$g/gateway"
-  cp "$ROOT/governance/spectral/spectral-ruleset.yaml" "$g/"
-  cp -r "$ROOT/governance/spectral/spectral-functions" "$g/"
+  cp "$ROOT/governance/openlint/openlint-ruleset.yaml" "$g/"
+  cp -r "$ROOT/governance/openlint/openlint-functions" "$g/"
   cp "$ROOT/governance/api-guidelines/mkdocs.yml" "$ROOT/governance/api-guidelines/catalog-info.yaml" "$g/"
   cp -r "$ROOT/governance/api-guidelines/docs" "$g/"
   cp "$ROOT/governance/gateway/generate.js" "$ROOT/governance/gateway/package.json" \
      "$ROOT/governance/gateway/krakend-base.json" "$g/gateway/"
   git -C "$g" init -q
   git -C "$g" -c user.name=seed -c user.email=seed@example.com add -A
-  git -C "$g" -c user.name=seed -c user.email=seed@example.com commit -q -m "Governance policy: Spectral ruleset + functions"
+  git -C "$g" -c user.name=seed -c user.email=seed@example.com commit -q -m "Governance policy: OpenLint ruleset + functions"
   git -C "$g" push -q -f "http://$U:$P@localhost:3000/$ORG/$GOV_REPO.git" HEAD:main
   echo "synced $GOV_REPO"
 }
@@ -381,7 +381,7 @@ make_local_branch() {
 prep_step() {
   case "$1" in
     stage1)     make_local_branch feat/add-catalog-entry "Register the Orders API in the catalog" do_stage1 ;;
-    stage2)     make_local_branch feat/add-spectral-gate "Add spectral-openapi-check gate" do_stage2 ;;
+    stage2)     make_local_branch feat/add-openlint-gate "Add openlint-openapi-check gate" do_stage2 ;;
     stage2-red) make_local_branch feat/orders-server-url "Move Orders API to orders.api-peak.com" do_stage2_red ;;
     stage3)     make_local_branch feat/add-contract-test-gate "Add contract-test gate (Microcks)" do_stage3 ;;
     stage3-red) make_local_branch feat/orders-currency "Add currency to the order response" do_stage3_red ;;
@@ -410,7 +410,7 @@ step_after() {
 }
 branch_of() {
   case "$1" in
-    stage1) echo feat/add-catalog-entry ;;         stage2) echo feat/add-spectral-gate ;;
+    stage1) echo feat/add-catalog-entry ;;         stage2) echo feat/add-openlint-gate ;;
     stage2-red) echo feat/orders-server-url ;;     stage3) echo feat/add-contract-test-gate ;;
     stage3-red) echo feat/orders-currency ;;       stage4) echo feat/add-gateway-gate ;;
     stage5) echo feat/add-backwards-compat-gate ;; stage5-red) echo feat/orders-require-channel ;;

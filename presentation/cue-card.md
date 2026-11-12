@@ -29,12 +29,12 @@ git push -u origin feat/add-catalog-entry
 ```
 PR (no checks) → **Merge** → Backstage tab → reload **APIs** → `orders-api` (~10 s) → **Definition** tab.
 
-## 2 · Spectral — "A guideline nobody enforces is a suggestion."
+## 2 · OpenLint — "A guideline nobody enforces is a suggestion."
 **2a** (`next` done)
 ```bash
-git switch feat/add-spectral-gate
+git switch feat/add-openlint-gate
 git diff --stat main
-git push -u origin feat/add-spectral-gate
+git push -u origin feat/add-openlint-gate
 ```
 PR → **Files changed** → while CI runs: Backstage → **Docs** → `api-guidelines`, scroll (*"the rules the gate enforces"*) → back, green → **Merge**. T2: `next`.
 
@@ -44,7 +44,7 @@ git switch feat/orders-server-url
 git diff main -- contracts/
 git push -u origin feat/orders-server-url
 ```
-PR → **red** → **Details** → **Run Spectral (fail on errors)**: `rest17:2025-https-required`, `1 problem`.
+PR → **red** → **Details** → **Run OpenLint (fail on errors)**: `rest17:2025-https-required`, `1 problem`.
 Open the link under the error → rule in Backstage. *"Same rule for humans and CI, one source of truth."*
 ```bash
 vi +18 contracts/orders-openapi.yaml    # /http: Enter · e · a · s · Esc · :wq
@@ -73,7 +73,7 @@ git switch feat/orders-currency
 git diff main -- contracts/
 git push -u origin feat/orders-currency
 ```
-PR → spectral green, **contract-test red** → **Details** → **Run contract test**: `currency' not found`.
+PR → openlint green, **contract-test red** → **Details** → **Run contract test**: `currency' not found`.
 ```bash
 curl -s http://localhost:8080/rest/Orders+API/1.0.0/orders/123    # mock: has currency
 curl -s http://localhost:8081/orders/123                          # backend: doesn't

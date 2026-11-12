@@ -1,5 +1,7 @@
+# `spectral:oas` is the legacy Spectral OpenAPI ruleset that OpenLint ships as
+# @openlint/ruleset-spectral-oas; kept so the inherited rules stay identical.
 extends: [[spectral:oas, all]]
-functionsDir: ./spectral-functions
+functionsDir: ./openlint-functions
 functions:
   [
     "disallowedNullInTypeArray",

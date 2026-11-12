@@ -1,10 +1,10 @@
-# Job image for the PR-governance workflow: node:20-bullseye with every tool the
+# Job image for the PR-governance workflow: node:22-bullseye with every tool the
 # gates use already installed, so CI runs don't download anything (faster, and
 # no failures from a flaky connection). The workflow still installs a tool
-# itself when it is missing, so it also runs on a plain node:20 runner.
-FROM docker.io/library/node:20-bullseye
+# itself when it is missing, so it also runs on a plain node:22 runner.
+FROM docker.io/library/node:22-bullseye
 
-ARG SPECTRAL_VERSION=6.16.3
+ARG OPENLINT_VERSION=1.2.0
 ARG JS_YAML_VERSION=4.1.0
 ARG OASDIFF_VERSION=1.19.0
 # The CLI only validates the KrakenD v3 config schema, so it doesn't have to
@@ -12,13 +12,12 @@ ARG OASDIFF_VERSION=1.19.0
 # builds need glibc 2.32+/2.34+; bullseye has 2.31, and 2.6.2 runs on it.
 ARG KRAKEND_VERSION=2.6.2
 
-# spectral-cli 6.16.x pulls in @scarf/scarf, which sends install-time analytics.
-# Opt out (both variables are honoured by Scarf); nothing should phone home from
-# a governance toolchain. The openly governed fork, Spotlight
-# (github.com/api-commons/spotlight-tools), drops Scarf entirely.
+# OpenLint (the openly governed Spectral fork, github.com/openlint/openlint)
+# ships without @scarf/scarf install-time analytics. The opt-out variables stay
+# as a guard: nothing should phone home from a governance toolchain.
 ENV SCARF_ANALYTICS=false \
     DO_NOT_TRACK=1
-RUN npm install -g "@stoplight/spectral-cli@${SPECTRAL_VERSION}" "js-yaml@${JS_YAML_VERSION}" \
+RUN npm install -g "openlint@${OPENLINT_VERSION}" "js-yaml@${JS_YAML_VERSION}" \
  && npm cache clean --force
 # The gateway generator requires js-yaml; resolve it from the global install.
 ENV NODE_PATH=/usr/local/lib/node_modules
@@ -33,4 +32,4 @@ RUN set -e; cd /tmp \
  && curl -fsSL -o krakend.tgz "https://github.com/krakend/krakend-ce/releases/download/v${KRAKEND_VERSION}/krakend_${KRAKEND_VERSION}_${ARCH}_generic-linux.tar.gz" \
  && tar -xzf krakend.tgz && install -m 0755 usr/bin/krakend /usr/local/bin/krakend \
  && rm -rf /tmp/* \
- && spectral --version && oasdiff --version && krakend version
+ && openlint --version && oasdiff --version && krakend version

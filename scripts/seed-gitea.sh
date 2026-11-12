@@ -11,7 +11,7 @@ ORG="${GITEA_ORG:-governance-demo}"
 # Consumer (product) repo — the OpenAPI contract + catalog-info + backend impl.
 # This is where PRs happen. Source: /repo (the example/ template folder).
 REPO="${GITEA_REPO:-devops-api-governance}"
-# Central governance repo — the Spectral ruleset + custom functions. The
+# Central governance repo — the OpenLint ruleset + custom functions. The
 # consumer's CI clones this (a link, not a vendored copy). Source: /governance
 # (the project root = governance context).
 GOV_REPO="${GITEA_GOV_REPO:-api-governance}"
@@ -54,11 +54,11 @@ seed_repo /repo "$REPO" "Consumer repo: Orders API (contract + backend)"
 echo "==> push governance repo: lean policy -> '$ORG/$GOV_REPO' main"
 # The consumer CI only needs the policy (ruleset + custom functions + the
 # guidelines they encode), so publish a lean repo rather than the whole
-# governance context. Source of truth stays in governance/spectral.
+# governance context. Source of truth stays in governance/openlint.
 GOV_SRC=/tmp/gov-src
 rm -rf "$GOV_SRC"; mkdir -p "$GOV_SRC"
-cp /governance/spectral/spectral-ruleset.yaml "$GOV_SRC"/
-cp -r /governance/spectral/spectral-functions "$GOV_SRC"/
+cp /governance/openlint/openlint-ruleset.yaml "$GOV_SRC"/
+cp -r /governance/openlint/openlint-functions "$GOV_SRC"/
 # Guidelines + their TechDocs wiring (catalog-info.yaml + mkdocs.yml) live in
 # governance/api-guidelines and are published to the repo root so Backstage
 # discovers the api-guidelines Component and renders it as TechDocs.
@@ -72,7 +72,7 @@ mkdir -p "$GOV_SRC"/gateway
 cp /governance/gateway/generate.js "$GOV_SRC"/gateway/
 cp /governance/gateway/package.json "$GOV_SRC"/gateway/
 cp /governance/gateway/krakend-base.json "$GOV_SRC"/gateway/
-seed_repo "$GOV_SRC" "$GOV_REPO" "Governance policy: Spectral ruleset + functions"
+seed_repo "$GOV_SRC" "$GOV_REPO" "Governance policy: OpenLint ruleset + functions"
 
 echo "==> runner registration token -> /seed/runner-token"
 docker exec -u git gitea gitea actions generate-runner-token 2>/dev/null \
