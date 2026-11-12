@@ -57,7 +57,7 @@ services:
       # Consumer (product) repo: the example/ subrepo (contract + catalog +
       # backend). Test PRs run here and never touch the project repo.
       - ./example:/repo
-      # Governance context (Spectral ruleset + functions + seed scripts).
+      # Governance context (OpenLint ruleset + functions + seed scripts).
       # Pushed to a separate Gitea repo that the consumer's CI clones (linked).
       - ./governance:/governance
       # Seed scripts are orchestration, kept at the repo root (not governance).

@@ -19,7 +19,7 @@ Every step below was run end to end against the stack: every command from this p
 | Stage | Adds | Key shot (what the audience should remember) |
 |---|---|---|
 | 1 | Catalog | Merge a `catalog-info.yaml`, and `orders-api` appears in Backstage by itself. No CI yet. |
-| 2 | Spectral | Red check with exactly one finding, `api-peak:rest17:2025-https-required`, whose link opens the rule in the API catalog: the guidelines live in Backstage. One-line fix turns it green. |
+| 2 | OpenLint | Red check with exactly one finding, `api-peak:rest17:2025-https-required`, whose link opens the rule in the API catalog: the guidelines live in Backstage. One-line fix turns it green. |
 | 3 | Mocks + contract test (Microcks) | The pushed contract is a live mock at once; then the mock returns a `currency` the running backend doesn't, and contract-test catches it (`currency' not found`). |
 | 4 | API gateway (KrakenD) | `curl` through the gateway goes from 404 (no routes yet) to 200 after the merge, with the generated `krakend.json` in the CI log. |
 | 5 | Backwards compatibility (oasdiff) | `new-required-request-parameter` goes red, and downstream gates show as skipped (grey). Making it optional turns everything green. |
@@ -37,7 +37,7 @@ Stages 2, 3 and 5 have two parts. **Part 1** installs the new gate. **Part 2** i
 4. **Terminal, fix (red demos only):** one `sed` edits the contract, then `git commit -am` and `git push`. The push updates the same PR, so the checks re-run by themselves and go from red to green in the browser.
 5. **Browser, merge:** **Create merge commit**. `main` now contains this step, and the next step starts from that. (Stage 1 has a PR too, but no checks run on it: no gate exists yet.)
 
-**Part 1 is short on purpose.** A PR that only adds a workflow has nothing for the new gate to find (Spectral logs "skipping", oasdiff has nothing to compare), so its green check says little. Show what is added (**Files changed**), let the checks start, cut the wait in editing, merge. Spend the time on part 2.
+**Part 1 is short on purpose.** A PR that only adds a workflow has nothing for the new gate to find (OpenLint logs "skipping", oasdiff has nothing to compare), so its green check says little. Show what is added (**Files changed**), let the checks start, cut the wait in editing, merge. Spend the time on part 2.
 
 Three things to keep in mind:
 - Keep the same clone (`~/demo/orders-api`) for the whole walk-through. `next` adds each branch to it. `goto` replaces it with a fresh one.
@@ -77,8 +77,8 @@ Have everything below open **before** you press record, so no recording starts w
 | Target | State: what is already merged | Branch prepared in the clone |
 |---|---|---|
 | `goto 1` | nothing | `feat/add-catalog-entry` |
-| `goto 2` | stage 1 (catalog entry; the API is in Backstage) | `feat/add-spectral-gate` |
-| `goto 2-red` | + spectral gate | `feat/orders-server-url` |
+| `goto 2` | stage 1 (catalog entry; the API is in Backstage) | `feat/add-openlint-gate` |
+| `goto 2-red` | + openlint gate | `feat/orders-server-url` |
 | `goto 3` | + stage 2 fix (server URL is now `https://orders.api-peak.com`) | `feat/add-contract-test-gate` |
 | `goto 3-red` | + contract-test gate | `feat/orders-currency` |
 | `goto 4` | + stage 3 fix (`currency` exists, optional) | `feat/add-gateway-gate` |
@@ -97,10 +97,10 @@ Repo: `http://localhost:3000/governance-demo/devops-api-governance`
 - **Open a PR:** `<repo>/compare/main...<branch>` → **New Pull Request** → **Create Pull Request**. The title is prefilled from the branch's commit.
 - **Show the change:** the PR's **Files changed** tab (coloured diff, easier to read than a terminal).
 - **Watch the checks:** listed on the PR's **Conversation** tab. The list updates by itself; reload if it looks stuck.
-- **Read a job's log:** **Details** next to a check, then click a step row (e.g. "Run Spectral (fail on errors)") to expand it.
+- **Read a job's log:** **Details** next to a check, then click a step row (e.g. "Run OpenLint (fail on errors)") to expand it.
 - **Merge:** when all checks are green, **Create merge commit** at the bottom of the Conversation tab, then confirm.
 - **Backstage:** `http://localhost:7007`. Left menu **APIs**, then the API's name.
-- **API guidelines in the catalog:** `http://localhost:7007/docs/default/component/api-guidelines` (Backstage → **Docs** → `api-guidelines`). Every Spectral error links to its rule on this page.
+- **API guidelines in the catalog:** `http://localhost:7007/docs/default/component/api-guidelines` (Backstage → **Docs** → `api-guidelines`). Every OpenLint error links to its rule on this page.
 - **Mock:** `http://localhost:8080/rest/Orders+API/1.0.0/orders/123` returns the contract's example.
 - **Microcks:** `http://localhost:8080`. Test results are linked from the CI log (`Details: http://localhost:8080/#/tests/…`).
 
@@ -136,11 +136,11 @@ git push -u origin feat/add-catalog-entry        # hand the change over: the bra
 
 ---
 
-## Stage 2 — Spectral (guidelines as code)
+## Stage 2 — OpenLint (guidelines as code)
 
 **Narrative:** "A guideline nobody enforces is just a suggestion."
 
-**Part 1: install the gate.** Branch `feat/add-spectral-gate` adds `.gitea/workflows/pr-governance.yml` with only the `spectral-openapi-check` job.
+**Part 1: install the gate.** Branch `feat/add-openlint-gate` adds `.gitea/workflows/pr-governance.yml` with only the `openlint-openapi-check` job.
 
 **On screen at the start:**
 - Terminal 1: same clone, screen cleared.
@@ -150,14 +150,14 @@ git push -u origin feat/add-catalog-entry        # hand the change over: the bra
 
 **Terminal:**
 ```bash
-git switch feat/add-spectral-gate
+git switch feat/add-openlint-gate
 git diff --stat main                             # one new file: the workflow
-git push -u origin feat/add-spectral-gate        # hand the change over: the branch goes to Gitea
+git push -u origin feat/add-openlint-gate        # hand the change over: the branch goes to Gitea
 ```
 
 **Browser:**
-1. Open the PR (`compare/main...feat/add-spectral-gate`). Show **Files changed**: the one gate, running on every PR.
-2. Back on **Conversation**, `spectral-openapi-check` runs. While it runs, switch to the Backstage tab → **Docs** → `api-guidelines` and scroll the page: these are the rules the gate enforces. Say: "the guidelines are a document in the catalog, and the gate makes CI enforce them." Cut the wait in editing.
+1. Open the PR (`compare/main...feat/add-openlint-gate`). Show **Files changed**: the one gate, running on every PR.
+2. Back on **Conversation**, `openlint-openapi-check` runs. While it runs, switch to the Backstage tab → **Docs** → `api-guidelines` and scroll the page: these are the rules the gate enforces. Say: "the guidelines are a document in the catalog, and the gate makes CI enforce them." Cut the wait in editing.
 3. Back on the PR, the check goes green (no contract changed, so it only confirms the gate works). Merge.
 
 **Part 2: the gate catches something.** Run `next` (off camera). Branch `feat/orders-server-url` moves the server URL to `http://orders.api-peak.com`.
@@ -170,8 +170,8 @@ git push -u origin feat/orders-server-url        # hand the change over: the bra
 ```
 
 **Browser:**
-1. Open the PR (`compare/main...feat/orders-server-url`). `spectral-openapi-check` goes **red**.
-2. **Details** → expand **Run Spectral (fail on errors)**. The contract is otherwise clean, so this is the only finding:
+1. Open the PR (`compare/main...feat/orders-server-url`). `openlint-openapi-check` goes **red**.
+2. **Details** → expand **Run OpenLint (fail on errors)**. The contract is otherwise clean, so this is the only finding:
    `error api-peak:rest17:2025-https-required server.url MUST use HTTPS.` and `✖ 1 problem (1 error, 0 warnings, 0 infos, 0 hints)`.
 3. **Guidelines live in the catalog** (seen in part 1). The line under the error is the rule's link, `http://localhost:7007/docs/default/component/api-guidelines/#https-api-peakrest172025-https`. Open it (click it, or copy it into the Backstage tab): Backstage opens the **API Guidelines** page at the HTTPS rule. Say: "same rule for humans and for CI, one source of truth, and the CI error points right at it."
 
@@ -193,11 +193,11 @@ git push origin feat/orders-server-url
 
 **Narrative:** "A contract is a promise. Push it, and partners get a live mock at once. Then CI proves the running code keeps it."
 
-**Part 1: install the gate.** Branch `feat/add-contract-test-gate` adds the `contract-test` job (`needs: spectral-openapi-check`).
+**Part 1: install the gate.** Branch `feat/add-contract-test-gate` adds the `contract-test` job (`needs: openlint-openapi-check`).
 
 **On screen at the start:**
 - Terminal 1: same clone, screen cleared.
-- Browser tab 1: Gitea repo home, now with the `.gitea/` folder (spectral gate merged); the README lists one gate.
+- Browser tab 1: Gitea repo home, now with the `.gitea/` folder (openlint gate merged); the README lists one gate.
 - Browser tab 2 (optional): Microcks `localhost:8080`, to show the mocked service in part 1 and the test detail page in part 2.
 - Backstage tab: closed.
 - Terminal 2 (off camera): `next` already run.
@@ -210,8 +210,8 @@ git push -u origin feat/add-contract-test-gate   # hand the change over: the bra
 ```
 
 **Browser:**
-1. Open the PR (`compare/main...feat/add-contract-test-gate`). **Files changed**: the new `contract-test` job, after spectral. It first imports the contract into Microcks, then tests the running backend against it.
-2. spectral and contract-test go green. Cut the wait. Merge.
+1. Open the PR (`compare/main...feat/add-contract-test-gate`). **Files changed**: the new `contract-test` job, after openlint. It first imports the contract into Microcks, then tests the running backend against it.
+2. openlint and contract-test go green. Cut the wait. Merge.
 
 **Terminal (Q1: integrate before it exists?):** the contract is also a live mock. Partners can call it today.
 ```bash
@@ -230,7 +230,7 @@ git push -u origin feat/orders-currency          # hand the change over: the bra
 ```
 
 **Browser:**
-1. Open the PR (`compare/main...feat/orders-currency`). spectral goes green (the contract is valid), then **contract-test goes red**.
+1. Open the PR (`compare/main...feat/orders-currency`). openlint goes green (the contract is valid), then **contract-test goes red**.
 2. **Details** on contract-test → expand **Run contract test**. Microcks reports `currency' not found`: the running backend doesn't keep the promise.
 3. Optional: open the `Details: http://localhost:8080/#/tests/…` link from that log to show the test in Microcks.
 
@@ -253,7 +253,7 @@ git push origin feat/orders-currency
 
 **Browser:** back on the PR, contract-test goes green. Merge.
 
-**Duration:** ~35 s per CI run (spectral ~16 s, then contract-test ~17 s); the red → fix → green loop ~1.5 min.
+**Duration:** ~35 s per CI run (openlint ~16 s, then contract-test ~17 s); the red → fix → green loop ~1.5 min.
 
 ---
 
@@ -278,7 +278,7 @@ git push -u origin feat/add-gateway-gate         # hand the change over: the bra
 ```
 
 **Browser:**
-1. Open the PR (`compare/main...feat/add-gateway-gate`). **Files changed**: the new `gateway-deploy-check` job. **Three** gates now: spectral, contract-test, gateway-deploy-check.
+1. Open the PR (`compare/main...feat/add-gateway-gate`). **Files changed**: the new `gateway-deploy-check` job. **Three** gates now: openlint, contract-test, gateway-deploy-check.
 2. **Details** on gateway-deploy-check. Expand **Generate krakend.json from the PR contract** (the generated config), then **Deploy to the running gateway**, then **Run contract test through the gateway**.
 3. Wait for green. Merge.
 
@@ -288,7 +288,7 @@ curl -i http://localhost:8090/orders/123         # after: 200, through KrakenD
 curl -s http://localhost:8081/orders/123         # straight to the backend: identical body
 ```
 
-**Duration:** ~55 s for the CI run (spectral ~16 s, contract-test ~17 s, gateway ~22 s).
+**Duration:** ~55 s for the CI run (openlint ~16 s, contract-test ~17 s, gateway ~22 s).
 
 ---
 
@@ -296,7 +296,7 @@ curl -s http://localhost:8081/orders/123         # straight to the backend: iden
 
 **Narrative:** "A partner is integrated now. An innocent-looking change would break them."
 
-**Part 1: install the gate.** Branch `feat/add-backwards-compat-gate` inserts `breaking-changes-check` **between** spectral and contract-test, and repoints contract-test's `needs:` to it. This is the project's real, current pipeline.
+**Part 1: install the gate.** Branch `feat/add-backwards-compat-gate` inserts `breaking-changes-check` **between** openlint and contract-test, and repoints contract-test's `needs:` to it. This is the project's real, current pipeline.
 
 **On screen at the start:**
 - Terminal 1: same clone, screen cleared.
@@ -326,7 +326,7 @@ git push -u origin feat/orders-require-channel   # hand the change over: the bra
 ```
 
 **Browser:**
-1. Open the PR (`compare/main...feat/orders-require-channel`). spectral goes green, then **breaking-changes-check goes red**.
+1. Open the PR (`compare/main...feat/orders-require-channel`). openlint goes green, then **breaking-changes-check goes red**.
 2. contract-test and gateway-deploy-check show as **skipped (grey)**, because their `needs:` isn't satisfied. For a few seconds after the red result they read "Blocked by required conditions" and only then "Skipped": wait for it, then point at it.
 3. **Details** on breaking-changes-check → expand **Run oasdiff breaking (fail on breaking changes)**. Zoom on:
    `error [new-required-request-parameter] … added the new required query request parameter channel`
@@ -341,7 +341,7 @@ git push origin feat/orders-require-channel
 
 **Browser:** back on the PR, all four gates run and go green. Merge. This is the climax: keep it at full speed.
 
-**Duration:** the red run takes ~35 s (spectral ~16 s, then the BC check ~15 s); the final four-gate run ~70 s; the whole red → fix → green loop ~2 min.
+**Duration:** the red run takes ~35 s (openlint ~16 s, then the BC check ~15 s); the final four-gate run ~70 s; the whole red → fix → green loop ~2 min.
 
 ---
 
@@ -362,7 +362,7 @@ demo speed ci-wait.mp4 4 ci-wait-4x.mp4        # CI waiting at 4x
 demo concat demo.mp4 ~/demo/cards/card1.mp4 s1.mp4 ~/demo/cards/card2.mp4 s2.mp4 ...
 ```
 
-- **Title cards** open each stage: the stage name, what it adds, and the pipeline so far ("Pipeline: Spectral → Contract test → Gateway"), so the audience always knows where they are.
+- **Title cards** open each stage: the stage name, what it adds, and the pipeline so far ("Pipeline: OpenLint → Contract test → Gateway"), so the audience always knows where they are.
 - **concat** normalises everything to 1920×1080 @ 30 fps. If a clip has no audio, the whole result is silent (it says so).
 - Typical cut: trim each recording into pieces, `speed` the CI waiting pieces, `concat` cards and pieces.
 
@@ -380,7 +380,7 @@ demo concat demo.mp4 ~/demo/cards/card1.mp4 s1.mp4 ~/demo/cards/card2.mp4 s2.mp4
 
 **Run `demo goto 1` after every `podman-compose up` (or `docker compose up`).** Anything that depends on the one-shot `gitea-seed` service re-runs it, and the seed force-pushes the full repo onto Gitea `main`, wiping the stage state (`status` then says "matches no demo state"). `backstage` and `gitea-runner` depend on it. Never run it mid-demo, and never `podman start`/`restart` those two either.
 
-**CI runs offline.** Jobs run in `localhost/devops-api-governance-ci:latest` (`ci-image/Dockerfile`, built by the `ci-image` compose service), which has Spectral, oasdiff, the KrakenD CLI and js-yaml preinstalled, and the checkout is plain `git` against Gitea. Only building that image the first time needs the internet. The install steps in the workflow remain as a fallback: on a plain `node:20` runner they download the tools.
+**CI runs offline.** Jobs run in `localhost/devops-api-governance-ci:latest` (`ci-image/Dockerfile`, built by the `ci-image` compose service), which has OpenLint, oasdiff, the KrakenD CLI and js-yaml preinstalled, and the checkout is plain `git` against Gitea. Only building that image the first time needs the internet. The install steps in the workflow remain as a fallback: on a plain `node:22` runner (OpenLint needs Node 22+) they download the tools.
 
 **Backstage** rescans Gitea every 10 s (`app-config.yaml`, a demo setting). `demo refresh-catalog` still forces an immediate rescan through the catalog's scheduler endpoint, without touching any container.
 

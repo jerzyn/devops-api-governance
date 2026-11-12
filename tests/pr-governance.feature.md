@@ -1,7 +1,7 @@
 # Feature: PR API governance loop (BDD)
 
 First-timer walkthrough. Acceptance scenario for the governance pipeline:
-**design-time lint (Spectral, linked ruleset) → backward-compatibility check
+**design-time lint (OpenLint, linked ruleset) → backward-compatibility check
 (oasdiff) → runtime contract test (Microcks) → API gateway (KrakenD) → catalog discovery (Backstage)**,
 driven through pull requests against the seeded Gitea **consumer** repo.
 
@@ -52,7 +52,7 @@ and a conformant backend. Each scenario opens a PR against it.
 
 ## Scenario 1: a non-compliant change is blocked, then driven to green
 
-Demonstrates both gates in order: a bad change fails Spectral; once Spectral
+Demonstrates both gates in order: a bad change fails OpenLint; once OpenLint
 passes, a contract drift fails Microcks; once fixed, both go green and merge
 updates the catalog.
 
@@ -64,19 +64,19 @@ Scenario: PR #1 — tighten the contract, fix lint, fix drift, merge
   When I edit contracts/orders-openapi.yaml to add a "currency" field
        AND I (accidentally) set the server URL to http:// instead of https://
   And I push and open a PR into main
-  Then the "spectral-openapi-check" stage runs first and FAILS
+  Then the "openlint-openapi-check" stage runs first and FAILS
     # CI clones governance-demo/api-governance and lints against its ruleset;
     # custom rule api-peak:rest17:2025-https-required (error) fires.
   And the "contract-test" stage is SKIPPED (gated by needs:)
   And the PR check is red
 
-  # --- fix Spectral (gate 1 GREEN, gate 2 RED) ---
+  # --- fix OpenLint (gate 1 GREEN, gate 2 RED) ---
   When I commit a fix: restore the https:// server URL
        AND mark "currency" required in the 200 response schema
        AND add "currency" to the response example
-    # (Spectral validates examples against the schema, so a required field
+    # (OpenLint validates examples against the schema, so a required field
     #  missing from the example is itself an error — add it to keep lint green.)
-  Then "spectral-openapi-check" PASSES
+  Then "openlint-openapi-check" PASSES
   And "contract-test" now runs and FAILS
     # the conformant backend returns no "currency" -> schema mismatch:
     #   "required property 'currency' not found"
@@ -88,7 +88,7 @@ Scenario: PR #1 — tighten the contract, fix lint, fix drift, merge
 
   # --- fix the mismatch (both GREEN) ---
   When I commit a fix: drop the "currency" requirement (match the backend)
-  Then "spectral-openapi-check" PASSES
+  Then "openlint-openapi-check" PASSES
   And "contract-test" PASSES
   And both PR checks are green
 
@@ -100,7 +100,7 @@ Scenario: PR #1 — tighten the contract, fix lint, fix drift, merge
 ```
 
 **Driving the red states**
-- Spectral red: the `http://` server URL trips an error-severity rule.
+- OpenLint red: the `http://` server URL trips an error-severity rule.
 - Microcks red — two easy ways:
   - tighten the PR's contract (above): proves the **PR branch** contract is used.
   - or drift the provider: `BACKEND_DRIFT=true docker compose --profile contract up -d --force-recreate backend` (restore with `false`).
@@ -118,10 +118,10 @@ Scenario: PR #2 — bump to 1.1.0 and add GET /orders
   When I edit contracts/orders-openapi.yaml: bump info.version to 1.1.0
        AND add a GET /orders list endpoint (with examples)
   And I open a PR into main
-  Then "spectral-openapi-check" FAILS until every new-path rule is satisfied
+  Then "openlint-openapi-check" FAILS until every new-path rule is satisfied
     # e.g. the new /orders path needs a `summary` (rule api-peak:rest12, error)
-  When I commit the Spectral fixes
-  Then "spectral-openapi-check" PASSES
+  When I commit the OpenLint fixes
+  Then "openlint-openapi-check" PASSES
 
   # --- gate 2 RED (backend lacks the endpoint) ---
   And "contract-test" runs and FAILS
@@ -150,7 +150,7 @@ Scenario: PR #2 — bump to 1.1.0 and add GET /orders
 
 ## Scenario 3: backward-incompatible change is blocked by the BC gate
 
-Demonstrates the third gate: a change that is **Spectral-clean** (well-formed
+Demonstrates the third gate: a change that is **OpenLint-clean** (well-formed
 OpenAPI, all rules satisfied) and would **survive contract-test** (the backend
 handles it gracefully) is still blocked because it **breaks existing clients**.
 The gate uses `oasdiff` v1.19.0 (pinned, installed at job runtime) to diff the
@@ -167,12 +167,12 @@ Scenario: PR #3 — add a required parameter, blocked by BC gate, then relaxed
        `currency` to GET /orders/{orderId}
        AND give the parameter a description, schema with pattern "^[A-Z]{3}$",
        and example value "PLN"
-    # The change is Spectral-clean: parameter has description (silences
+    # The change is OpenLint-clean: parameter has description (silences
     # oas3-parameter-description), schema (silences validity checks), and an
     # example that matches the schema (oas3-valid-media-example).
   And I push and open a PR into main
 
-  Then "spectral-openapi-check" PASSES
+  Then "openlint-openapi-check" PASSES
     # 0 errors from the linked ruleset.
   And "breaking-changes-check" runs and FAILS
     # CI installs oasdiff v1.19.0 (curl tarball from github.com/oasdiff/oasdiff
@@ -211,17 +211,17 @@ Scenario: PR #3 — add a required parameter, blocked by BC gate, then relaxed
 **Driving the BC gate red — other knobs you can turn**
 
 The gate fires on any `oasdiff breaking` finding. Quick ways to reproduce the
-red state on a sandbox PR (all of these are Spectral-clean):
+red state on a sandbox PR (all of these are OpenLint-clean):
 
 - Add a required **header** (e.g. `Tenant-Id`) to `GET /orders/{orderId}`
   (`new-required-request-parameter`, `in: header`). Use `Hyphenated-Pascal-Case`
-  (e.g. `Tenant-Id`, not `X-Tenant-Id`) so Spectral rule
+  (e.g. `Tenant-Id`, not `X-Tenant-Id`) so OpenLint rule
   `api-peak:rest10:2025-headers-naming-conventions-x-prefix` (warn) stays clean.
 - Narrow the path parameter `orderId`: add `minLength: 5` and/or
   `pattern: "^[A-Z0-9-]+$"` to its schema
   (`request-parameter-min-length-increased`, `request-parameter-pattern-added`).
   Bump the example to match (e.g. `"ABC-123"`) so `oas3-valid-media-example`
-  does not turn Spectral red instead.
+  does not turn OpenLint red instead.
 - Remove an existing response field from the 200 schema
   (`response-property-removed`).
 
@@ -240,17 +240,17 @@ red state on a sandbox PR (all of these are Spectral-clean):
 
 | #  | Step | Expected | Verify at |
 |----|------|----------|-----------|
-| 1  | Bad change opened (Scenario 1, HTTPS rule) | Spectral RED, BC + Microcks SKIPPED (gated by `needs:`) | Gitea PR checks |
-| 2  | Spectral fixed (Scenario 1) | Spectral GREEN, BC PASS (response-only additions are non-breaking), Microcks RED | Gitea PR checks + CI log |
+| 1  | Bad change opened (Scenario 1, HTTPS rule) | OpenLint RED, BC + Microcks SKIPPED (gated by `needs:`) | Gitea PR checks |
+| 2  | OpenLint fixed (Scenario 1) | OpenLint GREEN, BC PASS (response-only additions are non-breaking), Microcks RED | Gitea PR checks + CI log |
 | 3  | Microcks report link | `http://localhost:8080/...` (not `microcks-uber`) | contract-test CI log |
 | 4  | Contract under test | PR branch version; service version derived from contract | CI log "Testing service: ...:<version>" |
 | 5  | Mismatch fixed (Scenario 1) | All four gates GREEN | Gitea PR checks |
 | 6  | Merge to main | API discovered / updated | Backstage http://localhost:7007 |
-| 7  | Spectral-clean BC opened (Scenario 3) | Spectral GREEN, BC RED, Microcks SKIPPED | Gitea PR checks |
+| 7  | OpenLint-clean BC opened (Scenario 3) | OpenLint GREEN, BC RED, Microcks SKIPPED | Gitea PR checks |
 | 8  | oasdiff annotation | `::error::...new required \`query\` request parameter \`currency\`` (or other oasdiff rule ID) | breaking-changes-check CI log |
 | 9  | BC fix applied (Scenario 3) | All four gates GREEN | Gitea PR checks |
 | 10 | oasdiff version pinned | `oasdiff version 1.19.0` printed in the install step | breaking-changes-check CI log |
-| 11 | Gateway deploy (new Scenario 4) | Spectral/BC/contract-test GREEN, `gateway-deploy-check` deploys config and re-tests through KrakenD | Gitea PR checks + gateway-deploy-check CI log |
+| 11 | Gateway deploy (new Scenario 4) | OpenLint/BC/contract-test GREEN, `gateway-deploy-check` deploys config and re-tests through KrakenD | Gitea PR checks + gateway-deploy-check CI log |
 
 > Scenario 4 (gateway deploy) is exercised by Stage 4 of
 > [`presentation/screenplay.md`](../presentation/screenplay.md); a full

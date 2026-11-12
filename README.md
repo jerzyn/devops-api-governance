@@ -6,7 +6,7 @@ An OpenAPI contract goes through pull requests in a local Git server, and every 
 
 - **Gitea** + **Gitea Actions** (`act_runner`) — local Git server, pull requests and CI.
 - **Backstage** — API catalog that discovers the contract from Gitea, with the API guidelines as TechDocs.
-- **Spectral** — the API guidelines as code: lints every contract change.
+- **OpenLint** — the API guidelines as code: lints every contract change.
 - **Microcks** — a live mock from the contract, and a contract test of the running backend.
 - **KrakenD** — API gateway whose config is generated from the contract and deployed by CI.
 - **oasdiff** — blocks backward-incompatible contract changes.
@@ -58,7 +58,7 @@ The first start takes a while (images to pull, Backstage and the CI image to bui
 
 - **gitea-seed** creates the admin user (`demo` / `demo12345`), the `governance-demo` organization and two repos: the consumer repo `devops-api-governance` (from [`example/`](example/)) and the governance repo `api-governance` (ruleset, guidelines, gateway generator). It also writes the CI runner's registration token.
 - **microcks-seed** imports the contract into Microcks.
-- **ci-image** builds the image CI jobs run in, with Spectral, oasdiff and the KrakenD CLI preinstalled.
+- **ci-image** builds the image CI jobs run in, with OpenLint, oasdiff and the KrakenD CLI preinstalled.
 
 ### Check that it runs
 
@@ -66,7 +66,7 @@ The first start takes a while (images to pull, Backstage and the CI image to bui
 |---------|-----|-------|
 | Gitea | http://localhost:3000 | sign in as `demo` / `demo12345` |
 | Backstage | http://localhost:7007 | API catalog (guest sign-in) |
-| API guidelines | http://localhost:7007/docs/default/component/api-guidelines | the rules as TechDocs in Backstage; every Spectral error links here |
+| API guidelines | http://localhost:7007/docs/default/component/api-guidelines | the rules as TechDocs in Backstage; every OpenLint error links here |
 | Microcks | http://localhost:8080 | mocks and contract test results |
 | Orders API mock | http://localhost:8080/rest/Orders+API/1.0.0/orders/123 | served from the contract's examples |
 | backend | http://localhost:8081/orders/123 | the implementation under test |
@@ -88,7 +88,7 @@ Then branch, change `contracts/orders-openapi.yaml`, push, and open a pull reque
 
 **1 — API Catalog.** One `catalog-info.yaml` makes an API visible to the whole organization. Backstage → **APIs** shows `orders-api`, discovered from Gitea; its **Definition** tab shows the contract.
 
-**2 — Guidelines as code.** The guidelines live in the catalog (Backstage → **Docs** → `api-guidelines`) and run as Spectral checks in CI. Break a rule (e.g. server URL `http://` instead of `https://`) and open a PR: `spectral-openapi-check` goes **red**, with rule, file, line and a link to the rule in the catalog. Fix it, push again: **green**.
+**2 — Guidelines as code.** The guidelines live in the catalog (Backstage → **Docs** → `api-guidelines`) and run as OpenLint checks in CI. Break a rule (e.g. server URL `http://` instead of `https://`) and open a PR: `openlint-openapi-check` goes **red**, with rule, file, line and a link to the rule in the catalog. Fix it, push again: **green**.
 
 **3 — Mocking & contract testing.** The contract is a live mock at once (`curl http://localhost:8080/rest/Orders+API/1.0.0/orders/123`). Make the contract promise a field the backend doesn't return (e.g. a required `currency`): `contract-test` goes **red**. Keep the contract in line with the code: **green**.
 
@@ -119,7 +119,7 @@ Each step is then: `git switch <branch>`, `git push -u origin <branch>`, open th
 
 A product team's repo stays separate from the platform that governs it:
 
-- **Governance** — [`governance/`](governance/): the policy (`spectral/`: ruleset, custom functions, examples; `api-guidelines/`: the guidelines and their TechDocs wiring; `gateway/`: the OpenAPI→KrakenD generator) and the catalog app (`api-catalog/`). Single source of truth for the rules.
+- **Governance** — [`governance/`](governance/): the policy (`openlint/`: ruleset, custom functions, examples; `api-guidelines/`: the guidelines and their TechDocs wiring; `gateway/`: the OpenAPI→KrakenD generator) and the catalog app (`api-catalog/`). Single source of truth for the rules.
 - **Consumer** — [`example/`](example/): the product unit (OpenAPI contract, `catalog-info.yaml`, backend) and a thin PR workflow. It is the **starting template**: `gitea-seed` pushes it into a fresh Gitea repo on each `up`, and **PRs happen against that Gitea repo**, never against this project.
 
 The consumer's CI **links** the governance repo (clones it at run time) instead of copying the rules. Details: [`docs/demo-isolation.md`](docs/demo-isolation.md).
@@ -128,18 +128,18 @@ The consumer's CI **links** the governance repo (clones it at run time) instead 
 
 `example/.gitea/workflows/pr-governance.yml` runs four gates **in order**, each gated by `needs:`, so a failure stops the rest:
 
-1. **`spectral-openapi-check`** — clones the governance repo for the ruleset and lints the OpenAPI files changed in the PR. **Fails on error-severity findings.** Each finding links to its rule in the API guidelines in Backstage.
+1. **`openlint-openapi-check`** — clones the governance repo for the ruleset and lints the OpenAPI files changed in the PR. **Fails on error-severity findings.** Each finding links to its rule in the API guidelines in Backstage.
 2. **`breaking-changes-check`** — [`oasdiff`](https://github.com/oasdiff/oasdiff) (v1.19.0) diffs every PR-modified `*openapi*.{yml,yaml}` against the PR's base branch. **Fails on any ERR-severity breaking finding** (`--fail-on ERR`). New files (no baseline) and identical-content edits are skipped; the job is skipped on `workflow_dispatch`.
 3. **`contract-test`** — imports the PR's contract into Microcks (which also updates the live mock) and tests the running `backend` against it. **Fails on drift.**
 4. **`gateway-deploy-check`** — generates a KrakenD config from the PR's contract, validates it (`krakend check`), deploys it to the running gateway and re-runs the Microcks test through the gateway. **Fails on an invalid config or a gateway-level contract mismatch.**
 
 On merge, Backstage's Gitea provider picks up `catalog-info.yaml` from `main` (it rescans every 10 s, a demo setting). A walkthrough of green and red for each gate: [`docs/ci-test-path.md`](docs/ci-test-path.md); scripted scenarios: [`tests/pr-governance.feature.md`](tests/pr-governance.feature.md).
 
-CI jobs run in `localhost/devops-api-governance-ci:latest` ([`ci-image/Dockerfile`](ci-image/Dockerfile), amd64 or arm64) and check out with plain `git` from Gitea, so they download nothing. On a plain `node:20` runner the workflow installs the tools itself.
+CI jobs run in `localhost/devops-api-governance-ci:latest` ([`ci-image/Dockerfile`](ci-image/Dockerfile), amd64 or arm64) and check out with plain `git` from Gitea, so they download nothing. On a plain `node:22` runner (OpenLint needs Node 22+) the workflow installs the tools itself.
 
-### Governance rules (Spectral)
+### Governance rules (OpenLint)
 
-The ruleset extends Spectral's built-in OpenAPI rules with checks based on the API guidelines ([`governance/api-guidelines/docs/index.md`](governance/api-guidelines/docs/index.md)), for example:
+The ruleset extends OpenLint's built-in OpenAPI rules (the legacy `spectral:oas` set) with checks based on the API guidelines ([`governance/api-guidelines/docs/index.md`](governance/api-guidelines/docs/index.md)), for example:
 
 - OpenAPI 3.x.y (3.1.y recommended); `info.title` in Title Case ending with `API`; semver `info.version`.
 - camelCase JSON properties, PascalCase schema names, plural array names.
@@ -149,8 +149,8 @@ The ruleset extends Spectral's built-in OpenAPI rules with checks based on the A
 Severities: `error` (fails the gate) · `warn` (recommended) · `info` (optional). Run it locally:
 
 ```bash
-npx -y @stoplight/spectral-cli lint -r governance/spectral/spectral-ruleset.yaml governance/spectral/examples/openapi-valid.yaml    # passes
-npx -y @stoplight/spectral-cli lint -r governance/spectral/spectral-ruleset.yaml governance/spectral/examples/openapi-invalid.yaml  # violations
+npx -y openlint lint -r governance/openlint/openlint-ruleset.yaml governance/openlint/examples/openapi-valid.yaml    # passes
+npx -y openlint lint -r governance/openlint/openlint-ruleset.yaml governance/openlint/examples/openapi-invalid.yaml  # violations
 ```
 
 `openapi-invalid.yaml` breaks rules on purpose. The CI gate only lints files changed in the PR, so it doesn't affect other PRs.
@@ -198,7 +198,7 @@ The official `@microcks/microcks-backstage-provider` (0.0.7) isn't used: it depe
 |------|---------|
 | `docker-compose.yml` | All services, the seed services and the profiles (`contract`, `catalog`, `gateway`). |
 | `example/` | The consumer repo template: `contracts/orders-openapi.yaml`, `catalog-info.yaml`, `backend/`, `.gitea/workflows/pr-governance.yml`. |
-| `governance/` | `spectral/`, `api-guidelines/`, `gateway/` (generator + `deployer/` sidecar that deploys configs to KrakenD), `api-catalog/` (Backstage). |
+| `governance/` | `openlint/`, `api-guidelines/`, `gateway/` (generator + `deployer/` sidecar that deploys configs to KrakenD), `api-catalog/` (Backstage). |
 | `ci-image/` | The CI job image. |
 | `runner-config.yaml` | Puts CI job containers on `gitea-network` and in the CI image. |
 | `scripts/` | Seed scripts; `scripts/demo/` is the `demo` helper. |

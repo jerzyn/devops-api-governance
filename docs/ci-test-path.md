@@ -10,7 +10,7 @@ page is deliberately not a copy of it.
 A PR into `main` on the consumer repo runs four gates in order (each gated
 by `needs:`, so a failure stops the rest):
 
-1. **`spectral-openapi-check`** — lints the PR's changed OpenAPI files
+1. **`openlint-openapi-check`** — lints the PR's changed OpenAPI files
    against the linked governance ruleset.
    - 🔴 **Red**: any error-severity rule violation (e.g. an `http://` server
      URL, a missing `summary`). The other three gates are skipped.

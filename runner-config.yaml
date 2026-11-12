@@ -3,7 +3,7 @@
 runner:
   # Overrides the labels stored at registration. Jobs run in the CI image
   # (ci-image/Dockerfile, built by the ci-image compose service), which has
-  # Spectral, oasdiff, the KrakenD CLI and js-yaml preinstalled.
+  # OpenLint, oasdiff, the KrakenD CLI and js-yaml preinstalled.
   labels:
     - "ubuntu-latest:docker://localhost/devops-api-governance-ci:latest"
 container:

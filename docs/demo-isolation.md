@@ -6,8 +6,8 @@ a third piece (the catalog app) that never leaves the local machine.
 
 ## Governance context (this project → `governance-demo/api-governance`)
 
-[`governance/`](../governance/) is the policy: the Spectral ruleset + its
-custom functions ([`governance/spectral/`](../governance/spectral/)) and the
+[`governance/`](../governance/) is the policy: the OpenLint ruleset + its
+custom functions ([`governance/openlint/`](../governance/openlint/)) and the
 guidelines doc + its TechDocs wiring
 ([`governance/api-guidelines/`](../governance/api-guidelines/)). Single
 source of truth for the rules. `gitea-seed` pushes only this lean subset
@@ -36,7 +36,7 @@ PRs never touch this project's own git history.
 ## Why "linked, not vendored"
 
 The consumer's CI workflow ([`example/.gitea/workflows/pr-governance.yml`](../example/.gitea/workflows/pr-governance.yml))
-does not carry a copy of the Spectral ruleset. Its `spectral-openapi-check`
+does not carry a copy of the OpenLint ruleset. Its `openlint-openapi-check`
 job clones `governance-demo/api-governance` at run time and lints against
 that clone. This means:
 

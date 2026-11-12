@@ -7,7 +7,7 @@ each already commented inline where it's made — this page just collects the
 
 ## Linked ruleset, not vendored
 
-`spectral-openapi-check` clones `governance-demo/api-governance` at run time
+`openlint-openapi-check` clones `governance-demo/api-governance` at run time
 rather than carrying a copy of the ruleset in the consumer repo. Rationale
 and tradeoff: [`demo-isolation.md`](demo-isolation.md).
 
