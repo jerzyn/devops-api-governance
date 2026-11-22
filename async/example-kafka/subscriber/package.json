@@ -1,0 +1,14 @@
+{
+  "name": "orders-kafka-subscriber",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Order Events Kafka API consumer: logs every event.",
+  "main": "subscriber.js",
+  "scripts": {
+    "start": "node subscriber.js"
+  },
+  "license": "CC-BY-4.0",
+  "dependencies": {
+    "kafkajs": "2.2.4"
+  }
+}

@@ -1,0 +1,15 @@
+{
+  "name": "broker-policy-deployer",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Applies the generated broker policy to Mosquitto (dynamic security) or Kafka (topics and ACLs).",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "license": "CC-BY-4.0",
+  "dependencies": {
+    "mqtt": "5.16.1",
+    "kafkajs": "2.2.4"
+  }
+}

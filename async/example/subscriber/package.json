@@ -1,0 +1,14 @@
+{
+  "name": "orders-subscriber",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Order Events API consumer: logs order events from MQTT.",
+  "main": "subscriber.js",
+  "scripts": {
+    "start": "node subscriber.js"
+  },
+  "license": "CC-BY-4.0",
+  "dependencies": {
+    "mqtt": "5.16.1"
+  }
+}

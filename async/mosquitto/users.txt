@@ -1,0 +1,7 @@
+# Demo-only MQTT accounts (user:password), created in the broker at its first
+# start. Names match catalog components, so the policy generated from
+# the catalog applies to them. Never put real credentials in a file like this.
+orders-backend:orders-backend-pw
+orders-subscriber:orders-subscriber-pw
+microcks:microcks
+observer:observer-pw
