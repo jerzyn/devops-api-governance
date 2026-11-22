@@ -6,12 +6,15 @@ apiVersion: backstage.io/v1alpha1
 kind: Component
 metadata:
   name: api-guidelines
-  description: API Peak API Guidelines — design-first REST standards enforced by the OpenLint ruleset.
+  description: API Peak API Guidelines — design-first standards for REST and event-driven APIs, enforced by the OpenLint rulesets.
   tags:
     - governance
     - api-guidelines
     - rest
     - openapi
+    - asyncapi
+    - mqtt
+    - kafka
   annotations:
     # Build TechDocs from mkdocs.yml in this repo root.
     backstage.io/techdocs-ref: dir:.

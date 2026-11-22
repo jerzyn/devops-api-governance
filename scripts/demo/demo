@@ -1,28 +1,37 @@
 #!/bin/bash
-# One entry point for the recorded demo. Tab completion and `demo shell` come
-# from demo-completion.bash (see `demo help`).
+# One entry point for the recorded demo: REST (`demo <command>`) and events,
+# MQTT and Kafka (`demo events <command>`), on the same stack. Tab completion
+# and `demo shell` come from demo-completion.bash (see `demo help`).
 set -euo pipefail
 D="$(cd "$(dirname "$(readlink -f "$0")")" && pwd)"
 
 usage() {
   cat <<'EOF'
-demo <command> [args]
+demo <command> [args]            REST: the Orders API (OpenAPI)
+demo events <command> [args]     events: the Order Events API (AsyncAPI) on MQTT and Kafka
 
 Between steps
   next                  prepare the next step's branch in the demo clone
   status                where the demo is, and what comes next
   preflight             "ready to record?" check (ends with READY or a list of problems)
+  events deny           show the broker refusing what the policy does not grant
 
 Retakes and setup
   goto <target>         roll back to the start of a step: 1 2 2-red 3 3-red 4 5 5-red end
+                        (events: also kafka)
   reset                 same as: goto 1
-  fresh [--yes]         wipe the demo Gitea and start over at Stage 1 (final take)
+  fresh [--yes]         wipe the demo Gitea and start over at Stage 1, REST and
+                        events (final take)
   refresh-catalog       make Backstage rescan Gitea now
-  shell                 set up this terminal for recording (prompt, cd into the clone)
+  shell                 set up this terminal for recording (prompt, cd into the clone);
+                        events shell: the MQTT clone (DEMO_SHELL_REPO=kafka: the Kafka one)
+
+Every command above also works after `events`, except fresh (it resets both).
 
 Advanced
   stage1 stage2 stage2-red stage3 stage3-red stage4 stage5 stage5-red
                         prepare one specific step's branch (next picks it for you)
+                        (events: also kafka kafka-red)
 EOF
   # Recording helpers are local-only (not in the repo); list them when present.
   if [ -x "$D/rehearse.sh" ] || [ -x "$D/video.sh" ]; then
@@ -45,6 +54,26 @@ local_only() {
 }
 
 cmd="${1:-help}"; [ $# -gt 0 ] && shift
+
+# demo events <command>: the same commands for the event demo.
+if [ "$cmd" = events ]; then
+  sub="${1:-help}"; [ $# -gt 0 ] && shift
+  case "$sub" in
+    next|status|preflight|deny|reset|refresh-catalog|stage1|stage2|stage2-red|stage3|stage3-red|stage4|stage5|stage5-red|kafka|kafka-red)
+      exec "$D/events/prep-stage.sh" "$sub" "$@" ;;
+    goto)
+      [ $# -ge 1 ] || { echo "usage: demo events goto <1|2|2-red|3|3-red|4|5|5-red|kafka|end>" >&2; exit 1; }
+      exec "$D/events/prep-stage.sh" goto "$@" ;;
+    fresh) exec "$D/fresh-gitea.sh" "$@" ;;
+    shell)
+      echo "'demo events shell' has to change this terminal, so it works through the shell function:" >&2
+      echo "  source $D/demo-completion.bash   (or run: demo install)" >&2
+      exit 1 ;;
+    help|-h|--help) usage ;;
+    *) echo "unknown command: events $sub" >&2; usage >&2; exit 1 ;;
+  esac
+fi
+
 case "$cmd" in
   next|status|preflight|reset|refresh-catalog|stage1|stage2|stage2-red|stage3|stage3-red|stage4|stage5|stage5-red)
     exec "$D/prep-stage.sh" "$cmd" "$@" ;;
@@ -52,6 +81,7 @@ case "$cmd" in
     [ $# -ge 1 ] || { echo "usage: demo goto <1|2|2-red|3|3-red|4|5|5-red|end>" >&2; exit 1; }
     exec "$D/prep-stage.sh" goto "$@" ;;
   fresh)    exec "$D/fresh-gitea.sh" "$@" ;;
+  deny)     exec "$D/events/prep-stage.sh" deny ;;
   rehearse) local_only rehearse.sh; exec "$D/rehearse.sh" "$@" ;;
   cards|trim|speed|concat) local_only video.sh; exec "$D/video.sh" "$cmd" "$@" ;;
   shell)

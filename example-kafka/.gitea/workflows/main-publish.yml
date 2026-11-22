@@ -1,0 +1,51 @@
+name: Publish API (main)
+
+# After a merge to main, publish what the contract now says:
+#   - its payload schemas become the next versions in the schema registry,
+#     so the next PR is checked against them;
+#   - the broker policy for main is applied (a PR's run applies the PR's):
+#     on Kafka that creates new topics and grows partitions, then sets ACLs.
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+env:
+  REPO_URL: http://gitea:3000/${{ github.repository }}.git
+  GOVERNANCE_REPO: http://gitea:3000/governance-demo/api-governance.git
+  REGISTRY_URL: http://apicurio:8080/apis/registry/v3
+  BROKER_POLICY_DEPLOYER_URL: http://broker-policy-deployer:9100
+  CONTRACT_FILE: contracts/order-events-kafka-asyncapi.yaml
+  CATALOG_FILE: catalog-info.yaml
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout main
+        shell: bash
+        run: |
+          set -e
+          git init -q .
+          git remote add origin "${REPO_URL}"
+          git fetch -q --depth 1 origin "${{ github.sha }}"
+          git checkout -q FETCH_HEAD
+
+      - name: Fetch governance tooling (linked, not vendored)
+        shell: bash
+        run: git clone -q --depth 1 "${GOVERNANCE_REPO}" .governance
+
+      - name: Register the payload schemas
+        shell: bash
+        run: node .governance/breaking-changes/schema-registry.js register "${CONTRACT_FILE}"
+
+      - name: Apply the broker policy for main
+        shell: bash
+        run: |
+          set -e
+          node .governance/broker-policy/generate-policy.js "${CONTRACT_FILE}" "${CATALOG_FILE}" broker-policy.json
+          curl -sS --fail-with-body --noproxy '*' -X POST -H 'Content-Type: application/json' \
+            --data-binary @broker-policy.json "${BROKER_POLICY_DEPLOYER_URL}/deploy"
+          echo

@@ -8,12 +8,16 @@ set -e
 U="${GITEA_ADMIN_USER:-demo}"
 P="${GITEA_ADMIN_PASSWORD:-demo12345}"
 ORG="${GITEA_ORG:-governance-demo}"
-# Consumer (product) repo — the OpenAPI contract + catalog-info + backend impl.
-# This is where PRs happen. Source: /repo (the example/ template folder).
+# Consumer (product) repos, where PRs happen:
+#   REST   the OpenAPI contract + catalog-info + backend (/repo = example/)
+#   MQTT   the AsyncAPI contract on MQTT + backend + subscriber (/repo-mqtt = example-mqtt/)
+#   Kafka  the same event API on Kafka (/repo-kafka = example-kafka/)
 REPO="${GITEA_REPO:-devops-api-governance}"
-# Central governance repo — the OpenLint ruleset + custom functions. The
-# consumer's CI clones this (a link, not a vendored copy). Source: /governance
-# (the project root = governance context).
+MQTT_REPO="${GITEA_MQTT_REPO:-order-events-api}"
+KAFKA_REPO="${GITEA_KAFKA_REPO:-order-events-kafka-api}"
+# Central governance repo: rulesets, custom functions, gate scripts and the
+# guidelines, for REST and events. The consumers' CI clones this (a link, not
+# a vendored copy). Source: /governance.
 GOV_REPO="${GITEA_GOV_REPO:-api-governance}"
 API="http://gitea:3000/api/v1"
 
@@ -26,7 +30,7 @@ echo "==> organization '$ORG'"
 curl -sf -o /dev/null -u "$U:$P" -X POST -H 'Content-Type: application/json' \
   -d "{\"username\":\"$ORG\"}" "$API/orgs" || echo "    already exists"
 
-for r in "$REPO" "$GOV_REPO"; do
+for r in "$REPO" "$MQTT_REPO" "$KAFKA_REPO" "$GOV_REPO"; do
   echo "==> repository '$ORG/$r'"
   curl -sf -o /dev/null -u "$U:$P" -X POST -H 'Content-Type: application/json' \
     -d "{\"name\":\"$r\",\"private\":false}" "$API/orgs/$ORG/repos" || echo "    already exists"
@@ -51,28 +55,17 @@ seed_repo() {
 echo "==> push consumer repo: /repo -> '$ORG/$REPO' main"
 seed_repo /repo "$REPO" "Consumer repo: Orders API (contract + backend)"
 
+echo "==> push MQTT consumer repo: /repo-mqtt -> '$ORG/$MQTT_REPO' main"
+seed_repo /repo-mqtt "$MQTT_REPO" "Consumer repo: Order Events API (contract + backend + subscriber)"
+
+echo "==> push Kafka consumer repo: /repo-kafka -> '$ORG/$KAFKA_REPO' main"
+seed_repo /repo-kafka "$KAFKA_REPO" "Consumer repo: Order Events Kafka API (contract + backend + subscriber)"
+
 echo "==> push governance repo: lean policy -> '$ORG/$GOV_REPO' main"
-# The consumer CI only needs the policy (ruleset + custom functions + the
-# guidelines they encode), so publish a lean repo rather than the whole
-# governance context. Source of truth stays in governance/openlint.
-GOV_SRC=/tmp/gov-src
-rm -rf "$GOV_SRC"; mkdir -p "$GOV_SRC"
-cp /governance/openlint/openlint-ruleset.yaml "$GOV_SRC"/
-cp -r /governance/openlint/openlint-functions "$GOV_SRC"/
-# Guidelines + their TechDocs wiring (catalog-info.yaml + mkdocs.yml) live in
-# governance/api-guidelines and are published to the repo root so Backstage
-# discovers the api-guidelines Component and renders it as TechDocs.
-cp /governance/api-guidelines/mkdocs.yml "$GOV_SRC"/
-cp /governance/api-guidelines/catalog-info.yaml "$GOV_SRC"/
-cp -r /governance/api-guidelines/docs "$GOV_SRC"/
-# Gateway config generator (OpenAPI -> KrakenD), linked the same way as the
-# ruleset - the deployer/ subfolder is platform-side (built directly by
-# docker-compose) and is intentionally NOT included here.
-mkdir -p "$GOV_SRC"/gateway
-cp /governance/gateway/generate.js "$GOV_SRC"/gateway/
-cp /governance/gateway/package.json "$GOV_SRC"/gateway/
-cp /governance/gateway/krakend-base.json "$GOV_SRC"/gateway/
-seed_repo "$GOV_SRC" "$GOV_REPO" "Governance policy: OpenLint ruleset + functions"
+# The consumers' CI only needs the policy, so publish a lean repo rather than
+# the whole governance context (scripts/governance-bundle.sh picks the files).
+sh /scripts/governance-bundle.sh /governance /tmp/gov-src
+seed_repo /tmp/gov-src "$GOV_REPO" "Governance policy: rulesets, gate scripts and guidelines"
 
 echo "==> runner registration token -> /seed/runner-token"
 docker exec -u git gitea gitea actions generate-runner-token 2>/dev/null \

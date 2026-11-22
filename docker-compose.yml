@@ -1,6 +1,23 @@
+# DevOps-driven API governance demo: REST (OpenAPI) and events (AsyncAPI on
+# MQTT and Kafka) go through pull requests in one local Gitea, past the same
+# five gates, into one catalog.
+#
+# Profiles (each adds to the base: Gitea, the CI runner and their seeds):
+#   contract  Microcks (mocks + contract tests) and the REST backend
+#   catalog   Backstage
+#   gateway   KrakenD (REST step 4)
+#   events    Mosquitto, the broker policy, the MQTT backend and subscriber,
+#             Apicurio Registry
+#   kafka     Kafka with its backend and subscriber (with the broker policy
+#             and the registry from "events")
+#
+#   docker compose --profile contract --profile catalog --profile gateway up -d   # REST
+#   docker compose --profile contract --profile catalog --profile gateway \
+#     --profile events --profile kafka up -d                                      # everything
+
 services:
   gitea:
-    image: docker.io/gitea/gitea:latest
+    image: docker.io/gitea/gitea:28.3
     container_name: gitea
     restart: unless-stopped
     environment:
@@ -57,6 +74,9 @@ services:
       # Consumer (product) repo: the example/ subrepo (contract + catalog +
       # backend). Test PRs run here and never touch the project repo.
       - ./example:/repo
+      # The event consumer repos: the same API on MQTT and on Kafka.
+      - ./example-mqtt:/repo-mqtt
+      - ./example-kafka:/repo-kafka
       # Governance context (OpenLint ruleset + functions + seed scripts).
       # Pushed to a separate Gitea repo that the consumer's CI clones (linked).
       - ./governance:/governance
@@ -77,7 +97,7 @@ services:
     command: ["true"]
 
   gitea-runner:
-    image: docker.io/gitea/act_runner:latest
+    image: docker.io/gitea/act_runner:0.6.1
     container_name: gitea-runner
     restart: unless-stopped
     depends_on:
@@ -127,7 +147,7 @@ services:
   # uber image ignores SPRING_DATA_MONGODB_* and persists in memory). Imported
   # contracts are therefore ephemeral and re-imported on each test run.
   microcks-uber:
-    image: quay.io/microcks/microcks-uber:latest
+    image: docker.io/microcks/microcks-uber:1.14.0
     container_name: microcks-uber
     restart: unless-stopped
     profiles: ["contract"]
@@ -136,10 +156,41 @@ services:
       - KEYCLOAK_ENABLED=false
       # URL Microcks uses to reach itself when invoking HTTP contract tests.
       - TEST_CALLBACK_URL=http://microcks-uber:8080
+      # Event mocks and async contract tests run in the async minion.
+      - ASYNC_MINION_URL=http://async-minion:8081
+    networks:
+      default:
+        # The event gates and scripts call it "microcks".
+        aliases: [microcks]
     ports:
       - "8080:8080"
 
-  # One-shot seed: imports the OpenAPI contract into Microcks once it is up.
+  # Publishes mock events from the AsyncAPI contracts to the brokers and runs
+  # the async contract tests. MQTT needs the "events" profile, Kafka "kafka".
+  async-minion:
+    image: docker.io/microcks/microcks-uber-async-minion:1.14.0
+    container_name: microcks-async-minion
+    restart: on-failure
+    profiles: ["contract"]
+    depends_on:
+      microcks-uber:
+        condition: service_started
+      mosquitto:
+        condition: service_started
+        required: false
+    environment:
+      - MICROCKS_HOST_PORT=microcks-uber:8080
+      # The minion supports WS by default; add MQTT and Kafka.
+      - ASYNC_PROTOCOLS=,MQTT,KAFKA
+      # Kafka's platform listener (see the kafka service).
+      - KAFKA_BOOTSTRAP_SERVER=kafka:9094
+      - MQTT_SERVER=mosquitto:1883
+      - MQTT_USERNAME=microcks
+      - MQTT_PASSWORD=microcks
+
+  # One-shot seed: imports the contracts into Microcks once it is up: the
+  # OpenAPI one, and the MQTT AsyncAPI one with the broker secret its async
+  # contract tests use. The Kafka contract follows in microcks-seed-kafka.
   microcks-seed:
     image: docker.io/curlimages/curl:8.11.1
     container_name: microcks-seed
@@ -152,7 +203,7 @@ services:
       # Contract comes from the consumer repo (example); the seed script
       # itself lives in the governance context.
       - ./example:/repo:ro
-      - ./governance:/governance:ro
+      - ./example-mqtt:/repo-mqtt:ro
       - ./scripts:/scripts:ro
     entrypoint: ["sh", "/scripts/seed-microcks.sh"]
 
@@ -234,6 +285,301 @@ services:
       timeout: 3s
       retries: 10
       start_period: 5s
+
+  # --- Events: MQTT (profile: events) ------------------------------------------
+  # Every client authenticates (demo accounts in mosquitto/users.txt). The
+  # dynamic security plugin holds the accounts and the broker policy, which
+  # broker-policy-deployer applies live.
+  mosquitto:
+    image: docker.io/library/eclipse-mosquitto:2.0.22
+    container_name: mosquitto
+    restart: unless-stopped
+    profiles: ["events"]
+    entrypoint: ["sh", "/mosquitto/config/policy-entrypoint.sh"]
+    environment:
+      - BROKER_ADMIN_USER=policy-admin
+      - BROKER_ADMIN_PASSWORD=policy-admin-pw
+    volumes:
+      - ./mosquitto/mosquitto.conf:/mosquitto/config/mosquitto.conf:ro
+      - ./mosquitto/users.txt:/mosquitto/config/users.txt:ro
+      - ./mosquitto/policy-entrypoint.sh:/mosquitto/config/policy-entrypoint.sh:ro
+    ports:
+      - "1883:1883"
+
+  # Event step 4, the broker policy: receives a policy generated from the
+  # contract and the catalog (from a PR workflow or the seeds below), checks it
+  # and applies it: Mosquitto roles through the plugin's $CONTROL API, Kafka
+  # topics and ACLs through the admin API. The events counterpart of
+  # krakend-deployer.
+  broker-policy-deployer:
+    build: ./governance/broker-policy/deployer
+    container_name: broker-policy-deployer
+    restart: unless-stopped
+    profiles: ["events", "kafka"]
+    depends_on:
+      mosquitto:
+        condition: service_started
+        required: false
+    environment:
+      - BROKER_URL=mqtt://mosquitto:1883
+      - BROKER_ADMIN_USER=policy-admin
+      - BROKER_ADMIN_PASSWORD=policy-admin-pw
+      # Kafka (profile kafka): the super user applies topics and ACLs.
+      - KAFKA_BROKERS=kafka:9092
+      - KAFKA_ADMIN_USER=admin
+      - KAFKA_ADMIN_PASSWORD=admin-pw
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:9100/health"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+      start_period: 5s
+
+  # One-shot: deploys the policy for the MQTT contract on main at startup, so
+  # the backend and subscriber can talk before the first PR runs.
+  broker-policy-seed:
+    image: localhost/devops-api-governance-ci:latest
+    container_name: broker-policy-seed
+    restart: "no"
+    profiles: ["events"]
+    depends_on:
+      ci-image:
+        condition: service_completed_successfully
+      broker-policy-deployer:
+        condition: service_healthy
+    volumes:
+      - ./example-mqtt:/repo:ro
+      - ./governance:/governance:ro
+    command:
+      - sh
+      - -c
+      - >
+        node /governance/broker-policy/generate-policy.js
+        /repo/contracts/order-events-asyncapi.yaml /repo/catalog-info.yaml /tmp/policy.json &&
+        curl -sf --noproxy '*' -X POST -H 'Content-Type: application/json'
+        --data-binary @/tmp/policy.json http://broker-policy-deployer:9100/deploy && echo
+
+  # MQTT provider under test: publishes the Order Events API's events.
+  mqtt-backend:
+    build: ./example-mqtt/backend
+    container_name: mqtt-backend
+    restart: unless-stopped
+    profiles: ["events"]
+    # Start once a policy is deployed: the broker refuses an account it has no
+    # role for.
+    depends_on:
+      broker-policy-seed:
+        condition: service_completed_successfully
+    environment:
+      - BROKER_URL=mqtt://mosquitto:1883
+      # Demo account; the broker policy grants it by its catalog name.
+      - MQTT_USERNAME=orders-backend
+      - MQTT_PASSWORD=orders-backend-pw
+      - PUBLISH_INTERVAL_MS=${PUBLISH_INTERVAL_MS:-1000}
+      # Set MQTT_BACKEND_DRIFT=true to publish contract-violating events.
+      - DRIFT=${MQTT_BACKEND_DRIFT:-false}
+
+  # MQTT consumer: logs every order event (docker compose logs -f mqtt-subscriber).
+  mqtt-subscriber:
+    build: ./example-mqtt/subscriber
+    container_name: mqtt-subscriber
+    restart: unless-stopped
+    profiles: ["events"]
+    # Start once a policy is deployed: a subscription the broker denies is
+    # not retried.
+    depends_on:
+      broker-policy-seed:
+        condition: service_completed_successfully
+    environment:
+      - BROKER_URL=mqtt://mosquitto:1883
+      - MQTT_USERNAME=orders-subscriber
+      - MQTT_PASSWORD=orders-subscriber-pw
+      # The topics the contract lists; the policy denies a broader wildcard.
+      - TOPICS=orders/v1/+/created,orders/v1/+/paid
+
+  # --- Events: schema registry (profiles: events, kafka) -----------------------
+  # Apicurio Registry: the payload schema of every topic, with a compatibility
+  # rule. The events' breaking-changes gate dry-runs a PR's payloads against it.
+  # In-memory storage: registry-seed registers main's schemas on every up.
+  apicurio:
+    image: docker.io/apicurio/apicurio-registry:3.3.4
+    container_name: apicurio
+    restart: unless-stopped
+    profiles: ["events", "kafka"]
+    environment:
+      - QUARKUS_HTTP_CORS_ORIGINS=*
+      # `demo events goto` resets the registry to a stage's contract, which
+      # needs deletes.
+      - APICURIO_REST_DELETION_GROUP_ENABLED=true
+      - APICURIO_REST_DELETION_ARTIFACT_ENABLED=true
+      - APICURIO_REST_DELETION_ARTIFACT-VERSION_ENABLED=true
+    ports:
+      - "8280:8080"
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://localhost:8080/apis/registry/v3/system/info >/dev/null"]
+      interval: 5s
+      timeout: 3s
+      retries: 30
+      start_period: 10s
+
+  # One-shot: registers the payload schemas of both event contracts on main.
+  registry-seed:
+    image: localhost/devops-api-governance-ci:latest
+    container_name: registry-seed
+    restart: "no"
+    profiles: ["events", "kafka"]
+    depends_on:
+      ci-image:
+        condition: service_completed_successfully
+      apicurio:
+        condition: service_healthy
+    environment:
+      - REGISTRY_URL=http://apicurio:8080/apis/registry/v3
+      - NO_PROXY=*
+      - no_proxy=*
+    volumes:
+      - ./example-mqtt:/repo:ro
+      - ./example-kafka:/repo-kafka:ro
+      - ./governance:/governance:ro
+    command:
+      - sh
+      - -c
+      - >
+        node /governance/breaking-changes/schema-registry.js register /repo/contracts/order-events-asyncapi.yaml &&
+        node /governance/breaking-changes/schema-registry.js register /repo-kafka/contracts/order-events-kafka-asyncapi.yaml
+
+  # One-shot (profiles contract + events or kafka): imports the Kafka contract
+  # into Microcks.
+  microcks-seed-kafka:
+    image: docker.io/curlimages/curl:8.11.1
+    container_name: microcks-seed-kafka
+    restart: "no"
+    profiles: ["kafka"]
+    depends_on:
+      microcks-uber:
+        condition: service_started
+        required: false
+    environment:
+      - CONTRACTS=/repo-kafka/contracts/order-events-kafka-asyncapi.yaml
+    volumes:
+      - ./example-kafka:/repo-kafka:ro
+      - ./scripts:/scripts:ro
+    entrypoint: ["sh", "/scripts/seed-microcks.sh"]
+
+  # --- Events: Kafka (profile: kafka) ------------------------------------------
+  # Single-node Kafka in KRaft mode. Two client listeners:
+  #   APPS      kafka:9092  SASL/PLAIN, one demo account per catalog component;
+  #             the ACLs come from the broker policy (deny when no ACL)
+  #   PLATFORM  kafka:9094  plaintext, principal ANONYMOUS, for platform tools
+  #             (Microcks); the policy grants it read on API topics and its
+  #             mock topics only
+  # Demo-only passwords. "admin" (super user) is used by the broker itself and
+  # by the policy deployer.
+  kafka:
+    image: docker.io/apache/kafka:3.9.1
+    container_name: kafka
+    restart: unless-stopped
+    profiles: ["kafka"]
+    environment:
+      - CLUSTER_ID=async-governance-demo-01
+      - KAFKA_NODE_ID=1
+      - KAFKA_PROCESS_ROLES=broker,controller
+      - KAFKA_LISTENERS=APPS://:9092,CONTROLLER://:9093,PLATFORM://:9094
+      - KAFKA_ADVERTISED_LISTENERS=APPS://kafka:9092,PLATFORM://kafka:9094
+      - KAFKA_LISTENER_SECURITY_PROTOCOL_MAP=APPS:SASL_PLAINTEXT,CONTROLLER:SASL_PLAINTEXT,PLATFORM:PLAINTEXT
+      - KAFKA_CONTROLLER_LISTENER_NAMES=CONTROLLER
+      - KAFKA_CONTROLLER_QUORUM_VOTERS=1@kafka:9093
+      - KAFKA_INTER_BROKER_LISTENER_NAME=APPS
+      - KAFKA_SASL_ENABLED_MECHANISMS=PLAIN
+      - KAFKA_SASL_MECHANISM_INTER_BROKER_PROTOCOL=PLAIN
+      - KAFKA_SASL_MECHANISM_CONTROLLER_PROTOCOL=PLAIN
+      - >-
+        KAFKA_LISTENER_NAME_APPS_PLAIN_SASL_JAAS_CONFIG=org.apache.kafka.common.security.plain.PlainLoginModule required
+        username="admin" password="admin-pw"
+        user_admin="admin-pw"
+        user_orders-kafka-backend="orders-kafka-backend-pw"
+        user_orders-kafka-subscriber="orders-kafka-subscriber-pw"
+        user_observer="observer-pw";
+      - >-
+        KAFKA_LISTENER_NAME_CONTROLLER_PLAIN_SASL_JAAS_CONFIG=org.apache.kafka.common.security.plain.PlainLoginModule required
+        username="admin" password="admin-pw" user_admin="admin-pw";
+      - KAFKA_AUTHORIZER_CLASS_NAME=org.apache.kafka.metadata.authorizer.StandardAuthorizer
+      - KAFKA_SUPER_USERS=User:admin
+      - KAFKA_ALLOW_EVERYONE_IF_NO_ACL_FOUND=false
+      - KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR=1
+      - KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR=1
+      - KAFKA_TRANSACTION_STATE_LOG_MIN_ISR=1
+      - KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS=0
+      # Topics come from the broker policy (generated from the contract);
+      # Microcks' mock topics are created on first publish, as the policy allows.
+      - KAFKA_AUTO_CREATE_TOPICS_ENABLE=true
+    healthcheck:
+      test: ["CMD-SHELL", "/opt/kafka/bin/kafka-topics.sh --bootstrap-server kafka:9094 --list >/dev/null 2>&1 || /opt/kafka/bin/kafka-broker-api-versions.sh --bootstrap-server kafka:9094 >/dev/null 2>&1"]
+      interval: 5s
+      timeout: 15s
+      retries: 30
+      start_period: 15s
+
+  # One-shot: applies the Kafka broker policy (topics + ACLs) for the Kafka
+  # contract on main.
+  broker-policy-seed-kafka:
+    image: localhost/devops-api-governance-ci:latest
+    container_name: broker-policy-seed-kafka
+    restart: "no"
+    profiles: ["kafka"]
+    depends_on:
+      ci-image:
+        condition: service_completed_successfully
+      broker-policy-deployer:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+    volumes:
+      - ./example-kafka:/repo:ro
+      - ./governance:/governance:ro
+    command:
+      - sh
+      - -c
+      - >
+        node /governance/broker-policy/generate-policy.js
+        /repo/contracts/order-events-kafka-asyncapi.yaml /repo/catalog-info.yaml /tmp/policy.json &&
+        curl -sf --noproxy '*' -X POST -H 'Content-Type: application/json'
+        --data-binary @/tmp/policy.json http://broker-policy-deployer:9100/deploy && echo
+
+  # Kafka provider and consumer (profile kafka), built from example-kafka/.
+  kafka-backend:
+    build: ./example-kafka/backend
+    container_name: kafka-backend
+    restart: unless-stopped
+    profiles: ["kafka"]
+    depends_on:
+      broker-policy-seed-kafka:
+        condition: service_completed_successfully
+      registry-seed:
+        condition: service_completed_successfully
+    environment:
+      - KAFKA_BROKERS=kafka:9092
+      - KAFKA_USERNAME=orders-kafka-backend
+      - KAFKA_PASSWORD=orders-kafka-backend-pw
+      - REGISTRY_URL=http://apicurio:8080/apis/registry/v3
+      - PUBLISH_INTERVAL_MS=${PUBLISH_INTERVAL_MS:-1000}
+      # Set KAFKA_BACKEND_DRIFT=true to produce contract-violating events; the
+      # registry check rejects them unless KAFKA_REGISTRY_VALIDATION=false.
+      - DRIFT=${KAFKA_BACKEND_DRIFT:-false}
+      - REGISTRY_VALIDATION=${KAFKA_REGISTRY_VALIDATION:-true}
+
+  kafka-subscriber:
+    build: ./example-kafka/subscriber
+    container_name: kafka-subscriber
+    restart: unless-stopped
+    profiles: ["kafka"]
+    depends_on:
+      broker-policy-seed-kafka:
+        condition: service_completed_successfully
+    environment:
+      - KAFKA_BROKERS=kafka:9092
+      - KAFKA_USERNAME=orders-kafka-subscriber
+      - KAFKA_PASSWORD=orders-kafka-subscriber-pw
 
 volumes:
   seed-state:

@@ -61,3 +61,6 @@ presentation/deck-changes.md
 presentation/DevOps Driven Governance - London 2026.*
 scripts/demo/rehearse.sh
 scripts/demo/video.sh
+
+# Dependencies of the event backends and tools, when installed locally
+node_modules/

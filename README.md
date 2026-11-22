@@ -2,7 +2,7 @@
 
 The demo behind the talk *"DevOps-Driven API Governance"*: API governance built into the delivery loop, running entirely on your laptop.
 
-An OpenAPI contract goes through pull requests in a local Git server, and every PR passes a chain of automated gates:
+Two APIs go through pull requests in one local Git server, and every PR passes the same five gates: the **Orders API**, a REST API described with OpenAPI, and the **Order Events API**, an event API described with AsyncAPI, on MQTT and on Kafka. One catalog, one governance repo, one set of guidelines; the tools change with the protocol, the gates don't.
 
 - **Gitea** + **Gitea Actions** (`act_runner`) — local Git server, pull requests and CI.
 - **Backstage** — API catalog that discovers the contract from Gitea, with the API guidelines as TechDocs.
@@ -10,8 +10,7 @@ An OpenAPI contract goes through pull requests in a local Git server, and every 
 - **Microcks** — a live mock from the contract, and a contract test of the running backend.
 - **KrakenD** — API gateway whose config is generated from the contract and deployed by CI.
 - **oasdiff** — blocks backward-incompatible contract changes.
-
-The same gates also run for events: [`async/`](async/) is the AsyncAPI demo, on MQTT and Kafka. See [Events: the AsyncAPI demo](#events-the-asyncapi-demo).
+- For events: **Mosquitto** and **Kafka** with a broker policy generated from the contract and the catalog, the **Microcks async minion** for event mocks and contract tests, and **Apicurio Registry** with `@asyncapi/diff` against breaking changes. See [Events](#events-asyncapi-on-mqtt-and-kafka).
 
 Nothing here is a production setup: it simulates the control points around API delivery (source control, PRs, automated quality gates, contract testing, a discoverable catalog) so you can see and change them.
 
@@ -26,9 +25,9 @@ Nothing here is a production setup: it simulates the control points around API d
 | Extra setup | none | enable the Podman socket and point the demo at it (one line, see below) |
 
 Both need:
-- **Resources:** ~6 GB of RAM for the engine (Docker Desktop: *Settings → Resources*; the Backstage image build is the heaviest step), ~12 GB of free disk (the images are ~6.5 GB).
+- **Resources:** ~6 GB of RAM for the engine for REST, ~10 GB with the event profiles (Docker Desktop: *Settings → Resources*; the Backstage image build is the heaviest step), ~12 GB of free disk (the images are ~6.5 GB).
 - **Internet on the first start**, to pull images and build the Backstage and CI images. After that the demo, including its CI, runs offline.
-- **Free ports:** 3000, 2222 (Gitea), 7007 (Backstage), 8080 (Microcks), 8081 (backend), 8090 (KrakenD). The [AsyncAPI demo](#events-the-asyncapi-demo) uses other ports (3100, 2322, 7107, 8180, 8280, 1883), so both run at once.
+- **Free ports:** 3000, 2222 (Gitea), 7007 (Backstage), 8080 (Microcks), 8081 (backend), 8090 (KrakenD); with the event profiles also 1883 (MQTT) and 8280 (Apicurio Registry).
 - `git`, `curl` and `bash` (for the optional `demo` helper).
 
 > Tested end to end on Linux with Podman. The Docker instructions use the same compose file and scripts, but weren't run end to end.
@@ -43,24 +42,34 @@ cd devops-api-governance
 **Docker:**
 
 ```bash
-docker compose --profile contract --profile catalog --profile gateway up -d
+docker compose --profile contract --profile catalog --profile gateway up -d                                    # REST
+docker compose --profile contract --profile catalog --profile gateway --profile events --profile kafka up -d   # REST + events
 ```
+
+| Profile | Adds |
+|---------|------|
+| `contract` | Microcks with the async minion, and the REST backend |
+| `catalog` | Backstage |
+| `gateway` | KrakenD, for the REST step 4 |
+| `events` | Mosquitto, the broker policy deployer, the MQTT backend and subscriber, Apicurio Registry |
+| `kafka` | Kafka with its backend and subscriber (with the deployer and the registry) |
 
 **Podman:**
 
 ```bash
 systemctl --user enable --now podman.socket                           # once
 echo "DOCKER_SOCK=/run/user/$(id -u)/podman/podman.sock" > .env        # once
-podman-compose --profile contract --profile catalog --profile gateway up -d
+podman-compose --profile contract --profile catalog --profile gateway up -d   # add --profile events --profile kafka for events
 ```
 
 The first start takes a while (images to pull, Backstage and the CI image to build; expect 10–20 minutes). Later starts take under a minute.
 
 `up` also **seeds** everything: no `.env` values, scripts or manual Gitea setup are needed (Podman's `DOCKER_SOCK` aside). One-shot services do the first-run work:
 
-- **gitea-seed** creates the admin user (`demo` / `demo12345`), the `governance-demo` organization and two repos: the consumer repo `devops-api-governance` (from [`example/`](example/)) and the governance repo `api-governance` (ruleset, guidelines, gateway generator). It also writes the CI runner's registration token.
-- **microcks-seed** imports the contract into Microcks.
-- **ci-image** builds the image CI jobs run in, with OpenLint, oasdiff and the KrakenD CLI preinstalled.
+- **gitea-seed** creates the admin user (`demo` / `demo12345`), the `governance-demo` organization and its repos: the REST consumer repo `devops-api-governance` (from [`example/`](example/)), the event consumer repos `order-events-api` (MQTT, from [`example-mqtt/`](example-mqtt/)) and `order-events-kafka-api` (from [`example-kafka/`](example-kafka/)), and the governance repo `api-governance` that all three link (rulesets, guidelines, gate scripts). It also writes the CI runner's registration token.
+- **microcks-seed** imports the REST and the MQTT contracts into Microcks (`microcks-seed-kafka`: the Kafka one).
+- **broker-policy-seed**, **broker-policy-seed-kafka** and **registry-seed** (event profiles) apply the broker policy of the contracts on `main` and register their payload schemas.
+- **ci-image** builds the image CI jobs run in, with OpenLint, oasdiff, the KrakenD CLI and the AsyncAPI tools preinstalled.
 
 ### Check that it runs
 
@@ -115,50 +124,46 @@ Each step is then: `git switch <branch>`, `git push -u origin <branch>`, open th
 
 ---
 
-## Events: the AsyncAPI demo
+## Events: AsyncAPI on MQTT and Kafka
 
-[`async/`](async/) runs the same five gates for an event API: an AsyncAPI 3.1 contract for order events, published on **MQTT** (Mosquitto) and on **Kafka**. It has its own Gitea, CI runner, Microcks and Backstage on shifted ports, so it runs next to this stack or on its own:
+With the `events` and `kafka` profiles, the same Gitea, CI runner, Microcks and Backstage also govern the Order Events API: an AsyncAPI 3.1 contract for order events, published on **MQTT** (Mosquitto) and on **Kafka**. Both event repos run the same five gates as the REST one:
 
-```bash
-cd async
-docker compose --profile contract --profile catalog up -d    # MQTT: platform, broker, backend, subscriber, Microcks, Backstage
-docker compose --profile kafka --profile contract up -d      # + Kafka, its backend and subscriber
-```
-
-| Gate | REST (this folder) | Events ([`async/`](async/README.md)) |
+| Gate | REST ([`example/`](example/)) | Events ([`example-mqtt/`](example-mqtt/), [`example-kafka/`](example-kafka/)) |
 |------|--------------------|--------------------------------------|
 | 1. Catalog | Backstage, `type: openapi` | Backstage, `type: asyncapi`; the broker is a Resource, producers and consumers are edges |
-| 2. Guidelines | OpenLint, OpenAPI ruleset | `asyncapi validate` + OpenLint, async ruleset plus MQTT or Kafka rules |
+| 2. Guidelines | OpenLint, `openlint-ruleset.yaml` | `asyncapi validate` + OpenLint, `asyncapi-ruleset.yaml` plus the MQTT or Kafka rules |
 | 3. Contract test | Microcks over HTTP | Microcks listens on the broker and checks every event against the schema |
-| 4. Deploy | KrakenD config generated from the contract | broker policy generated from the contract and the catalog: Mosquitto ACLs, or Kafka topics and ACLs |
+| 4. Deploy | KrakenD config generated from the contract | broker policy generated from the contract and the catalog: Mosquitto roles, or Kafka topics and ACLs |
 | 5. Breaking changes | oasdiff | `@asyncapi/diff` on the structure + Apicurio Registry compatibility on the payloads |
 
-| Service | URL |
-|---------|-----|
-| Gitea | http://localhost:3100 (`demo` / `demo12345`) |
-| Backstage | http://localhost:7107 |
-| Microcks | http://localhost:8180 |
-| Apicurio Registry | http://localhost:8280 |
-| MQTT | `localhost:1883` |
+Backstage lists the REST and the event APIs side by side, and the API guidelines in TechDocs hold the general, REST, async, MQTT and Kafka rules in one document; every lint finding, REST or events, links to its section.
 
-Its step-by-step helper is `demo-async` (`async/scripts/demo/demo install`), so it doesn't clash with this demo's `demo`. Details, the recorded demo and troubleshooting: [`async/README.md`](async/README.md).
+```bash
+mkdir -p ~/demo && cd ~/demo
+git clone http://demo:demo12345@localhost:3000/governance-demo/order-events-api.git          # MQTT
+git clone http://demo:demo12345@localhost:3000/governance-demo/order-events-kafka-api.git    # Kafka
+```
+
+The `demo` helper replays the event steps too, with the same commands after `events`: `demo events goto 1`, `demo events next`, `demo events preflight`, `demo events deny` (the broker refusing what the policy does not grant), `demo events shell`. `demo fresh` resets REST and events together.
+
+The whole event side, gate by gate, with its troubleshooting: [`docs/events.md`](docs/events.md). Its recorded demo: [`presentation/events/`](presentation/events/README.md).
 
 ---
 
 ## How it works
 
-### Two repositories
+### Governance and consumer repositories
 
 A product team's repo stays separate from the platform that governs it:
 
-- **Governance** — [`governance/`](governance/): the policy (`openlint/`: ruleset, custom functions, examples; `api-guidelines/`: the guidelines and their TechDocs wiring; `gateway/`: the OpenAPI→KrakenD generator) and the catalog app (`api-catalog/`). Single source of truth for the rules.
-- **Consumer** — [`example/`](example/): the product unit (OpenAPI contract, `catalog-info.yaml`, backend) and a thin PR workflow. It is the **starting template**: `gitea-seed` pushes it into a fresh Gitea repo on each `up`, and **PRs happen against that Gitea repo**, never against this project.
+- **Governance** — [`governance/`](governance/): the policy (`openlint/`: the OpenAPI and AsyncAPI rulesets, custom functions, examples; `api-guidelines/`: the guidelines and their TechDocs wiring; `gateway/`: the OpenAPI→KrakenD generator; `contract-test/`, `breaking-changes/`, `broker-policy/`: the event gates) and the catalog app (`api-catalog/`). Single source of truth for the rules, published as one Gitea repo, `api-governance` ([`scripts/governance-bundle.sh`](scripts/governance-bundle.sh) picks the files).
+- **Consumers** — [`example/`](example/) (REST), [`example-mqtt/`](example-mqtt/) and [`example-kafka/`](example-kafka/) (events): each product unit (contract, `catalog-info.yaml`, backend) with a thin PR workflow. They are **starting templates**: `gitea-seed` pushes them into fresh Gitea repos on each `up`, and **PRs happen against those Gitea repos**, never against this project.
 
-The consumer's CI **links** the governance repo (clones it at run time) instead of copying the rules. Details: [`docs/demo-isolation.md`](docs/demo-isolation.md).
+The consumers' CI **links** the governance repo (clones it at run time) instead of copying the rules. Details: [`docs/demo-isolation.md`](docs/demo-isolation.md).
 
-### The PR gates
+### The PR gates (REST)
 
-`example/.gitea/workflows/pr-governance.yml` runs four gates **in order**, each gated by `needs:`, so a failure stops the rest:
+The event repos' gates are described in [`docs/events.md`](docs/events.md). `example/.gitea/workflows/pr-governance.yml` runs four gates **in order**, each gated by `needs:`, so a failure stops the rest:
 
 1. **`openlint-openapi-check`** — clones the governance repo for the ruleset and lints the OpenAPI files changed in the PR. **Fails on error-severity findings.** Each finding links to its rule in the API guidelines in Backstage.
 2. **`breaking-changes-check`** — [`oasdiff`](https://github.com/oasdiff/oasdiff) (v1.19.0) diffs every PR-modified `*openapi*.{yml,yaml}` against the PR's base branch. **Fails on any ERR-severity breaking finding** (`--fail-on ERR`). New files (no baseline) and identical-content edits are skipped; the job is skipped on `workflow_dispatch`.
@@ -228,15 +233,16 @@ The official `@microcks/microcks-backstage-provider` (0.0.7) isn't used: it depe
 
 | Path | Purpose |
 |------|---------|
-| `async/` | The AsyncAPI demo (MQTT and Kafka), with its own compose file, governance repo and `demo-async` helper: [`async/README.md`](async/README.md). |
-| `docker-compose.yml` | All services, the seed services and the profiles (`contract`, `catalog`, `gateway`). |
-| `example/` | The consumer repo template: `contracts/orders-openapi.yaml`, `catalog-info.yaml`, `backend/`, `.gitea/workflows/pr-governance.yml`. |
-| `governance/` | `openlint/`, `api-guidelines/`, `gateway/` (generator + `deployer/` sidecar that deploys configs to KrakenD), `api-catalog/` (Backstage). |
+| `docker-compose.yml` | All services, the seed services and the profiles (`contract`, `catalog`, `gateway`, `events`, `kafka`). |
+| `example/` | The REST consumer repo template: `contracts/orders-openapi.yaml`, `catalog-info.yaml`, `backend/`, `.gitea/workflows/pr-governance.yml`. |
+| `example-mqtt/`, `example-kafka/` | The event consumer repo templates: AsyncAPI contract, `catalog-info.yaml`, `backend/`, `subscriber/`, PR and publish workflows. |
+| `governance/` | `openlint/`, `api-guidelines/`, `gateway/` (generator + `deployer/` sidecar that deploys configs to KrakenD), `contract-test/`, `breaking-changes/`, `broker-policy/` (generator + `deployer/` that applies it to the brokers), `api-catalog/` (Backstage). |
+| `mosquitto/` | The MQTT broker's config, demo accounts and policy bootstrap. |
 | `ci-image/` | The CI job image. |
 | `runner-config.yaml` | Puts CI job containers on `gitea-network` and in the CI image. |
-| `scripts/` | Seed scripts; `scripts/demo/` is the `demo` helper. |
-| `presentation/` | The talk as a PDF (demo clips embedded) and the demo's screenplay ([`presentation/README.md`](presentation/README.md)). |
-| `docs/`, `tests/` | Design notes and scripted PR scenarios. |
+| `scripts/` | Seed scripts and the governance bundle; `scripts/demo/` is the `demo` helper (`scripts/demo/events/`: its event steps). |
+| `presentation/` | The talk as a PDF (demo clips embedded) and the demo's screenplay ([`presentation/README.md`](presentation/README.md)); `presentation/events/`: the event demo's screenplay and the broker policy animation. |
+| `docs/`, `tests/` | Design notes, the event guide ([`docs/events.md`](docs/events.md)) and scripted PR scenarios (REST and events). |
 | `gitea-data/`, `runner-data/` | Local runtime state, git-ignored, disposable. |
 
 ---
@@ -244,7 +250,7 @@ The official `@microcks/microcks-backstage-provider` (0.0.7) isn't used: it depe
 ## Troubleshooting
 
 **Both engines**
-- **A port is already in use:** another service (or another copy of this stack) uses 3000, 2222, 7007, 8080, 8081 or 8090. Stop it, then `up` again.
+- **A port is already in use:** another service (or another copy of this stack) uses 3000, 2222, 7007, 8080, 8081, 8090, 1883 or 8280. Stop it, then `up` again.
 - **Changes you made in Gitea's `main` disappeared:** every `up` runs `gitea-seed`, which force-pushes `example/` over the consumer repo's `main`. If you use `demo`, run `demo goto <step>` after `up`.
 - **Backstage doesn't list the API yet:** wait ~10 s after the merge and reload; `demo refresh-catalog` forces a rescan.
 - **A CI job fails before any step ran:** the runner couldn't start the job container. Check `docker logs gitea-runner` / `podman logs gitea-runner`, then use **Re-run** on the run page.
@@ -261,18 +267,17 @@ The official `@microcks/microcks-backstage-provider` (0.0.7) isn't used: it depe
 ## Stop / reset
 
 ```bash
-docker compose --profile contract --profile catalog --profile gateway down       # stop
-docker compose --profile contract --profile catalog --profile gateway down -v    # + drop the seeded volumes
-rm -rf gitea-data runner-data                                                    # + drop Gitea and runner state
+P="--profile contract --profile catalog --profile gateway --profile events --profile kafka"
+docker compose $P down       # stop
+docker compose $P down -v    # + drop the seeded volumes
+rm -rf gitea-data runner-data   # + drop Gitea and runner state
 ```
-
-For the AsyncAPI demo, run `docker compose --profile contract --profile catalog --profile kafka down` in `async/`.
 
 With Podman, use `podman-compose` with the same arguments, and `podman unshare rm -rf gitea-data runner-data` (the files belong to container users). `demo fresh` does the full wipe and restart in one go.
 
 ## Security note
 
-This is a local demo. `gitea-seed`, `gitea-runner` and `krakend-deployer` get access to the container engine socket (to run the Gitea CLI, start CI jobs and restart KrakenD); `krakend-deployer`'s `/deploy` endpoint is unauthenticated on the compose network. Fine on a laptop, not a pattern for shared infrastructure.
+This is a local demo. `gitea-seed`, `gitea-runner` and `krakend-deployer` get access to the container engine socket (to run the Gitea CLI, start CI jobs and restart KrakenD); the `/deploy` endpoints of `krakend-deployer` and `broker-policy-deployer` are unauthenticated on the compose network; the brokers speak plain MQTT and Kafka, and the demo accounts and their passwords sit in `mosquitto/users.txt`, the compose file and the workflows. Fine on a laptop, not a pattern for shared infrastructure.
 
 ## For presenters
 
@@ -282,7 +287,7 @@ The talk PDF, with the recorded demo embedded, and the demo's step-by-step scrip
 
 Starter prompt for Claude Code or a similar agent:
 
-> Get familiar with the repo, prepare the environment, and run the tests in `tests/pr-governance.feature.md`. Present a summary as a table with links so I can verify the intermediate states.
+> Get familiar with the repo, prepare the environment, and run the tests in `tests/pr-governance.feature.md` and `tests/events-governance.feature.md`. Present a summary as a table with links so I can verify the intermediate states.
 
 ## License
 
