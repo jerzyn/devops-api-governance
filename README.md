@@ -122,6 +122,27 @@ Each step is then: `git switch <branch>`, `git push -u origin <branch>`, open th
 
 `demo goto` force-pushes the consumer repo's `main` in *your local* Gitea and closes its open PRs. It never touches this project or GitHub.
 
+### The talk in slide order: REST, then the same gate for events
+
+The talk plays the five REST recordings above. After each REST step, a "same gate" slide shows that gate on event APIs, without a recording. To show an event step live as well, put its repo in the matching state. REST and event repos are separate, so `demo goto` and `demo events goto` don't disturb each other:
+
+| Talk step | REST recording (`demo goto`) | "Same gate" slide | Live on events (`demo events goto`) |
+|-----------|------------------------------|-------------------|-------------------------------------|
+| 1. Catalog | `1` | Every interface goes in the catalog | `1`: the Order Events API appears with its broker, producer and consumer |
+| 2. Guidelines | `2`, `2-red` (`http://` server URL) | One linter, two rulesets | `2`, `2-red` (`paid_at` breaks the camelCase rule) |
+| 3. Mocks and contract tests | `3`, `3-red` (required `currency`) | The promise is tested where it is kept | `3`, `3-red` (required `currency` the backend never sends) |
+| 4. Gateway | `4` (KrakenD 404, then 200) | Access is generated from the contract | `4`, then `demo events deny`: the broker refuses what the policy doesn't grant |
+| 5. Breaking changes | `5`, `5-red` (required `channel`) | Breaking depends on who reads | `5`, `5-red` (removing `isPaid` fails FORWARD), then `kafka` for the same gates on Kafka |
+| Close | `end` | Any protocol, same gates | `end` |
+
+Two terminals make it easy: `demo shell` for `~/demo/orders-api`, and `demo events shell` for `~/demo/order-events-api` (`DEMO_SHELL_REPO=kafka demo events shell` for the Kafka repo). Before the talk, both `demo preflight` and `demo events preflight` must say `READY`. The one-page steps are [`presentation/cue-card.md`](presentation/cue-card.md) for REST and [`presentation/events/cue-card.md`](presentation/events/cue-card.md) for events.
+
+The slides simplify a few things that the demo does in more detail:
+
+- **Topics.** The slides use one topic, `orders.order-events.v1`. The demo has one topic per event type (`orders/v1/{orderId}/created` on MQTT, `orders.order-created.v1` and `orders.order-paid.v1` on Kafka), as the Kafka ruleset requires.
+- **Broker ACLs.** The step 4 slide shows Strimzi `KafkaUser` resources. The demo runs plain Kafka, so the generated policy is applied as Kafka ACLs, and as dynamic-security roles on Mosquitto.
+- **MCP.** The step 1 slide also puts MCP servers in the catalog. That part is on the slide only, and the demo has no MCP server.
+
 ---
 
 ## Events: AsyncAPI on MQTT and Kafka

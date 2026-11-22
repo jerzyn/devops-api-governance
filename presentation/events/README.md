@@ -27,7 +27,7 @@ Install once with `scripts/demo/demo install` (adds one line to `~/.bashrc`; ope
 
 | Command | When |
 |---------|------|
-| `demo events fresh` | Final take: wipes the demo Gitea so PR numbers start at #1, then sets up Stage 1. Asks first. |
+| `demo events fresh` | Final take: wipes the demo Gitea, REST and events alike (the same as `demo fresh`), so PR numbers start at #1, then sets up Stage 1 of both. Asks first. |
 | `demo events goto <1\|2\|2-red\|3\|3-red\|4\|5\|5-red\|kafka\|end>` | Puts both Gitea repos, Backstage, Microcks, the registry and the broker policy right before that step, and prepares its branch. |
 | `demo events preflight` | Checks everything; ends with `READY` or the problems and their fixes. |
 | `demo events shell` | `cd` into the demo clone (`DEMO_SHELL_REPO=kafka` for the Kafka one), short prompt with the branch. |
@@ -36,7 +36,7 @@ Install once with `scripts/demo/demo install` (adds one line to `~/.bashrc`; ope
 
 ## Running the demo, in short
 
-1. Stack up with `--profile contract --profile catalog --profile events --profile kafka`, then `demo events fresh` (or `demo events goto 1`).
+1. Stack up with `--profile contract --profile catalog --profile gateway --profile events --profile kafka` (the main README), then `demo events fresh` (or `demo events goto 1`).
 2. Sign in to Gitea (`demo` / `demo12345`) and Backstage (guest).
 3. Terminal 1: `demo events shell`. Terminal 2: `demo events preflight` → `READY`.
 4. Follow [`cue-card.md`](cue-card.md); `demo events next` after each merge.
