@@ -186,6 +186,12 @@ An operation **MUST** reference exactly one message. A channel may carry several
 
 ---
 
+## [Messages from Own Channel (api-peak:async15:2026-own-channel-messages)](#own-channel-messages)
+
+An operation **MUST** only reference messages defined on its own channel (`$ref: '#/channels/<its channel>/messages/...'`). A message borrowed from another channel would be published on a topic whose contract does not describe it, so mocks, contract tests and the broker policy would all look at the wrong topic.
+
+---
+
 ## [Message Metadata (api-peak:async8:2026-message-metadata)](#message-metadata)
 
 Every message **MUST** have a `name` in PascalCase (the event type, for example `OrderCreated`), a human readable `title`, a `contentType` and a `payload`.

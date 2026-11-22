@@ -12,6 +12,7 @@ extends:
 functionsDir: ./spectral-functions
 functions:
   - openPayloadSchema
+  - messagesFromOwnChannel
 rules:
   # Replaced by api-peak:async4:2026-contact, which links to the guideline.
   asyncapi-info-contact-properties: off
@@ -102,6 +103,15 @@ rules:
       functionOptions:
         min: 1
         max: 1
+
+  api-peak:async15:2026-own-channel-messages:
+    description: An operation MUST only use messages defined on its own channel.
+    message: "{{error}} \n http://localhost:7107/docs/default/component/api-guidelines/#messages-from-own-channel-api-peakasync152026-own-channel-messages"
+    severity: error
+    resolved: false
+    given: $.operations[*]
+    then:
+      function: messagesFromOwnChannel
 
   api-peak:async8:2026-message-metadata:
     description: Every message MUST have a PascalCase name, a title, a contentType and a payload.
