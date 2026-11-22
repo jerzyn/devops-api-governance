@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Broker Policy Animation</title>
+<!--
+  The broker policy, animated for the talk: messages and subscriptions the
+  contract allows pass the broker, the rest are blocked. Self-contained (no
+  network). Space / Right arrow: next scene. Left arrow: previous. A: autoplay.
+  K: switch between MQTT and Kafka.
+-->
+<style>
+  :root {
+    --bg: #0f1419; --panel: #1a2129; --line: #2e3a46; --text: #e6edf3; --muted: #8b98a5;
+    --allow: #3fb950; --deny: #f85149; --accent: #58a6ff; --policy: #d29922;
+  }
+  @media (prefers-color-scheme: light) {
+    :root:not([data-theme="dark"]) {
+      --bg: #f6f8fa; --panel: #ffffff; --line: #d0d7de; --text: #1f2328; --muted: #57606a;
+      --allow: #1a7f37; --deny: #cf222e; --accent: #0969da; --policy: #9a6700;
+    }
+  }
+  :root[data-theme="light"] {
+    --bg: #f6f8fa; --panel: #ffffff; --line: #d0d7de; --text: #1f2328; --muted: #57606a;
+    --allow: #1a7f37; --deny: #cf222e; --accent: #0969da; --policy: #9a6700;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; }
+  body {
+    background: var(--bg); color: var(--text);
+    font: 16px/1.4 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    padding: 16px; overflow-x: hidden;
+  }
+  h1 { font-size: clamp(18px, 2.6vw, 30px); margin: 0 0 4px; font-weight: 600; text-align: center; }
+  .caption { color: var(--muted); min-height: 3em; text-align: center; max-width: 900px;
+             font-size: clamp(14px, 1.8vw, 20px); margin: 0 0 8px; }
+  svg { width: min(1100px, 100%); height: auto; }
+  .box { fill: var(--panel); stroke: var(--line); stroke-width: 2; }
+  .broker { stroke: var(--accent); }
+  .label { fill: var(--text); font-size: 18px; font-weight: 600; }
+  .small { fill: var(--muted); font-size: 14px; }
+  .mono { font-family: ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace; }
+  .rule { fill: var(--text); font-size: 13.5px; }
+  .rule.hl { fill: var(--policy); font-weight: 700; }
+  .wire { stroke: var(--line); stroke-width: 2; stroke-dasharray: 6 6; fill: none; }
+  .msg { stroke-width: 3; }
+  .msg.ok { fill: var(--allow); stroke: color-mix(in srgb, var(--allow) 40%, var(--bg)); }
+  .msg.no { fill: var(--deny); stroke: color-mix(in srgb, var(--deny) 40%, var(--bg)); }
+  .action { font-family: ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+            font-size: clamp(14px, 1.9vw, 22px); min-height: 1.5em; margin: 0 0 4px; text-align: center; }
+  .action.ok { color: var(--allow); } .action.no { color: var(--deny); }
+  .verdict { font-size: 34px; font-weight: 700; }
+  .verdict.ok { fill: var(--allow); } .verdict.no { fill: var(--deny); }
+  .controls { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; margin-top: 8px; }
+  button {
+    background: var(--panel); color: var(--text); border: 1px solid var(--line); border-radius: 6px;
+    padding: 6px 12px; font: inherit; font-size: 14px; cursor: pointer;
+  }
+  button[aria-pressed="true"] { border-color: var(--accent); color: var(--accent); }
+  .dots { display: flex; gap: 6px; justify-content: center; margin-top: 6px; }
+  .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--line); }
+  .dot.on { background: var(--accent); }
+</style>
+</head>
+<body>
+  <h1 id="title">The broker enforces the contract</h1>
+  <p class="caption" id="caption"></p>
+  <p class="action" id="action">&nbsp;</p>
+
+  <svg viewBox="0 0 1140 440" role="img" aria-labelledby="title caption action">
+    <!-- Wires -->
+    <path class="wire" d="M 240 150 L 420 150"/>
+    <path class="wire" d="M 720 150 L 900 150"/>
+    <path class="wire" d="M 720 330 L 900 330"/>
+
+    <!-- Provider -->
+    <rect class="box" x="10" y="95" width="230" height="110" rx="12"/>
+    <text class="label" x="125" y="140" text-anchor="middle" id="provider">orders-backend</text>
+    <text class="small" x="125" y="166" text-anchor="middle">providesApis</text>
+
+    <!-- Broker with policy -->
+    <rect class="box broker" x="420" y="40" width="300" height="360" rx="14"/>
+    <text class="label" x="570" y="76" text-anchor="middle" id="broker">Mosquitto</text>
+    <text class="small" x="570" y="98" text-anchor="middle">policy from contract + catalog</text>
+    <g id="rules" class="mono"></g>
+
+    <!-- Consumer -->
+    <rect class="box" x="900" y="95" width="230" height="110" rx="12"/>
+    <text class="label" x="1015" y="140" text-anchor="middle" id="consumer">orders-subscriber</text>
+    <text class="small" x="1015" y="166" text-anchor="middle">consumesApis</text>
+
+    <!-- Other client -->
+    <rect class="box" x="900" y="275" width="230" height="110" rx="12"/>
+    <text class="label" x="1015" y="320" text-anchor="middle" id="other">anonymous</text>
+    <text class="small" x="1015" y="346" text-anchor="middle" id="otherSub">no account</text>
+
+    <!-- The moving message -->
+    <circle id="msg" class="msg ok" r="13" cx="0" cy="0" opacity="0"/>
+    <text id="verdict" class="verdict" x="570" y="432" text-anchor="middle" opacity="0"></text>
+  </svg>
+
+  <div class="controls">
+    <button id="prev" aria-label="Previous scene">◀ Back</button>
+    <button id="next" aria-label="Next scene">Next ▶</button>
+    <button id="auto" aria-pressed="false">Autoplay (A)</button>
+    <button id="proto" aria-pressed="false">Kafka (K)</button>
+  </div>
+  <div class="dots" id="dots"></div>
+
+<script>
+'use strict';
+const PROTOCOLS = {
+  mqtt: {
+    broker: 'Mosquitto', provider: 'orders-backend', consumer: 'orders-subscriber',
+    rules: [
+      ['orders-backend', 'publish   orders/v1/+/created'],
+      ['orders-backend', 'publish   orders/v1/+/paid'],
+      ['orders-subscriber', 'subscribe orders/v1/+/created'],
+      ['orders-subscriber', 'subscribe orders/v1/+/paid'],
+      ['microcks', 'subscribe (contract tests)'],
+      ['everyone else', 'denied'],
+    ],
+    scenes: [
+      { caption: 'The contract says the backend sends OrderPaid on orders/v1/{orderId}/paid. The catalog says who provides and who consumes the API.',
+        rule: -1 },
+      { caption: 'The backend publishes an event the contract describes: the policy allows it.',
+        from: 'provider', to: 'broker', text: 'PUBLISH orders/v1/123/paid', ok: true, rule: 1, then: 'consumer' },
+      { caption: 'A consumer in the catalog subscribes to a topic in the contract: granted.',
+        from: 'consumer', to: 'broker', text: 'SUBSCRIBE orders/v1/+/paid', ok: true, rule: 3 },
+      { caption: 'The same consumer asks for a topic the contract does not have: denied.',
+        from: 'consumer', to: 'broker', text: 'SUBSCRIBE orders/v1/+/refunded', ok: false, rule: 5 },
+      { caption: 'Or for more than the contract gives it: a wildcard over every event is denied too.',
+        from: 'consumer', to: 'broker', text: 'SUBSCRIBE orders/v1/#', ok: false, rule: 5 },
+      { caption: 'A client without an account never gets in.',
+        from: 'other', to: 'broker', text: 'CONNECT (no account)', ok: false, rule: 5 },
+      { caption: 'Change the contract or the catalog in a PR, and the next policy follows it: no ticket, no hand-edited ACL.',
+        rule: -1 },
+    ],
+  },
+  kafka: {
+    broker: 'Kafka', provider: 'orders-kafka-backend', consumer: 'orders-kafka-subscriber',
+    rules: [
+      ['orders-kafka-backend', 'WRITE orders.order-created.v1'],
+      ['orders-kafka-backend', 'WRITE orders.order-paid.v1'],
+      ['orders-kafka-subscriber', 'READ  orders.order-*.v1'],
+      ['orders-kafka-subscriber', 'READ  group orders-kafka-subscriber*'],
+      ['topics', 'created from the bindings'],
+      ['everyone else', 'denied'],
+    ],
+    scenes: [
+      { caption: 'On Kafka the contract also declares the topics: partitions and retention come from the channel bindings.',
+        rule: 4 },
+      { caption: 'The backend writes an event to a topic in the contract, keyed by the order id: allowed.',
+        from: 'provider', to: 'broker', text: 'WRITE orders.order-paid.v1', ok: true, rule: 1, then: 'consumer' },
+      { caption: 'A consumer in the catalog reads in its own consumer group: allowed.',
+        from: 'consumer', to: 'broker', text: 'READ orders.order-paid.v1', ok: true, rule: 2 },
+      { caption: 'A topic the contract does not have: Topic authorization failed.',
+        from: 'consumer', to: 'broker', text: 'READ orders.not-in-contract.v1', ok: false, rule: 5 },
+      { caption: 'The provider only writes: reading its own topic is denied.',
+        from: 'provider', to: 'broker', text: 'READ orders.order-paid.v1', ok: false, rule: 5 },
+      { caption: 'A wrong password is refused at the door.',
+        from: 'other', to: 'broker', text: 'SASL wrong password', ok: false, rule: 5 },
+      { caption: 'Same generator, same PR gate: the contract decides what the broker allows.',
+        rule: -1 },
+    ],
+  },
+};
+// Where the message dot sits: at the edge of each box, on its wire.
+const POS = {
+  provider: [240, 150], brokerIn: [420, 150], brokerOut: [720, 150], consumer: [900, 150],
+  other: [900, 330], brokerOther: [720, 330],
+};
+const BROKER_SIDE = { provider: 'brokerIn', consumer: 'brokerOut', other: 'brokerOther' };
+const $ = (id) => document.getElementById(id);
+const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+let proto = 'mqtt', scene = 0, autoTimer = null, anim = null;
+
+function renderRules(hl) {
+  const g = $('rules'); g.innerHTML = '';
+  PROTOCOLS[proto].rules.forEach(([who, what], i) => {
+    const y = 140 + i * 40;
+    const t1 = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+    t1.setAttribute('x', 440); t1.setAttribute('y', y); t1.setAttribute('class', 'rule' + (i === hl ? ' hl' : ''));
+    t1.textContent = who;
+    const t2 = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+    t2.setAttribute('x', 450); t2.setAttribute('y', y + 17); t2.setAttribute('class', 'rule' + (i === hl ? ' hl' : ''));
+    t2.textContent = what;
+    g.append(t1, t2);
+  });
+}
+
+function place(el, [x, y]) { el.setAttribute('cx', x); el.setAttribute('cy', y); }
+
+function moveMsg(from, to, ms) {
+  return new Promise((resolve) => {
+    const m = $('msg'); const [x0, y0] = POS[from]; const [x1, y1] = POS[to];
+    if (reduceMotion || ms === 0) { place(m, [x1, y1]); return resolve(); }
+    const t0 = performance.now();
+    const step = (t) => {
+      const k = Math.min(1, (t - t0) / ms); const e = k < 0.5 ? 2 * k * k : 1 - Math.pow(-2 * k + 2, 2) / 2;
+      place(m, [x0 + (x1 - x0) * e, y0 + (y1 - y0) * e]);
+      if (k < 1) anim = requestAnimationFrame(step); else resolve();
+    };
+    anim = requestAnimationFrame(step);
+  });
+}
+
+async function show(i) {
+  cancelAnimationFrame(anim);
+  const p = PROTOCOLS[proto]; scene = (i + p.scenes.length) % p.scenes.length; const s = p.scenes[scene];
+  $('broker').textContent = p.broker; $('provider').textContent = p.provider; $('consumer').textContent = p.consumer;
+  $('other').textContent = proto === 'kafka' ? 'other client' : 'anonymous';
+  $('otherSub').textContent = proto === 'kafka' ? 'not in the catalog' : 'no account';
+  $('caption').textContent = s.caption;
+  $('dots').innerHTML = p.scenes.map((_, k) => `<span class="dot${k === scene ? ' on' : ''}"></span>`).join('');
+  renderRules(-1);
+  const m = $('msg'), v = $('verdict'), a = $('action');
+  v.setAttribute('opacity', 0); m.setAttribute('opacity', 0);
+  a.className = 'action'; a.innerHTML = '&nbsp;';
+  if (!s.from) { renderRules(s.rule); return; }
+  const who = { provider: p.provider, consumer: p.consumer, other: proto === 'kafka' ? 'other client' : 'anonymous' }[s.from];
+  a.textContent = `${who}: ${s.text}`;
+  m.setAttribute('class', 'msg ' + (s.ok ? 'ok' : 'no'));
+  place(m, POS[s.from]); m.setAttribute('opacity', 1);
+  const mine = scene, side = BROKER_SIDE[s.from];
+  await moveMsg(s.from, side, 900);
+  if (mine !== scene) return;
+  renderRules(s.rule);
+  a.classList.add(s.ok ? 'ok' : 'no');
+  v.textContent = s.ok ? '✓ allowed' : '✗ denied';
+  v.setAttribute('class', 'verdict ' + (s.ok ? 'ok' : 'no')); v.setAttribute('opacity', 1);
+  if (s.ok && s.then) {
+    place(m, POS.brokerOut);
+    await moveMsg('brokerOut', s.then, 900);
+  } else if (!s.ok) {
+    await moveMsg(side, s.from, 700);
+    if (mine === scene) m.setAttribute('opacity', 0.35);
+  }
+}
+
+function setAuto(on) {
+  clearInterval(autoTimer); autoTimer = null;
+  $('auto').setAttribute('aria-pressed', String(on));
+  if (on) autoTimer = setInterval(() => show(scene + 1), 4500);
+}
+function setProto(p) {
+  proto = p; $('proto').setAttribute('aria-pressed', String(p === 'kafka'));
+  $('proto').textContent = p === 'kafka' ? 'MQTT (K)' : 'Kafka (K)';
+  show(0);
+}
+
+$('next').onclick = () => show(scene + 1);
+$('prev').onclick = () => show(scene - 1);
+$('auto').onclick = () => setAuto(!autoTimer);
+$('proto').onclick = () => setProto(proto === 'mqtt' ? 'kafka' : 'mqtt');
+document.addEventListener('keydown', (e) => {
+  if (e.key === ' ' || e.key === 'ArrowRight' || e.key === 'PageDown') { e.preventDefault(); show(scene + 1); }
+  else if (e.key === 'ArrowLeft' || e.key === 'PageUp') show(scene - 1);
+  else if (e.key === 'a' || e.key === 'A') setAuto(!autoTimer);
+  else if (e.key === 'k' || e.key === 'K') setProto(proto === 'mqtt' ? 'kafka' : 'mqtt');
+});
+const q = new URLSearchParams(location.search);
+if (q.get('protocol') === 'kafka') setProto('kafka'); else show(0);
+if (q.has('autoplay')) setAuto(true);
+</script>
+</body>
+</html>

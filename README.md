@@ -11,6 +11,8 @@ An OpenAPI contract goes through pull requests in a local Git server, and every 
 - **KrakenD** — API gateway whose config is generated from the contract and deployed by CI.
 - **oasdiff** — blocks backward-incompatible contract changes.
 
+The same gates also run for events: [`async/`](async/) is the AsyncAPI demo, on MQTT and Kafka. See [Events: the AsyncAPI demo](#events-the-asyncapi-demo).
+
 Nothing here is a production setup: it simulates the control points around API delivery (source control, PRs, automated quality gates, contract testing, a discoverable catalog) so you can see and change them.
 
 ---
@@ -26,7 +28,7 @@ Nothing here is a production setup: it simulates the control points around API d
 Both need:
 - **Resources:** ~6 GB of RAM for the engine (Docker Desktop: *Settings → Resources*; the Backstage image build is the heaviest step), ~12 GB of free disk (the images are ~6.5 GB).
 - **Internet on the first start**, to pull images and build the Backstage and CI images. After that the demo, including its CI, runs offline.
-- **Free ports:** 3000, 2222 (Gitea), 7007 (Backstage), 8080 (Microcks), 8081 (backend), 8090 (KrakenD).
+- **Free ports:** 3000, 2222 (Gitea), 7007 (Backstage), 8080 (Microcks), 8081 (backend), 8090 (KrakenD). The [AsyncAPI demo](#events-the-asyncapi-demo) uses other ports (3100, 2322, 7107, 8180, 8280, 1883), so both run at once.
 - `git`, `curl` and `bash` (for the optional `demo` helper).
 
 > Tested end to end on Linux with Podman. The Docker instructions use the same compose file and scripts, but weren't run end to end.
@@ -113,6 +115,36 @@ Each step is then: `git switch <branch>`, `git push -u origin <branch>`, open th
 
 ---
 
+## Events: the AsyncAPI demo
+
+[`async/`](async/) runs the same five gates for an event API: an AsyncAPI 3.1 contract for order events, published on **MQTT** (Mosquitto) and on **Kafka**. It has its own Gitea, CI runner, Microcks and Backstage on shifted ports, so it runs next to this stack or on its own:
+
+```bash
+cd async
+docker compose --profile contract --profile catalog up -d    # MQTT: platform, broker, backend, subscriber, Microcks, Backstage
+docker compose --profile kafka --profile contract up -d      # + Kafka, its backend and subscriber
+```
+
+| Gate | REST (this folder) | Events ([`async/`](async/README.md)) |
+|------|--------------------|--------------------------------------|
+| 1. Catalog | Backstage, `type: openapi` | Backstage, `type: asyncapi`; the broker is a Resource, producers and consumers are edges |
+| 2. Guidelines | OpenLint, OpenAPI ruleset | `asyncapi validate` + OpenLint, async ruleset plus MQTT or Kafka rules |
+| 3. Contract test | Microcks over HTTP | Microcks listens on the broker and checks every event against the schema |
+| 4. Deploy | KrakenD config generated from the contract | broker policy generated from the contract and the catalog: Mosquitto ACLs, or Kafka topics and ACLs |
+| 5. Breaking changes | oasdiff | `@asyncapi/diff` on the structure + Apicurio Registry compatibility on the payloads |
+
+| Service | URL |
+|---------|-----|
+| Gitea | http://localhost:3100 (`demo` / `demo12345`) |
+| Backstage | http://localhost:7107 |
+| Microcks | http://localhost:8180 |
+| Apicurio Registry | http://localhost:8280 |
+| MQTT | `localhost:1883` |
+
+Its step-by-step helper is `demo-async` (`async/scripts/demo/demo install`), so it doesn't clash with this demo's `demo`. Details, the recorded demo and troubleshooting: [`async/README.md`](async/README.md).
+
+---
+
 ## How it works
 
 ### Two repositories
@@ -196,6 +228,7 @@ The official `@microcks/microcks-backstage-provider` (0.0.7) isn't used: it depe
 
 | Path | Purpose |
 |------|---------|
+| `async/` | The AsyncAPI demo (MQTT and Kafka), with its own compose file, governance repo and `demo-async` helper: [`async/README.md`](async/README.md). |
 | `docker-compose.yml` | All services, the seed services and the profiles (`contract`, `catalog`, `gateway`). |
 | `example/` | The consumer repo template: `contracts/orders-openapi.yaml`, `catalog-info.yaml`, `backend/`, `.gitea/workflows/pr-governance.yml`. |
 | `governance/` | `openlint/`, `api-guidelines/`, `gateway/` (generator + `deployer/` sidecar that deploys configs to KrakenD), `api-catalog/` (Backstage). |
@@ -232,6 +265,8 @@ docker compose --profile contract --profile catalog --profile gateway down      
 docker compose --profile contract --profile catalog --profile gateway down -v    # + drop the seeded volumes
 rm -rf gitea-data runner-data                                                    # + drop Gitea and runner state
 ```
+
+For the AsyncAPI demo, run `docker compose --profile contract --profile catalog --profile kafka down` in `async/`.
 
 With Podman, use `podman-compose` with the same arguments, and `podman unshare rm -rf gitea-data runner-data` (the files belong to container users). `demo fresh` does the full wipe and restart in one go.
 

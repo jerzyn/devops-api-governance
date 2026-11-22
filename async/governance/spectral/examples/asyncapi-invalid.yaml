@@ -1,0 +1,86 @@
+# Intentionally breaks the api-peak async and MQTT rules: each comment names
+# the rule the next line violates. Lint it to see every finding at once.
+asyncapi: 3.1.0
+info:
+  title: order events            # async2: not Title Case, no "API"
+  version: '1.0'                 # async3: not MAJOR.MINOR.PATCH
+  description: Order events with every guideline broken.
+  contact:
+    name: Platform team          # async4: no url, no email
+  license:
+    name: CC-BY-4.0
+  tags:
+    - name: orders
+defaultContentType: application/xml   # async10: not JSON
+
+servers:
+  production:
+    host: broker.example.com:1883     # mqtt5: plain mqtt outside local
+    protocol: mqtt
+    description: Production broker.
+
+channels:
+  orderEvents:
+    address: /Orders/{order_id}/#     # mqtt1: leading /, uppercase, snake param, wildcard; mqtt2: no v1; mqtt6: two messages
+    description: Lifecycle events of one order.
+    parameters:
+      order_id:
+        description: Identifier of the order.
+    messages:
+      orderCreated:
+        $ref: '#/components/messages/OrderCreated'
+      orderPaid:
+        $ref: '#/components/messages/OrderPaid'
+
+operations:
+  OrderEvents:                        # async6: not send.../receive...
+    action: send
+    channel:
+      $ref: '#/channels/orderEvents'
+    summary: publish order events and say much more than seventy-five characters about it  # async5
+    description: Both events in one operation.
+    messages:                         # async7: two messages
+      - $ref: '#/channels/orderEvents/messages/orderCreated'
+      - $ref: '#/channels/orderEvents/messages/orderPaid'
+    bindings:                         # mqtt3: no qos; mqtt4: no retain
+      mqtt:
+        bindingVersion: 0.2.0
+
+components:
+  messages:
+    OrderCreated:
+      name: order_created             # async8: not PascalCase; no title
+      contentType: application/json
+      payload:
+        $ref: '#/components/schemas/orderCreatedPayload'
+      # async9: no examples
+    OrderPaid:
+      name: OrderPaid
+      title: Order paid
+      contentType: application/json
+      payload:
+        $ref: '#/components/schemas/OrderPaidPayload'
+      examples:
+        - name: paidOrder
+          payload:
+            orderId: '123'
+            is_paid: true
+  schemas:
+    orderCreatedPayload:              # async12: not PascalCase
+      type: object
+      additionalProperties: false     # async13: closed schema
+      required: [orderId, created_at]
+      properties:
+        orderId:
+          type: string
+        created_at:                   # async11: not camelCase
+          type: string
+          format: date-time
+    OrderPaidPayload:
+      type: object
+      required: [orderId, is_paid]
+      properties:
+        orderId:
+          type: string
+        is_paid:                      # async11: not camelCase
+          type: boolean
