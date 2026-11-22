@@ -6,9 +6,9 @@ Every recording has two parts:
 - **Terminal:** git commands in the demo clone of the Gitea repo.
 - **Browser:** Gitea (PR, changed files, CI logs), Backstage, Microcks, Apicurio.
 
-Between steps there is one off-camera command, always the same: `demo next`. **While recording, use [`cue-card.md`](cue-card.md)**: the same steps on one page.
+Between steps there is one off-camera command, always the same: `demo-async next`. **While recording, use [`cue-card.md`](cue-card.md)**: the same steps on one page.
 
-Every step below was run end to end against the stack, with real PRs and real CI: every red, every fix, every merge, and `demo next` after each one. CI durations are from that run.
+Every step below was run end to end against the stack, with real PRs and real CI: every red, every fix, every merge, and `demo-async next` after each one. CI durations are from that run.
 
 ## Run of show
 
@@ -17,7 +17,7 @@ Every step below was run end to end against the stack, with real PRs and real CI
 | 1 | Catalog | Merge a `catalog-info.yaml`, and the Order Events API appears in Backstage, rendered as AsyncAPI docs, with who produces and who consumes it. No CI yet. |
 | 2 | Lint | Red check with one finding, `api-peak:async11:2026-property-naming`, whose link opens the guideline in Backstage. Renaming `paid_at` to `paidAt` turns it green. |
 | 3 | Contract test (Microcks) | Microcks listens on the broker: `required property 'currency' not found` in all 5 messages the backend sent. Making `currency` optional turns it green. |
-| 4 | Broker policy | The policy is generated from the contract and the catalog and applied to Mosquitto. Then `demo deny`: the broker refuses a topic the contract does not have. The ACL animation in the slides follows. |
+| 4 | Broker policy | The policy is generated from the contract and the catalog and applied to Mosquitto. Then `demo-async deny`: the broker refuses a topic the contract does not have. The ACL animation in the slides follows. |
 | 5 | Breaking changes (diff + Apicurio) | Removing `isPaid`: the registry says the new schema is not FORWARD-compatible, and the later gates are skipped. Deprecating it instead turns everything green. |
 | 6 | Kafka | The same four gates on the Kafka repo: an optional field passes, with topics and ACLs applied to Kafka; removing `isPaid` is red there too. |
 
@@ -25,7 +25,7 @@ Every step below was run end to end against the stack, with real PRs and real CI
 
 Stages 2, 3 and 5 have two parts. **Part 1** installs the new gate. **Part 2** is the real shot: the gate catches a bad change (red, one-line fix, green). Stages 1 and 4 have a single part; Stage 6 has a green PR and a red one.
 
-1. **Prep (off camera):** `demo next`. It reads Gitea `main`, works out the next step and creates its branch **in the demo clone**, committed but **not pushed**. It brings the clone's `main` up to Gitea `main` first and leaves what your terminal has checked out alone. After a `demo goto`, the next branch is already there.
+1. **Prep (off camera):** `demo-async next`. It reads Gitea `main`, works out the next step and creates its branch **in the demo clone**, committed but **not pushed**. It brings the clone's `main` up to Gitea `main` first and leaves what your terminal has checked out alone. After a `demo-async goto`, the next branch is already there.
 2. **Terminal, show and push:** `git switch <branch>`, show the change, `git push -u origin <branch>`.
    - Contract changes are a few lines: `git diff main -- contracts/`.
    - Workflow changes are long: `git diff --stat main` in the terminal, and the change itself in the PR's **Files changed** tab.
@@ -43,11 +43,11 @@ Keep the same clone for the whole walk-through: `~/demo/order-events-api`, and `
    ```bash
    docker compose --profile contract --profile catalog --profile kafka up -d
    ```
-2. **For the final recording only: `demo fresh`.** It wipes the demo Gitea (PRs, CI runs, branches), brings the stack up again and runs `goto 1`, so PR numbers start at #1. It asks before deleting anything. For a dry run, `demo goto 1` is enough.
-3. `demo goto 1` puts Gitea `main` of both repos at the start, closes open PRs, deletes `feat/*` branches, syncs the governance repo, re-applies the broker policy, resets the registry and the Microcks mocks to `main`, clears the catalog, prebuilds the guidelines page and makes fresh demo clones with the Stage 1 branch in them.
+2. **For the final recording only: `demo-async fresh`.** It wipes the demo Gitea (PRs, CI runs, branches), brings the stack up again and runs `goto 1`, so PR numbers start at #1. It asks before deleting anything. For a dry run, `demo-async goto 1` is enough.
+3. `demo-async goto 1` puts Gitea `main` of both repos at the start, closes open PRs, deletes `feat/*` branches, syncs the governance repo, re-applies the broker policy, resets the registry and the Microcks mocks to `main`, clears the catalog, prebuilds the guidelines page and makes fresh demo clones with the Stage 1 branch in them.
 4. In the browser, **sign in to Gitea** at http://localhost:3100/user/login as `demo` / `demo12345`, and to Backstage (http://localhost:7107) as guest.
-5. Recording terminal: `demo shell` (`cd`s into the clone, short prompt with the branch, clears the screen).
-6. Second terminal, not recorded: `demo preflight` must end with `READY`.
+5. Recording terminal: `demo-async shell` (`cd`s into the clone, short prompt with the branch, clears the screen).
+6. Second terminal, not recorded: `demo-async preflight` must end with `READY`.
 
 ## Screen layout
 
@@ -121,7 +121,7 @@ Keep the same clone for the whole walk-through: `~/demo/order-events-api`, and `
 1. `git switch feat/add-broker-policy-gate`, push, PR. **Files changed**: a `broker-policy` job after the contract test.
 2. In the job log (about 35 s), show the **generated policy**: `orders-backend` may publish `orders/v1/+/created` and `orders/v1/+/paid`, `orders-subscriber` may subscribe to exactly those, Microcks may read them. Then `broker policy matches the contract and the catalog`, and the contract test passing again under the new policy.
 3. Merge.
-4. Terminal 1: `demo deny`:
+4. Terminal 1: `demo-async deny`:
    ```
    A consumer asks for a topic the contract does not have:
      All subscription requests were denied.
@@ -161,19 +161,19 @@ Keep the same clone for the whole walk-through: `~/demo/order-events-api`, and `
 
 **Say:** "Same API, on Kafka. Same gates, same scripts; only the environment of the workflow differs."
 
-**Terminal:** `DEMO_SHELL_REPO=kafka demo shell` (into `~/demo/order-events-kafka-api`).
+**Terminal:** `DEMO_SHELL_REPO=kafka demo-async shell` (into `~/demo/order-events-kafka-api`).
 
 1. `git switch feat/kafka-paid-at`, `git diff main -- contracts/`: optional `paidAt`.
 2. Push, PR. All four gates green. In the logs: lint picked `asyncapi-kafka-ruleset.yaml`; the contract test listened on `kafka://kafka:9094`; the broker policy created no new topic and reconciled the ACLs. Merge.
-3. `demo next` (prepares the red branch), `git switch feat/kafka-drop-is-paid`, push, PR: `breaking-changes` **red**, `orders.order-paid.v1 (OrderPaid): not FORWARD-compatible`. Do not merge: end of the demo.
+3. `demo-async next` (prepares the red branch), `git switch feat/kafka-drop-is-paid`, push, PR: `breaking-changes` **red**, `orders.order-paid.v1 (OrderPaid): not FORWARD-compatible`. Do not merge: end of the demo.
 
 ---
 
 ## Retakes
 
-`demo goto <target>` puts everything at the start of a step: `1`, `2`, `2-red`, `3`, `3-red`, `4`, `5`, `5-red`, `kafka`, `end`. It waits for CI still running from an aborted take, closes open PRs, deletes `feat/*` branches, and replaces the demo clones; `cd` into the clone again (`demo shell`). Then `demo preflight`.
+`demo-async goto <target>` puts everything at the start of a step: `1`, `2`, `2-red`, `3`, `3-red`, `4`, `5`, `5-red`, `kafka`, `end`. It waits for CI still running from an aborted take, closes open PRs, deletes `feat/*` branches, and replaces the demo clones; `cd` into the clone again (`demo-async shell`). Then `demo-async preflight`.
 
-Never run `docker compose up` during a recording: `gitea-seed` force-pushes the template repos over Gitea `main`. If you did, `demo goto <step>`.
+Never run `docker compose up` during a recording: `gitea-seed` force-pushes the template repos over Gitea `main`. If you did, `demo-async goto <step>`.
 
 ## Appendix: what each state contains
 

@@ -1,5 +1,5 @@
 # Recording terminal setup. Source it in the terminal you record:
-#   demo shell   (or: source <repo>/scripts/demo/demo-shell.sh)
+#   demo-async shell   (or: source <repo>/scripts/demo/demo-shell.sh)
 # Short prompt with the current branch, so viewers always see where you are,
 # and a pager that only kicks in for output longer than the screen.
 # DEMO_SHELL_REPO=kafka puts you in the Kafka clone instead.
@@ -17,9 +17,9 @@ else
 fi
 export GIT_PAGER='less -FRX'
 if [ "${DEMO_SHELL_REPO:-}" = kafka ]; then
-  cd "${DEMO_KAFKA_CLONE:-$HOME/demo/order-events-kafka-api}" 2>/dev/null || echo "Kafka demo clone not found; run: demo goto kafka"
+  cd "${DEMO_KAFKA_CLONE:-$HOME/demo/order-events-kafka-api}" 2>/dev/null || echo "Kafka demo clone not found; run: demo-async goto kafka"
 else
-  cd "${DEMO_CLONE:-$HOME/demo/order-events-api}" 2>/dev/null || echo "demo clone not found; run: demo goto 1"
+  cd "${DEMO_CLONE:-$HOME/demo/order-events-api}" 2>/dev/null || echo "demo clone not found; run: demo-async goto 1"
 fi
 unset _demo_name
 clear

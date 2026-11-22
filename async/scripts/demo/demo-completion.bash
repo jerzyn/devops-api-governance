@@ -1,9 +1,9 @@
-# Source from ~/.bashrc (`demo install` adds the line): defines the `demo`
-# command with tab completion. It is a shell function so that `demo shell` can
+# Source from ~/.bashrc (`demo-async install` adds the line): defines the `demo-async`
+# command with tab completion. It is a shell function so that `demo-async shell` can
 # set up the current terminal (prompt, cd into the clone).
 _DEMO_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
-demo() {
+demo-async() {
   if [ "${1:-}" = shell ]; then
     # shellcheck source=demo-shell.sh
     . "$_DEMO_DIR/demo-shell.sh"
@@ -24,4 +24,4 @@ _demo_complete() {
     fresh) [ "$COMP_CWORD" -eq 2 ] && COMPREPLY=($(compgen -W "--yes" -- "$cur")) ;;
   esac
 }
-complete -o filenames -F _demo_complete demo
+complete -o filenames -F _demo_complete demo-async

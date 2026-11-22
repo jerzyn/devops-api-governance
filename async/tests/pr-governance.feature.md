@@ -9,7 +9,7 @@ broker policy (generated from the contract and the catalog) → catalog
 
 The scenarios follow the order of the recorded demo (`scripts/demo`,
 `presentation/screenplay.md`): each gate is introduced, then shown red and
-green. `demo goto <target>` puts the stack at the start of any scenario.
+green. `demo-async goto <target>` puts the stack at the start of any scenario.
 
 ## Background
 
@@ -40,7 +40,7 @@ Background:
        each with the next step's branch prepared and not pushed
 ```
 
-Each scenario below pushes a prepared branch (`demo next` prepares it), opens
+Each scenario below pushes a prepared branch (`demo-async next` prepares it), opens
 a PR into `main` in Gitea and reads the PR's checks. Green PRs are merged; the
 next scenario starts from that merge.
 
@@ -129,7 +129,7 @@ Scenario: the broker policy follows the contract and the catalog
 
 ```gherkin
 Scenario: the broker refuses what the policy does not grant
-  When I run "demo deny"
+  When I run "demo-async deny"
   Then a subscription to orders/v1/+/refunded is denied ("All subscription requests were denied.")
   And a subscription to orders/v1/# is denied
   And a client without an account is refused ("not authorised")
@@ -145,7 +145,7 @@ Scenario: a consumer taken out of the catalog loses its access
     """
     DENIED orders/v1/+/created, orders/v1/+/paid (...): not granted by the broker policy
     """
-  And "docker compose up -d broker-policy-seed" (or demo goto) restores main's policy
+  And "docker compose up -d broker-policy-seed" (or demo-async goto) restores main's policy
 ```
 
 ## Scenario 5: breaking changes are stopped before they reach consumers

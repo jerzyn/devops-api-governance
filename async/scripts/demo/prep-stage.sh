@@ -24,7 +24,7 @@
 #   stage3      feat/add-contract-test-gate     PR workflow: + contract-test (Microcks)
 #   stage3-red  feat/order-currency             required currency the backend never sends: red;
 #                                               fix on camera: make it optional
-#   stage4      feat/add-broker-policy-gate     PR workflow: + broker-policy (then: demo deny)
+#   stage4      feat/add-broker-policy-gate     PR workflow: + broker-policy (then: demo-async deny)
 #   stage5      feat/add-breaking-changes-gate  PR workflow: + breaking-changes, publish on merge
 #   stage5-red  feat/drop-is-paid               isPaid removed: red (registry, FORWARD);
 #                                               fix on camera: keep it, mark it deprecated
@@ -572,8 +572,8 @@ step_at() {
 
 next_step() {  # $1 = "prepare" or "status"
   local k kk step branch remote clone
-  k="$(detect_layers)" || { echo "Gitea main of $REPO matches no demo state (after compose up, or a half-done step?). Use: demo goto <target>" >&2; exit 1; }
-  kk="$(detect_kafka_layers)" || { echo "Gitea main of $KREPO matches no demo state. Use: demo goto <target>" >&2; exit 1; }
+  k="$(detect_layers)" || { echo "Gitea main of $REPO matches no demo state (after compose up, or a half-done step?). Use: demo-async goto <target>" >&2; exit 1; }
+  kk="$(detect_kafka_layers)" || { echo "Gitea main of $KREPO matches no demo state. Use: demo-async goto <target>" >&2; exit 1; }
   step="$(step_after "$k" "$kk")"
   echo "Gitea main: $k of ${#LAYERS[@]} MQTT steps and $kk of ${#KLAYERS[@]} Kafka steps merged."
   branch="$(branch_of "$step")"; remote="$(remote_of "$step")"; clone="$(clone_of "$step")"
@@ -622,7 +622,7 @@ preflight() {
            async-apicurio async-microcks async-microcks-minion \
            async-kafka async-kafka-backend async-kafka-subscriber; do
     grep -qx "$c" <<<"$names" && pass "container $c running" \
-      || miss "container $c not running (${COMPOSE[*]} --profile contract --profile catalog --profile kafka up -d, then demo goto 1)"
+      || miss "container $c not running (${COMPOSE[*]} --profile contract --profile catalog --profile kafka up -d, then demo-async goto 1)"
   done
   for u in "$GITEA/api/healthz" "$MICROCKS/api/health" "$REGISTRY/system/info" "$BACKSTAGE"; do
     [ "$(code "$u")" = 200 ] && pass "$u answers" || miss "$u does not answer"

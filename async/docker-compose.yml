@@ -318,7 +318,7 @@ services:
     restart: unless-stopped
     environment:
       - QUARKUS_HTTP_CORS_ORIGINS=*
-      # The demo helper (scripts/demo) resets the registry to a stage's
+      # The demo-async helper (scripts/demo) resets the registry to a stage's
       # contract, which needs deletes.
       - APICURIO_REST_DELETION_GROUP_ENABLED=true
       - APICURIO_REST_DELETION_ARTIFACT_ENABLED=true

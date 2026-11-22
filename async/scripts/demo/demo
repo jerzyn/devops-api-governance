@@ -1,12 +1,12 @@
 #!/bin/bash
 # One entry point for the recorded demo (presentation/screenplay.md). Tab
-# completion and `demo shell` come from demo-completion.bash (see `demo help`).
+# completion and `demo-async shell` come from demo-completion.bash (see `demo-async help`).
 set -euo pipefail
 D="$(cd "$(dirname "$(readlink -f "$0")")" && pwd)"
 
 usage() {
   cat <<'USAGE'
-demo <command> [args]
+demo-async <command> [args]
 
 Between steps
   next                  prepare the next step's branch in the demo clone
@@ -32,19 +32,19 @@ case "$cmd" in
   next|status|preflight|deny|reset|refresh-catalog|stage1|stage2|stage2-red|stage3|stage3-red|stage4|stage5|stage5-red|kafka|kafka-red)
     exec "$D/prep-stage.sh" "$cmd" "$@" ;;
   goto)
-    [ $# -ge 1 ] || { echo "usage: demo goto <1|2|2-red|3|3-red|4|5|5-red|kafka|end>" >&2; exit 1; }
+    [ $# -ge 1 ] || { echo "usage: demo-async goto <1|2|2-red|3|3-red|4|5|5-red|kafka|end>" >&2; exit 1; }
     exec "$D/prep-stage.sh" goto "$@" ;;
   fresh) exec "$D/fresh-gitea.sh" "$@" ;;
   shell)
-    echo "'demo shell' has to change this terminal, so it works through the shell function:" >&2
-    echo "  source $D/demo-completion.bash   (or run: demo install)" >&2
+    echo "'demo-async shell' has to change this terminal, so it works through the shell function:" >&2
+    echo "  source $D/demo-completion.bash   (or run: demo-async install)" >&2
     exit 1 ;;
   install)
     line="source $D/demo-completion.bash"
     if grep -qxF "$line" "$HOME/.bashrc" 2>/dev/null; then
       echo "already in ~/.bashrc"
     else
-      printf '\n# DevOps async API governance demo CLI (tab completion + demo shell)\n%s\n' "$line" >> "$HOME/.bashrc"
+      printf '\n# DevOps async API governance demo CLI (tab completion + demo-async shell)\n%s\n' "$line" >> "$HOME/.bashrc"
       echo "added to ~/.bashrc; open a new terminal (or: $line)"
     fi ;;
   help|-h|--help) usage ;;

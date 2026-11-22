@@ -1,6 +1,6 @@
 # Cue card
 
-One page per take. Off camera between steps: `demo next`. Before each take: `demo preflight` → `READY`.
+One page per take. Off camera between steps: `demo-async next`. Before each take: `demo-async preflight` → `READY`.
 Opening a PR: `compare/main...<branch>` → **New Pull Request** → **Create Pull Request**. Merging: **Create merge commit**.
 
 | # | Terminal (recorded) | Browser | Say |
@@ -13,11 +13,11 @@ Opening a PR: `compare/main...<branch>` → **New Pull Request** → **Create Pu
 | 3-red | `git switch feat/order-currency` · `git diff main -- contracts/` · `git push -u origin feat/order-currency` | PR → red → Details: `required property 'currency' not found` (5 of 5) | "The contract promises what the backend doesn't send." |
 | fix | `sed -i 's/required: \[orderId, createdAt, currency\]/required: [orderId, createdAt]/' contracts/order-events-asyncapi.yaml` · `git commit -am "currency is optional"` · `git push` | green → merge | |
 | 4 | `git switch feat/add-broker-policy-gate` · `git diff --stat main` · `git push -u origin feat/add-broker-policy-gate` | PR → broker-policy log: the generated policy → green → merge | "The contract decides who may publish and subscribe." |
-| deny | `demo deny` | (slides: ACL animation) | "The broker says no." |
+| deny | `demo-async deny` | (slides: ACL animation) | "The broker says no." |
 | 5 | `git switch feat/add-breaking-changes-gate` · `git diff --stat main` · `git push -u origin feat/add-breaking-changes-gate` | PR → green → merge → Actions: Publish API (main) | "After a merge, the schemas are registered." |
 | 5-red | `git switch feat/drop-is-paid` · `git diff main -- contracts/` · `git push -u origin feat/drop-is-paid` | PR → red → Details: `not FORWARD-compatible`; later gates skipped | "Consumers still read isPaid." |
 | fix | `git checkout main -- contracts/order-events-asyncapi.yaml` · `sed -i '/^        isPaid:$/{n;s/$/\n          deprecated: true/}' contracts/order-events-asyncapi.yaml` · `git commit -am "Deprecate isPaid"` · `git push` | all green → merge | "Deprecate, don't delete." |
-| 6 | `DEMO_SHELL_REPO=kafka demo shell` · `git switch feat/kafka-paid-at` · `git push -u origin feat/kafka-paid-at` | Kafka repo PR → all green → merge | "Same gates on Kafka." |
-| 6-red | (`demo next` off camera) `git switch feat/kafka-drop-is-paid` · `git push -u origin feat/kafka-drop-is-paid` | PR → red: `orders.order-paid.v1 ... not FORWARD-compatible` | end |
+| 6 | `DEMO_SHELL_REPO=kafka demo-async shell` · `git switch feat/kafka-paid-at` · `git push -u origin feat/kafka-paid-at` | Kafka repo PR → all green → merge | "Same gates on Kafka." |
+| 6-red | (`demo-async next` off camera) `git switch feat/kafka-drop-is-paid` · `git push -u origin feat/kafka-drop-is-paid` | PR → red: `orders.order-paid.v1 ... not FORWARD-compatible` | end |
 
-Retake: `demo goto <1|2|2-red|3|3-red|4|5|5-red|kafka|end>`, then `demo shell`, then `demo preflight`.
+Retake: `demo-async goto <1|2|2-red|3|3-red|4|5|5-red|kafka|end>`, then `demo-async shell`, then `demo-async preflight`.

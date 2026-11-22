@@ -17,7 +17,7 @@ The PR workflow grows one gate at a time on the MQTT repo, then the same gates r
 1. **Catalog**: merge a `catalog-info.yaml`; the API appears in Backstage with its producer and consumer.
 2. **Lint**: `paid_at` breaks the property naming rule; the error links to the guideline in Backstage.
 3. **Contract test**: Microcks listens on the broker and catches a required field the backend never sends.
-4. **Broker policy**: the policy is generated from the contract and the catalog; `demo deny` shows the broker refusing the rest.
+4. **Broker policy**: the policy is generated from the contract and the catalog; `demo-async deny` shows the broker refusing the rest.
 5. **Breaking changes**: removing `isPaid` fails the registry's FORWARD check; deprecating it passes.
 6. **Kafka**: an optional field passes all four gates; removing `isPaid` is red there too.
 
@@ -27,17 +27,17 @@ Install once with `scripts/demo/demo install` (adds one line to `~/.bashrc`; ope
 
 | Command | When |
 |---------|------|
-| `demo fresh` | Final take: wipes the demo Gitea so PR numbers start at #1, then sets up Stage 1. Asks first. |
-| `demo goto <1\|2\|2-red\|3\|3-red\|4\|5\|5-red\|kafka\|end>` | Puts both Gitea repos, Backstage, Microcks, the registry and the broker policy right before that step, and prepares its branch. |
-| `demo preflight` | Checks everything; ends with `READY` or the problems and their fixes. |
-| `demo shell` | `cd` into the demo clone (`DEMO_SHELL_REPO=kafka` for the Kafka one), short prompt with the branch. |
-| `demo next` / `demo status` | After each merge: prepare the next branch / where the demo is. |
-| `demo deny` | The broker refusing what the policy does not grant. |
+| `demo-async fresh` | Final take: wipes the demo Gitea so PR numbers start at #1, then sets up Stage 1. Asks first. |
+| `demo-async goto <1\|2\|2-red\|3\|3-red\|4\|5\|5-red\|kafka\|end>` | Puts both Gitea repos, Backstage, Microcks, the registry and the broker policy right before that step, and prepares its branch. |
+| `demo-async preflight` | Checks everything; ends with `READY` or the problems and their fixes. |
+| `demo-async shell` | `cd` into the demo clone (`DEMO_SHELL_REPO=kafka` for the Kafka one), short prompt with the branch. |
+| `demo-async next` / `demo-async status` | After each merge: prepare the next branch / where the demo is. |
+| `demo-async deny` | The broker refusing what the policy does not grant. |
 
 ## Running the demo, in short
 
-1. Stack up with `--profile contract --profile catalog --profile kafka`, then `demo fresh` (or `demo goto 1`).
+1. Stack up with `--profile contract --profile catalog --profile kafka`, then `demo-async fresh` (or `demo-async goto 1`).
 2. Sign in to Gitea (`demo` / `demo12345`) and Backstage (guest).
-3. Terminal 1: `demo shell`. Terminal 2: `demo preflight` → `READY`.
-4. Follow [`cue-card.md`](cue-card.md); `demo next` after each merge.
-5. If a take goes wrong: `demo goto <step>`, `demo shell`, repeat.
+3. Terminal 1: `demo-async shell`. Terminal 2: `demo-async preflight` → `READY`.
+4. Follow [`cue-card.md`](cue-card.md); `demo-async next` after each merge.
+5. If a take goes wrong: `demo-async goto <step>`, `demo-async shell`, repeat.
