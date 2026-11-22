@@ -148,19 +148,14 @@ layers_before() {
 
 # --- rollback ------------------------------------------------------------------
 
-# Same lean policy repo gitea-seed publishes, from this working tree.
+# Same lean policy repo gitea-seed publishes, from this working tree (REST and
+# events share it: scripts/governance-bundle.sh).
 sync_governance_repo() {
   local g="$WORK/gov"
-  mkdir -p "$g/gateway"
-  cp "$ROOT/governance/openlint/openlint-ruleset.yaml" "$g/"
-  cp -r "$ROOT/governance/openlint/openlint-functions" "$g/"
-  cp "$ROOT/governance/api-guidelines/mkdocs.yml" "$ROOT/governance/api-guidelines/catalog-info.yaml" "$g/"
-  cp -r "$ROOT/governance/api-guidelines/docs" "$g/"
-  cp "$ROOT/governance/gateway/generate.js" "$ROOT/governance/gateway/package.json" \
-     "$ROOT/governance/gateway/krakend-base.json" "$g/gateway/"
+  sh "$ROOT/scripts/governance-bundle.sh" "$ROOT/governance" "$g"
   git -C "$g" init -q
   git -C "$g" -c user.name=seed -c user.email=seed@example.com add -A
-  git -C "$g" -c user.name=seed -c user.email=seed@example.com commit -q -m "Governance policy: OpenLint ruleset + functions"
+  git -C "$g" -c user.name=seed -c user.email=seed@example.com commit -q -m "Governance policy: rulesets, gate scripts and guidelines"
   git -C "$g" push -q -f "http://$U:$P@localhost:3000/$ORG/$GOV_REPO.git" HEAD:main
   echo "synced $GOV_REPO"
 }
@@ -440,7 +435,7 @@ next_step() {  # $1 = "prepare" or "status"
 
 # Read-only "ready to record?" check against whatever state Gitea main is in.
 preflight() {
-  local problems=0 k step branch t names foreign want
+  local problems=0 k step branch t names ours foreign want
   pass() { echo "  ok       $*"; }
   miss() { echo "  PROBLEM  $*"; problems=$((problems + 1)); }
   code() { curl -s -o /dev/null -w '%{http_code}' "$1"; }
@@ -450,7 +445,10 @@ preflight() {
   for c in gitea backend microcks-uber krakend-deployer gitea-runner backstage krakend; do
     grep -qx "$c" <<<"$names" && pass "container $c running" || miss "container $c not running (${COMPOSE[*]} up -d, then demo goto 1)"
   done
-  foreign="$("$ENGINE" ps --format '{{index .Labels "com.docker.compose.project"}} {{.Names}}' | awk '$1 != "devops-api-governance" {print $2}' | tr '\n' ' ')"
+  # A label filter instead of a Labels template: Docker formats Labels as a
+  # string and Podman as a map, but both filter the same way.
+  ours="$("$ENGINE" ps --filter label=com.docker.compose.project=devops-api-governance --format '{{.Names}}')"
+  foreign="$( (grep -vxF -f <(echo "$ours") <<<"$names" || true) | tr "\n" " ")"
   [ -z "$foreign" ] && pass "no containers from other projects" || miss "other containers running: $foreign(ports may clash)"
   for u in http://localhost:3000/api/healthz http://localhost:8080/api/health http://localhost:8081/health http://localhost:7007; do
     [ "$(code "$u")" = 200 ] && pass "$u answers" || miss "$u does not answer"

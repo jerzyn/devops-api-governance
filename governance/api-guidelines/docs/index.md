@@ -934,3 +934,197 @@ Has MAJOR = 2, MINOR = 1, and PATCH = 3.
 
 ### Recommended Reading
 - [Evolving HTTP APIs](https://www.mnot.net/blog/2012/12/04/api-evolution)
+
+---
+
+# Async API Guidelines
+
+The API Peak async guidelines define the standards for event-driven APIs described with AsyncAPI. They apply together with the General API Guidelines above. Every rule below is checked automatically: its identifier is the rule name in the linter ruleset (`asyncapi-ruleset.yaml` in the governance repository), and every finding links back to its section here.
+
+---
+
+## [AsyncAPI Specification (api-peak:async1:2026-asyncapi)](#asyncapi-specification)
+
+An event-driven API **MUST** be described using the AsyncAPI specification, version **3.x**. The AsyncAPI document is the contract between the producer and its consumers (see [Contract](#contract-api-peakgeneral62025-contract)).
+
+---
+
+## [API Title (api-peak:async2:2026-api-title)](#api-title)
+
+`info.title` **MUST** be written in Title Case and **MUST** end with the word `API`, for example `Order Events API`.
+
+---
+
+## [API Version (api-peak:async3:2026-api-version)](#api-version)
+
+`info.version` **MUST** follow Semantic Versioning (`MAJOR.MINOR.PATCH`), see [Semver](#semver-api-peakgeneral52025-semver). A breaking change to any channel, operation or payload requires a new MAJOR version.
+
+---
+
+## [Contact and Ownership (api-peak:async4:2026-contact)](#contact)
+
+`info.contact` **SHOULD** name the owning team and give a `url` and an `email`, so that a consumer who sees an unexpected event knows whom to ask.
+
+---
+
+## [Operation Summary (api-peak:async5:2026-operation-summary)](#operation-summary)
+
+Every operation **MUST** have a `summary` that starts with a capital letter and is at most 75 characters long. A longer explanation belongs in `description`.
+
+---
+
+## [Operation Naming (api-peak:async6:2026-operation-naming)](#operation-naming)
+
+Operation identifiers **SHOULD** be camelCase and start with the action they describe: `send` or `receive`, for example `sendOrderCreated`.
+
+---
+
+## [One Message per Operation (api-peak:async7:2026-one-message-per-operation)](#one-message-per-operation)
+
+An operation **MUST** reference exactly one message. A channel may carry several message types, but each one gets its own operation, so that bindings, documentation, mocks and contract tests apply to one event type at a time.
+
+---
+
+## [Messages from Own Channel (api-peak:async15:2026-own-channel-messages)](#own-channel-messages)
+
+An operation **MUST** only reference messages defined on its own channel (`$ref: '#/channels/<its channel>/messages/...'`). A message borrowed from another channel would be published on a topic whose contract does not describe it, so mocks, contract tests and the broker policy would all look at the wrong topic.
+
+---
+
+## [Message Metadata (api-peak:async8:2026-message-metadata)](#message-metadata)
+
+Every message **MUST** have a `name` in PascalCase (the event type, for example `OrderCreated`), a human readable `title`, a `contentType` and a `payload`.
+
+---
+
+## [Message Examples (api-peak:async9:2026-message-examples)](#message-examples)
+
+Every message **MUST** have at least one example. Examples drive the mock events and are the first thing a consumer reads.
+
+---
+
+## [JSON Payloads (api-peak:async10:2026-json-payloads)](#json-payloads)
+
+Payloads **MUST** be JSON (`application/json`), described with JSON Schema, see [JSON](#json-api-peakgeneral112025-json). Correlation and tracing data, such as a correlation id, **SHOULD** travel in message headers, not in the payload.
+
+---
+
+## [Property Naming (api-peak:async11:2026-property-naming)](#property-naming)
+
+Payload property names **MUST** be camelCase, for example `orderId` or `createdAt`.
+
+---
+
+## [Schema Naming (api-peak:async12:2026-schema-naming)](#schema-naming)
+
+Names of reusable schemas under `components.schemas` **SHOULD** be PascalCase, for example `OrderCreatedPayload`.
+
+---
+
+## [Open Payload Schemas (api-peak:async13:2026-open-payloads)](#open-payloads)
+
+Payload schemas **MUST NOT** set `additionalProperties: false`. Producers add optional fields over time; a closed schema would turn every such addition into a breaking change for consumers. Consumers **MUST** ignore fields they do not know, see [Robustness](#robustness-api-peakgeneral72025-robustness).
+
+---
+
+## [Compatibility (api-peak:async14:2026-compatibility)](#compatibility)
+
+A change to a published API **MUST NOT** break its existing consumers. For an event the API sends, these are breaking:
+
+- changing or removing a topic, an operation or a channel, or flipping an operation's action;
+- changing the MQTT `qos` or `retain` of an operation;
+- a payload that consumers built on the previous schema cannot read: removing a field, changing a field's type, or narrowing an allowed value.
+
+Adding an optional or required field to an event is not breaking: consumers ignore what they do not know (see [Open Payload Schemas](#open-payload-schemas-api-peakasync132026-open-payloads)).
+
+A breaking change **MUST** be published as a new MAJOR version on a new topic version (for example `orders/v2/...` on MQTT, `orders.order-created.v2` on Kafka), next to the old one, until its consumers have moved.
+
+The PR gate checks the structure with `@asyncapi/diff` and every payload against the schema registry. The registry rule follows who reads the payload: **FORWARD** for events the API sends, **BACKWARD** for messages it receives.
+
+---
+
+# MQTT API Guidelines
+
+These rules apply to APIs whose servers use MQTT.
+
+---
+
+## [Topic Naming (api-peak:mqtt1:2026-topic-naming)](#topic-naming)
+
+Channel addresses (MQTT topics) **MUST** consist of lowercase levels made of letters, digits and hyphens, separated by `/`. A level **MAY** be a parameter written as `{camelCase}`. Topics **MUST NOT** start or end with `/`, **MUST NOT** contain the wildcards `+` or `#`, and **MUST NOT** start with `$` (reserved for broker system topics).
+
+Example: `orders/v1/{orderId}/created`.
+
+---
+
+## [Topic Versioning (api-peak:mqtt2:2026-topic-version)](#topic-version)
+
+Every topic **MUST** contain a major version level `v{MAJOR}`, for example `orders/v1/...`. A breaking change publishes to a new version level, so that existing subscribers keep receiving the events they understand.
+
+---
+
+## [Quality of Service (api-peak:mqtt3:2026-qos)](#qos)
+
+Every operation **MUST** declare its MQTT quality of service in `bindings.mqtt.qos`. Consumers size their deduplication and retry logic from it.
+
+---
+
+## [One Event Type per Topic (api-peak:mqtt6:2026-one-event-type-per-topic)](#one-event-type-per-topic)
+
+Every channel (topic) **MUST** carry exactly one message type. MQTT has no standard header for the event type, so subscribers choose the events they want by topic (for example `orders/v1/+/paid`), and a contract test listening on a topic knows which schema applies. Related event types share a topic prefix instead: `orders/v1/{orderId}/created`, `orders/v1/{orderId}/paid`.
+
+---
+
+## [Retained Messages (api-peak:mqtt4:2026-retain)](#retain)
+
+Every operation **SHOULD** declare `bindings.mqtt.retain`. Events (something happened) are not retained; state (the latest value of something) may be.
+
+---
+
+## [Secure Transport (api-peak:mqtt5:2026-secure-transport)](#secure-transport)
+
+Servers **MUST** use `secure-mqtt` (MQTT over TLS). Plain `mqtt` is allowed only for a local development broker (`localhost`, `127.0.0.1` or the demo's `mosquitto`).
+
+---
+
+# Kafka API Guidelines
+
+These rules apply to APIs whose servers use Kafka.
+
+---
+
+## [Topic Naming (api-peak:kafka1:2026-topic-naming)](#kafka-topic-naming)
+
+Channel addresses (Kafka topics) **MUST** be named `<domain>.<event-name>.v<MAJOR>`: lowercase words made of letters, digits and hyphens, separated by `.`, ending in the major version. Topics **MUST NOT** contain parameters: Kafka has no topic hierarchy, so the entity id goes into the message key instead (see [Message Key](#kafka-message-key)).
+
+Example: `orders.order-created.v1`. A breaking change publishes to `orders.order-created.v2`, next to the old topic.
+
+---
+
+## [One Event Type per Topic (api-peak:kafka2:2026-one-event-type-per-topic)](#kafka-one-event-type-per-topic)
+
+Every channel (topic) **MUST** carry exactly one message type. The schema registry keys a payload schema by topic, so one topic has one schema and one compatibility rule, and a contract test listening on a topic knows which schema applies.
+
+---
+
+## [Message Key (api-peak:kafka3:2026-message-key)](#kafka-message-key)
+
+Every message **MUST** declare its key in `bindings.kafka.key`. Kafka keeps order only within a partition, and the key picks the partition: keying every event of an entity by its id (for example the order id) delivers that entity's events in order.
+
+---
+
+## [Partitions (api-peak:kafka4:2026-partitions)](#kafka-partitions)
+
+Every channel **MUST** declare `bindings.kafka.partitions`. The partition count limits how many consumers of one group read in parallel, and the broker policy creates the topic from it. The count **MAY** grow later; it **MUST NOT** shrink, which Kafka does not allow.
+
+---
+
+## [Retention (api-peak:kafka5:2026-retention)](#kafka-retention)
+
+Every channel **SHOULD** declare its retention in `bindings.kafka.topicConfiguration` (`retention.ms`). Consumers need to know how far back they can replay events after an outage.
+
+---
+
+## [Secure Transport (api-peak:kafka6:2026-secure-transport)](#kafka-secure-transport)
+
+Servers **MUST** use `kafka-secure` (Kafka over TLS). Plain `kafka` is allowed only for a local development broker (`localhost`, `127.0.0.1` or the demo's `kafka`).

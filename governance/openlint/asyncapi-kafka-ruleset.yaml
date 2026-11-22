@@ -1,0 +1,68 @@
+# Kafka API guidelines as code: the async rules plus the Kafka ones.
+# Lint a Kafka contract with this ruleset; the PR workflow picks it from the
+# contract's server protocol (kafka, kafka-secure).
+extends:
+  - ./asyncapi-ruleset.yaml
+rules:
+  # ------------------------------------------------------------------------- #
+  # Kafka API guidelines                                                       #
+  # ------------------------------------------------------------------------- #
+
+  api-peak:kafka1:2026-topic-naming:
+    description: Topics MUST be named <domain>.<event-name>.v<MAJOR>, lowercase, without parameters.
+    message: "Topic '{{value}}' MUST be <domain>.<event-name>.v<MAJOR>: lowercase words (a-z, 0-9, -) separated by '.', ending in a version such as 'v1', without {parameters}. \n http://localhost:7007/docs/default/component/api-guidelines/#topic-naming-api-peakkafka12026-topic-naming"
+    severity: error
+    given: $.channels[?(@.address)].address
+    then:
+      function: pattern
+      functionOptions:
+        match: '^[a-z][a-z0-9-]*\.[a-z][a-z0-9-]*\.v[0-9]+$'
+
+  api-peak:kafka2:2026-one-event-type-per-topic:
+    description: Every channel MUST carry exactly one message type.
+    message: "Channel MUST carry exactly one message type; give each event type its own topic. \n http://localhost:7007/docs/default/component/api-guidelines/#one-event-type-per-topic-api-peakkafka22026-one-event-type-per-topic"
+    severity: error
+    given: $.channels[*]
+    then:
+      field: messages
+      function: length
+      functionOptions:
+        min: 1
+        max: 1
+
+  api-peak:kafka3:2026-message-key:
+    description: Every message MUST declare its key in bindings.kafka.key.
+    message: "Message MUST declare its Kafka key in bindings.kafka.key (the entity id keeps one entity's events in order). \n http://localhost:7007/docs/default/component/api-guidelines/#message-key-api-peakkafka32026-message-key"
+    severity: error
+    given: $.channels[*].messages[*]
+    then:
+      field: bindings.kafka.key
+      function: defined
+
+  api-peak:kafka4:2026-partitions:
+    description: Every channel MUST declare bindings.kafka.partitions.
+    message: "Channel MUST declare bindings.kafka.partitions: the broker policy creates the topic from it. \n http://localhost:7007/docs/default/component/api-guidelines/#partitions-api-peakkafka42026-partitions"
+    severity: error
+    given: $.channels[*]
+    then:
+      field: bindings.kafka.partitions
+      function: defined
+
+  api-peak:kafka5:2026-retention:
+    description: Every channel SHOULD declare its retention in bindings.kafka.topicConfiguration.
+    message: "Channel SHOULD declare retention.ms in bindings.kafka.topicConfiguration: consumers need to know how long they can replay. \n http://localhost:7007/docs/default/component/api-guidelines/#retention-api-peakkafka52026-retention"
+    severity: warn
+    given: $.channels[*]
+    then:
+      field: "$.bindings.kafka.topicConfiguration['retention.ms']"
+      function: defined
+
+  api-peak:kafka6:2026-secure-transport:
+    description: Servers MUST use kafka-secure; plain kafka only for a local broker.
+    message: "Server host '{{value}}' uses plain kafka: use kafka-secure (TLS); plain kafka is only for localhost, 127.0.0.1 or kafka. \n http://localhost:7007/docs/default/component/api-guidelines/#secure-transport-api-peakkafka62026-secure-transport"
+    severity: error
+    given: $.servers[?(@.protocol === 'kafka')].host
+    then:
+      function: pattern
+      functionOptions:
+        match: '^(localhost|127\.0\.0\.1|kafka)(:[0-9]+)?$'
