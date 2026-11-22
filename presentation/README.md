@@ -9,6 +9,7 @@ The talk *"DevOps-Driven API Governance"* and the script of the demo it plays ba
 | [`DevOps-Driven API Governance — FOST London 2026.pdf`](DevOps-Driven%20API%20Governance%20%E2%80%94%20FOST%20London%202026.pdf) | The talk (FOST London, 1 October 2026) as a PDF, with the five demo clips embedded. Click a demo slide to play it in Okular or Adobe Acrobat; other viewers show a still. |
 | [`screenplay.md`](screenplay.md) | The full script of the five demo stages: narrative, what is on screen at the start of each stage, terminal and browser steps, expected results, measured timings, retakes. |
 | [`cue-card.md`](cue-card.md) | The same steps on one page. |
+| [`events/`](events/README.md) | The same five gates on event APIs (AsyncAPI on MQTT and Kafka): script, cue card and the broker policy animation. The main README maps each talk step to its event step. |
 
 ## The demo
 
