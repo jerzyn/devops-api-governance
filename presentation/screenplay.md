@@ -1,5 +1,7 @@
 # Screenplay: DevOps API Governance — Iterative Build-Up Demo
 
+> **Note.** This screenplay was written for the recordings of the REST demo on its own. The demo now runs the REST and the event API in the same PRs, with new branch names and fixes for both contracts: [`cue-card.md`](cue-card.md) has the current steps. The narrative, the browser click-paths and the REST half of each step below still apply.
+
 Five short recordings, one per pipeline maturity stage. Each stage adds one gate and shows it working. The recordings are played back during the talk, not run live.
 
 Two parts happen in every stage:

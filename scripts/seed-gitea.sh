@@ -9,11 +9,11 @@ U="${GITEA_ADMIN_USER:-demo}"
 P="${GITEA_ADMIN_PASSWORD:-demo12345}"
 ORG="${GITEA_ORG:-governance-demo}"
 # Consumer (product) repos, where PRs happen:
-#   REST   the OpenAPI contract + catalog-info + backend (/repo = example/)
-#   MQTT   the AsyncAPI contract on MQTT + backend + subscriber (/repo-mqtt = example-mqtt/)
-#   Kafka  the same event API on Kafka (/repo-kafka = example-kafka/)
+#   Orders the REST (OpenAPI) and the MQTT (AsyncAPI) contracts side by side,
+#          one catalog-info, the backends (/repo = example/). Every demo step
+#          is one PR here that governs both.
+#   Kafka  the event API on Kafka, with the full pipeline (/repo-kafka = example-kafka/)
 REPO="${GITEA_REPO:-devops-api-governance}"
-MQTT_REPO="${GITEA_MQTT_REPO:-order-events-api}"
 KAFKA_REPO="${GITEA_KAFKA_REPO:-order-events-kafka-api}"
 # Central governance repo: rulesets, custom functions, gate scripts and the
 # guidelines, for REST and events. The consumers' CI clones this (a link, not
@@ -30,7 +30,12 @@ echo "==> organization '$ORG'"
 curl -sf -o /dev/null -u "$U:$P" -X POST -H 'Content-Type: application/json' \
   -d "{\"username\":\"$ORG\"}" "$API/orgs" || echo "    already exists"
 
-for r in "$REPO" "$MQTT_REPO" "$KAFKA_REPO" "$GOV_REPO"; do
+# Earlier versions kept the MQTT API in a repo of its own. Its catalog entry
+# would clash with the one in the orders repo, so drop it (generated content).
+curl -sf -o /dev/null -u "$U:$P" -X DELETE "$API/repos/$ORG/order-events-api" \
+  && echo "==> removed the old '$ORG/order-events-api' repo (now part of '$REPO')" || true
+
+for r in "$REPO" "$KAFKA_REPO" "$GOV_REPO"; do
   echo "==> repository '$ORG/$r'"
   curl -sf -o /dev/null -u "$U:$P" -X POST -H 'Content-Type: application/json' \
     -d "{\"name\":\"$r\",\"private\":false}" "$API/orgs/$ORG/repos" || echo "    already exists"
@@ -53,10 +58,7 @@ seed_repo() {
 }
 
 echo "==> push consumer repo: /repo -> '$ORG/$REPO' main"
-seed_repo /repo "$REPO" "Consumer repo: Orders API (contract + backend)"
-
-echo "==> push MQTT consumer repo: /repo-mqtt -> '$ORG/$MQTT_REPO' main"
-seed_repo /repo-mqtt "$MQTT_REPO" "Consumer repo: Order Events API (contract + backend + subscriber)"
+seed_repo /repo "$REPO" "Consumer repo: Orders API and Order Events API (contracts + backends)"
 
 echo "==> push Kafka consumer repo: /repo-kafka -> '$ORG/$KAFKA_REPO' main"
 seed_repo /repo-kafka "$KAFKA_REPO" "Consumer repo: Order Events Kafka API (contract + backend + subscriber)"

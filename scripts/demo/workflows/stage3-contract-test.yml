@@ -1,4 +1,4 @@
-name: PR API governance
+name: PR API governance (REST)
 
 # Single PR gate, two stages run in order (each gated by `needs:`):
 #   1. openlint-openapi-check — design-time lint of PR-changed OpenAPI files.

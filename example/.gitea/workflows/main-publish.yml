@@ -1,4 +1,4 @@
-name: Publish API (main)
+name: Publish event API (main)
 
 # After a merge to main, publish what the contract now says:
 #   - its payload schemas become the next versions in the schema registry,

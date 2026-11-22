@@ -23,6 +23,7 @@
  */
 
 const fs = require('fs');
+const path = require('path');
 const yaml = require('js-yaml');
 const mqtt = require('mqtt'); // MQTT branch; the Kafka branch loads kafkajs
 
@@ -35,7 +36,18 @@ const contract = yaml.load(fs.readFileSync(contractFile, 'utf8'));
 const isKafka = String(Object.values(contract.servers || {})[0]?.protocol || '').startsWith('kafka');
 const entities = yaml.loadAll(fs.readFileSync(catalogFile, 'utf8')).filter(Boolean);
 const refName = (r) => String(r).replace(/^[a-z]+:/i, '').replace(/^default\//, '');
-const apiName = entities.find((e) => e.kind === 'API').metadata.name;
+// The catalog API entity whose definition is this contract (or the only one),
+// as generate-policy.js picks it: a repo can list a REST API next to it.
+const apis = entities.filter((e) => e.kind === 'API');
+const api = apis.find((e) => {
+  const text = e.spec?.definition?.$text;
+  return text && path.resolve(path.dirname(catalogFile), text) === path.resolve(contractFile);
+}) || (apis.length === 1 ? apis[0] : null);
+if (!api) {
+  console.error(`No API entity in ${catalogFile} points at ${contractFile}.`);
+  process.exit(1);
+}
+const apiName = api.metadata.name;
 const users = (key) => entities
   .filter((e) => e.kind === 'Component' && (e.spec?.[key] || []).map(refName).includes(apiName))
   .map((e) => e.metadata.name);

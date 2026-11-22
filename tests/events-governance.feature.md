@@ -8,8 +8,12 @@ broker policy (generated from the contract and the catalog) → catalog
 (Backstage)**, driven through pull requests against the seeded Gitea repos.
 
 The scenarios follow the order of the recorded demo (`scripts/demo`,
-`presentation/screenplay.md`): each gate is introduced, then shown red and
-green. `demo events goto <target>` puts the stack at the start of any scenario.
+`presentation/cue-card.md`): each gate is introduced, then shown red and
+green. The MQTT API lives in the orders repo next to the REST API, so every
+scenario's PR also carries the REST half of the step
+([`pr-governance.feature.md`](pr-governance.feature.md)); only the event
+workflow, `pr-governance-events.yml`, is read here. `demo goto <target>` puts
+the stack at the start of any scenario.
 
 ## Background
 
@@ -18,13 +22,13 @@ Background:
   Given a fresh clone of this project and Docker (or Podman) running
   When I run:
     """
-    docker compose --profile contract --profile catalog --profile events --profile kafka up -d
+    docker compose --profile contract --profile catalog --profile gateway --profile events --profile kafka up -d
     """
-  Then gitea-seed creates org "governance-demo" with the event repos and the shared governance repo (next to the REST one):
-    | repo                                         | content                          |
-    | governance-demo/order-events-api       | MQTT consumer (from example-mqtt/) |
-    | governance-demo/order-events-kafka-api | Kafka consumer (from example-kafka/) |
-    | governance-demo/api-governance   | policy (rulesets, tools, guidelines) |
+  Then gitea-seed creates org "governance-demo" with the consumer repos and the shared governance repo:
+    | repo                                   | content                                    |
+    | governance-demo/devops-api-governance  | orders repo: REST + MQTT (from example/)   |
+    | governance-demo/order-events-kafka-api | Kafka consumer (from example-kafka/)       |
+    | governance-demo/api-governance         | policy (rulesets, tools, guidelines)       |
   And these are reachable:
     | Gitea      | http://localhost:3000 | demo / demo12345            |
     | Microcks   | http://localhost:8080 | mocks + test results        |
@@ -33,14 +37,14 @@ Background:
     | MQTT       | localhost:1883        | accounts in mosquitto/users.txt |
   And the MQTT backend publishes OrderCreated and OrderPaid every second
   And the Kafka backend publishes the same events, keyed by order id
-  When I run "scripts/demo/demo events goto 1"
-  Then the MQTT repo's main holds the contract, the backend and the subscriber,
+  When I run "scripts/demo/demo goto 1"
+  Then the orders repo's main holds both contracts and the backends and the subscriber,
        without a catalog entry or a PR workflow
-  And the demo clones are at ~/demo/order-events-api and ~/demo/order-events-kafka-api,
+  And the demo clones are at ~/demo/orders-api and ~/demo/order-events-kafka-api,
        each with the next step's branch prepared and not pushed
 ```
 
-Each scenario below pushes a prepared branch (`demo events next` prepares it), opens
+Each scenario below pushes a prepared branch (`demo next` prepares it), opens
 a PR into `main` in Gitea and reads the PR's checks. Green PRs are merged; the
 next scenario starts from that merge.
 
@@ -62,8 +66,8 @@ Scenario: register the Order Events API in Backstage
 
 ```gherkin
 Scenario: a property name that breaks the guidelines is red, the fix is green
-  Given the lint gate is merged (branch "feat/add-lint-gate")
-  And the branch "feat/order-paid-at" adds an optional "paid_at" to OrderPaid
+  Given the lint gate is merged (branch "feat/add-lint-gates")
+  And the branch "feat/orders-server-and-paid-at" adds an optional "paid_at" to OrderPaid
   When I push it and open a PR
   Then "asyncapi-lint" FAILS with
     """
@@ -94,8 +98,8 @@ Scenario: every rule fires on the intentionally broken examples
 
 ```gherkin
 Scenario: a field the backend never sends is red, making it optional is green
-  Given the contract-test gate is merged (branch "feat/add-contract-test-gate")
-  And the branch "feat/order-currency" makes "currency" required on OrderCreated
+  Given the contract-test gate is merged (branch "feat/add-contract-test-gates")
+  And the branch "feat/orders-currency" makes "currency" required on OrderCreated
   When I push it and open a PR
   Then "asyncapi-lint" PASSES
   And "contract-test" FAILS: Microcks listened on orders/v1/+/created and every
@@ -117,7 +121,7 @@ Scenario: a drifting backend fails the contract test without a contract change
 
 ```gherkin
 Scenario: the broker policy follows the contract and the catalog
-  Given the branch "feat/add-broker-policy-gate"
+  Given the branch "feat/add-deploy-gates"
   When I push it, open a PR and merge it
   Then "broker-policy" generates the policy from the contract and the catalog:
     | account           | may                                                  |
@@ -129,7 +133,7 @@ Scenario: the broker policy follows the contract and the catalog
 
 ```gherkin
 Scenario: the broker refuses what the policy does not grant
-  When I run "demo events deny"
+  When I run "demo deny"
   Then a subscription to orders/v1/+/refunded is denied ("All subscription requests were denied.")
   And a subscription to orders/v1/# is denied
   And a client without an account is refused ("not authorised")
@@ -145,16 +149,16 @@ Scenario: a consumer taken out of the catalog loses its access
     """
     DENIED orders/v1/+/created, orders/v1/+/paid (...): not granted by the broker policy
     """
-  And "docker compose --profile events up -d broker-policy-seed" (or demo events goto) restores main's policy
+  And "docker compose --profile events up -d broker-policy-seed" (or demo goto) restores main's policy
 ```
 
 ## Scenario 5: breaking changes are stopped before they reach consumers
 
 ```gherkin
 Scenario: removing a field is red, deprecating it is green
-  Given the breaking-changes gate is merged (branch "feat/add-breaking-changes-gate")
+  Given the breaking-changes gate is merged (branch "feat/add-breaking-changes-gates")
   And "Publish API (main)" registered main's payload schemas in Apicurio
-  And the branch "feat/drop-is-paid" removes isPaid from OrderPaid
+  And the branch "feat/orders-channel-and-is-paid" removes isPaid from OrderPaid
   When I push it and open a PR
   Then the structural diff finds no breaking change (topics and operations are unchanged)
   And the registry check FAILS:
@@ -184,12 +188,15 @@ Scenario: an optional field is not a breaking change
 ## Scenario 6: the same gates govern the Kafka API
 
 ```gherkin
-Scenario: an optional field passes every gate on Kafka
-  Given the branch "feat/kafka-paid-at" in the Kafka repo adds an optional paidAt
+Scenario: the catalog entry and an optional field pass every gate on Kafka
+  Given the branch "feat/kafka-paid-at" in the Kafka repo adds its catalog-info.yaml
+      and an optional paidAt
   When I push it and open a PR
   Then "asyncapi-lint" uses asyncapi-kafka-ruleset.yaml (picked from the server protocol)
   And "breaking-changes", "contract-test" (Microcks on kafka://kafka:9094) and
       "broker-policy" (topics and ACLs) PASS
+  When I merge it
+  Then Backstage lists "order-events-kafka-api" next to the two APIs of the orders repo
 ```
 
 ```gherkin

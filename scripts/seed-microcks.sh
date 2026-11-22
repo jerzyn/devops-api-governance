@@ -1,13 +1,13 @@
 #!/bin/sh
 # Imports the contracts into Microcks so mocks and contract tests have a
-# service to run against. Runs as the `microcks-seed` compose service (REST and
-# MQTT contracts) and `microcks-seed-kafka` (CONTRACTS=the Kafka contract).
+# service to run against. Runs as the `microcks-seed` compose service (the REST and
+# the MQTT contract) and `microcks-seed-kafka` (CONTRACTS=the Kafka contract).
 # Waits for Microcks (no dependency on its healthcheck), then uploads.
 # Idempotent: a re-upload just refreshes the artifact.
 set -e
 
 MICROCKS="http://microcks-uber:8080"
-CONTRACTS="${CONTRACTS:-/repo/contracts/orders-openapi.yaml /repo-mqtt/contracts/order-events-asyncapi.yaml}"
+CONTRACTS="${CONTRACTS:-/repo/contracts/orders-openapi.yaml /repo/contracts/order-events-asyncapi.yaml}"
 
 echo "==> waiting for Microcks"
 i=0

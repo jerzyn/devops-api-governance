@@ -1,5 +1,7 @@
 # Screenplay: async API governance, built up gate by gate
 
+> **Note.** This screenplay was written for the recordings of the event demo on its own, in a repo of its own. The event API now lives in the orders repo next to the REST API, and every step is one PR for both: [`../cue-card.md`](../cue-card.md) has the current steps and commands (`demo …`, no longer `demo events …`). The event half of each step below still applies.
+
 Short recordings, one per pipeline stage, played back during the talk. Each stage adds one gate to the PR workflow of the **Order Events API** (MQTT) and shows it working. A last recording shows the same gates on the **Kafka** version of the API.
 
 Every recording has two parts:

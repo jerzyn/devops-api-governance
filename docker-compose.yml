@@ -71,11 +71,11 @@ services:
       - GITEA_ADMIN_USER=${GITEA_ADMIN_USER:-demo}
       - GITEA_ADMIN_PASSWORD=${GITEA_ADMIN_PASSWORD:-demo12345}
     volumes:
-      # Consumer (product) repo: the example/ subrepo (contract + catalog +
-      # backend). Test PRs run here and never touch the project repo.
+      # Consumer (product) repo: the example/ subrepo (the REST and the MQTT
+      # contracts, catalog, backends). Test PRs run here and never touch the
+      # project repo.
       - ./example:/repo
-      # The event consumer repos: the same API on MQTT and on Kafka.
-      - ./example-mqtt:/repo-mqtt
+      # The Kafka consumer repo: the event API on Kafka, with the full pipeline.
       - ./example-kafka:/repo-kafka
       # Governance context (OpenLint ruleset + functions + seed scripts).
       # Pushed to a separate Gitea repo that the consumer's CI clones (linked).
@@ -203,7 +203,6 @@ services:
       # Contract comes from the consumer repo (example); the seed script
       # itself lives in the governance context.
       - ./example:/repo:ro
-      - ./example-mqtt:/repo-mqtt:ro
       - ./scripts:/scripts:ro
     entrypoint: ["sh", "/scripts/seed-microcks.sh"]
 
@@ -348,7 +347,7 @@ services:
       broker-policy-deployer:
         condition: service_healthy
     volumes:
-      - ./example-mqtt:/repo:ro
+      - ./example:/repo:ro
       - ./governance:/governance:ro
     command:
       - sh
@@ -361,7 +360,7 @@ services:
 
   # MQTT provider under test: publishes the Order Events API's events.
   mqtt-backend:
-    build: ./example-mqtt/backend
+    build: ./example/events-backend
     container_name: mqtt-backend
     restart: unless-stopped
     profiles: ["events"]
@@ -381,7 +380,7 @@ services:
 
   # MQTT consumer: logs every order event (docker compose logs -f mqtt-subscriber).
   mqtt-subscriber:
-    build: ./example-mqtt/subscriber
+    build: ./example/events-subscriber
     container_name: mqtt-subscriber
     restart: unless-stopped
     profiles: ["events"]
@@ -408,7 +407,7 @@ services:
     profiles: ["events", "kafka"]
     environment:
       - QUARKUS_HTTP_CORS_ORIGINS=*
-      # `demo events goto` resets the registry to a stage's contract, which
+      # `demo goto` resets the registry to a stage's contract, which
       # needs deletes.
       - APICURIO_REST_DELETION_GROUP_ENABLED=true
       - APICURIO_REST_DELETION_ARTIFACT_ENABLED=true
@@ -438,7 +437,7 @@ services:
       - NO_PROXY=*
       - no_proxy=*
     volumes:
-      - ./example-mqtt:/repo:ro
+      - ./example:/repo:ro
       - ./example-kafka:/repo-kafka:ro
       - ./governance:/governance:ro
     command:
