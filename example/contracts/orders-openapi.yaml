@@ -79,7 +79,7 @@ paths:
               examples:
                 missing_id:
                   value:
-                    type: https://errors.api-peak.com/bad-request
+                    type: https://errors.apipeak.com/bad-request
                     title: Bad Request
                     detail: orderId path parameter is required.
                     instance: https://api.api-peak.com/orders/
