@@ -1,6 +1,8 @@
-name: PR API governance
+name: PR API governance (events)
 
-# Gates run in order, each one gated by `needs:`:
+# The event side of this repo's PR gates: the same gates as the REST
+# workflow (pr-governance.yml) next to it, on the AsyncAPI contract. Both run
+# on every PR. Gates run in order, each one gated by `needs:`:
 #   1. asyncapi-lint   validate the changed AsyncAPI contracts and lint them
 #                      against the central guidelines
 #   2. breaking-changes  compare each changed contract with main: structure

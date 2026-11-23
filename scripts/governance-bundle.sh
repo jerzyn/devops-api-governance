@@ -6,8 +6,8 @@
 #   governance-bundle.sh <governance dir> <output dir>
 #
 # Used by gitea-seed (scripts/seed-gitea.sh) and by the demo helper when it
-# resets Gitea (scripts/demo/prep-stage.sh, scripts/demo/events/prep-stage.sh),
-# so all three publish the same content. POSIX sh: gitea-seed runs on Alpine.
+# resets Gitea (scripts/demo/prep-stage.sh),
+# so both publish the same content. POSIX sh: gitea-seed runs on Alpine.
 set -e
 
 SRC="$1"; OUT="$2"

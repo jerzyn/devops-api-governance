@@ -2,7 +2,7 @@
 
 The Order Events API on Kafka: its AsyncAPI contract, the backend that
 publishes the events and a subscriber that consumes them, owned by the
-platform team. The same gates run here as in `order-events-api` (MQTT); only
+platform team. The same gates run here as for the MQTT API in the orders repo; only
 the workflow's environment differs.
 
 ## Contents

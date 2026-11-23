@@ -13,7 +13,7 @@ name: PR API governance
 #                      catalog, apply it to the broker, check it from the
 #                      outside and re-run the contract test under it
 #
-# The same gates as the MQTT repo (order-events-api); only the environment
+# The same gates as the MQTT API in the orders repo; only the environment
 # below differs. Needs the "kafka" and "contract" compose profiles:
 #   docker compose --profile kafka --profile contract up -d
 # To see the contract test fail, let the backend publish drifted events past

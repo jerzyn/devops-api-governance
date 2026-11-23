@@ -2,7 +2,7 @@
 
 The event-driven half of the demo, on the same stack as the [REST demo](../README.md): the same five gates, built into the delivery loop, for an event API described with **AsyncAPI 3.1.0**, on **MQTT** and on **Kafka**.
 
-The Order Events API goes through pull requests in the same Gitea, CI runner, Microcks and Backstage as the REST Orders API, next to a running broker, a provider that publishes the events and a consumer that reads them. On top of the shared platform, events add:
+The Order Events API (MQTT) lives in the same orders repo as the REST Orders API, so every pull request goes through the gates of both, in the same Gitea, CI runner, Microcks and Backstage, next to a running broker, a provider that publishes the events and a consumer that reads them. A second repo runs the same kind of API on Kafka. On top of the shared platform, events add:
 
 - **Eclipse Mosquitto** (profile `events`): the MQTT broker, with a broker policy generated from the contract and the catalog.
 - **Apache Kafka** (KRaft, profile `kafka`): the same API on Kafka, with topics and ACLs generated the same way.
@@ -24,11 +24,10 @@ Every command in this file runs from the root of the repo.
 ## Start
 
 ```bash
-docker compose --profile contract --profile catalog --profile events up -d                 # MQTT
-docker compose --profile contract --profile catalog --profile events --profile kafka up -d # + Kafka
+docker compose --profile contract --profile catalog --profile gateway --profile events --profile kafka up -d
 ```
 
-Add `--profile gateway` to have the REST demo complete too. With Podman, use `podman-compose` with the same arguments and set `DOCKER_SOCK` in `.env` (see the [REST demo](../README.md#start)).
+The same command as for the [REST demo](../README.md#start): every step governs both APIs. With Podman, use `podman-compose` with the same arguments and set `DOCKER_SOCK` in `.env` (see the [REST demo](../README.md#start)).
 
 | Service | Address | Notes |
 |---------|---------|-------|
@@ -39,7 +38,7 @@ Add `--profile gateway` to have the REST demo complete too. With Podman, use `po
 | MQTT (Mosquitto) | `localhost:1883` | plain MQTT; demo accounts in [`mosquitto/users.txt`](../mosquitto/users.txt) |
 | Kafka | inside the compose network only | `kafka:9092` SASL/PLAIN for apps, `kafka:9094` for platform tools |
 
-`up` seeds Gitea's `governance-demo` organization with the REST repo and two event repos: `order-events-api` (from [`example-mqtt/`](../example-mqtt/)) and `order-events-kafka-api` (from [`example-kafka/`](../example-kafka/)), all governed by one governance repo, `api-governance` (from [`governance/`](../governance/)). With `events`, `broker-policy-seed` applies the broker policy for the MQTT contract on `main`, and `registry-seed` registers the payload schemas in Apicurio. With `contract`, `microcks-seed` imports the REST and the MQTT contracts into Microcks. With `kafka`, `broker-policy-seed-kafka` creates the Kafka topics and ACLs from the Kafka contract, and `microcks-seed-kafka` imports it.
+`up` seeds Gitea's `governance-demo` organization with the orders repo `devops-api-governance`, which holds the REST and the MQTT API (from [`example/`](../example/)), and the Kafka repo `order-events-kafka-api` (from [`example-kafka/`](../example-kafka/)), both governed by one governance repo, `api-governance` (from [`governance/`](../governance/)). With `events`, `broker-policy-seed` applies the broker policy for the MQTT contract on `main`, and `registry-seed` registers the payload schemas in Apicurio. With `contract`, `microcks-seed` imports the REST and the MQTT contracts into Microcks. With `kafka`, `broker-policy-seed-kafka` creates the Kafka topics and ACLs from the Kafka contract, and `microcks-seed-kafka` imports it.
 
 ### Check that it runs
 
@@ -63,14 +62,14 @@ docker compose --profile events up -d mqtt-backend                           # b
 
 ## Try it
 
-Clone the consumer repo from Gitea outside this project, branch, change `contracts/order-events-asyncapi.yaml`, push, and open a pull request in Gitea:
+Clone the orders repo from Gitea outside this project and under another name, branch, change `contracts/order-events-asyncapi.yaml`, push, and open a pull request in Gitea. Its event workflow, `pr-governance-events.yml`, runs next to the REST one:
 
 ```bash
 mkdir -p ~/demo && cd ~/demo
-git clone http://demo:demo12345@localhost:3000/governance-demo/order-events-api.git
+git clone http://demo:demo12345@localhost:3000/governance-demo/devops-api-governance.git orders-api
 ```
 
-The PR workflow's first gate, `asyncapi-lint`, checks every changed AsyncAPI file in two steps:
+The event workflow's first gate, `asyncapi-lint`, checks every changed AsyncAPI file in two steps:
 
 1. `asyncapi validate`: is it a valid AsyncAPI document? Try `action: publish` (a v2 keyword) in an operation.
 2. `openlint lint` against the central ruleset for the contract's protocol (`asyncapi-mqtt-ruleset.yaml` or `asyncapi-kafka-ruleset.yaml`, both extending the async rules in `asyncapi-ruleset.yaml`): does it follow the API guidelines? Try renaming the topic to `Orders/{orderId}/events` (uppercase, no version level) or adding `additionalProperties: false` to a payload schema.
@@ -99,36 +98,27 @@ You can run the same test from your machine:
 
 ```bash
 docker run --rm --network gitea-network -v "$PWD:/w" -w /w localhost/devops-api-governance-ci:latest \
-  node governance/contract-test/async-contract-test.js example-mqtt/contracts/order-events-asyncapi.yaml
+  node governance/contract-test/async-contract-test.js example/contracts/order-events-asyncapi.yaml
 ```
 
 The fourth gate, `broker-policy`, puts the contract in charge of the broker. It generates who may publish and subscribe to which topic from the contract and the catalog, applies that to Mosquitto, checks it from the outside and re-runs the contract test under it. See [Broker policy](#broker-policy) for the moments to show live.
 
 ## Recorded demo
 
-The talk plays back a demo in which the PR workflow grows one gate at a time, on the MQTT repo, then shows the same gates on Kafka. [`scripts/demo/events/`](../scripts/demo/events/) prepares every step, and [`presentation/events/`](../presentation/events/) has the script:
+In the talk the event API goes through the same steps as the REST one, **in the same pull requests**: each step is one PR in the orders repo that changes or adds the gate for both APIs. [`scripts/demo/prep-stage.sh`](../scripts/demo/prep-stage.sh) prepares every step, and [`presentation/cue-card.md`](../presentation/cue-card.md) has the script. What the event half of each step shows:
 
-| Step | Adds | What the audience sees |
+| Step | Adds | What the audience sees for events |
 |------|------|------------------------|
-| 1 | Catalog | Merge `catalog-info.yaml`, and the API appears in Backstage with its producer and consumer. |
+| 1 | Catalog | The merge puts the Order Events API in Backstage next to the Orders API, with its producer, consumer and broker. |
 | 2 | Lint | `paid_at` goes red with `api-peak:async11`, whose link opens the guideline; `paidAt` goes green. |
 | 3 | Contract test | A required `currency` the backend never sends goes red in Microcks; optional goes green. |
-| 4 | Broker policy | The policy is generated from the contract and the catalog; `demo events deny` shows the broker saying no. |
+| 4 | Broker policy | The policy is generated from the contract and the catalog; `demo deny` shows the broker saying no. |
 | 5 | Breaking changes | Removing `isPaid` goes red in the registry; deprecating it goes green. |
-| Kafka | Same gates on Kafka | An optional field passes all four gates; removing `isPaid` is red there too. |
+| Kafka | Same gates on Kafka | The Kafka repo: its catalog entry and an optional field pass all four gates, and the Kafka API joins the catalog; removing `isPaid` is red there too. |
 
-Install the command once with `scripts/demo/demo install` (one line in `~/.bashrc`). Then:
+The commands are the `demo` helper's (install it once with `scripts/demo/demo install`): `demo goto <1|2|2-red|3|3-red|4|5|5-red|kafka|end>`, `demo next`, `demo status`, `demo preflight`, `demo deny` (the broker refusing subscriptions and clients the policy does not grant, on MQTT and Kafka), `demo fresh` and `demo shell` (`DEMO_SHELL_REPO=kafka demo shell` for the Kafka clone). See the [README](../README.md#follow-the-talk-step-by-step).
 
-| Command | What it does |
-|---------|--------------|
-| `demo events goto <1\|2\|2-red\|3\|3-red\|4\|5\|5-red\|kafka\|end>` | Puts Gitea main (both repos), Backstage, Microcks, the registry and the broker policy at the start of that step, and prepares its branch, not pushed, in `~/demo/order-events-api` (Kafka steps: `~/demo/order-events-kafka-api`). |
-| `demo events next` / `demo events status` | After each merge: prepares the next step's branch / says where the demo is. |
-| `demo events preflight` | Checks the stack, the state and the clones; ends with `READY` or the problems and their fixes. |
-| `demo events deny` | The broker refusing subscriptions and clients the policy does not grant, on MQTT and Kafka. |
-| `demo fresh` | Wipes the demo Gitea (REST and events) so PR numbers start at #1, then `goto 1` for both. Asks first. |
-| `demo events shell` | `cd` into the demo clone with a short prompt showing the branch. |
-
-[`tests/events-governance.feature.md`](../tests/events-governance.feature.md) lists the same steps, and the other red and green cases, as acceptance scenarios. [`presentation/events/acl-animation.html`](../presentation/events/acl-animation.html) animates the broker policy for the slides (Space steps, `K` switches to Kafka).
+[`tests/events-governance.feature.md`](../tests/events-governance.feature.md) lists the red and green cases as acceptance scenarios. [`presentation/events/acl-animation.html`](../presentation/events/acl-animation.html) animates the broker policy for the slides (Space steps, `K` switches to Kafka).
 
 ## How it works
 
@@ -137,12 +127,12 @@ Install the command once with `scripts/demo/demo install` (one line in `~/.bashr
 As in the REST demo, a product team's repo stays separate from the platform that governs it:
 
 - **Governance**: [`governance/`](../governance/): the AsyncAPI rulesets next to the OpenAPI one (`openlint/`), the API guidelines (`api-guidelines/`), the contract test runner (`contract-test/`), the breaking change checks (`breaking-changes/`), the broker policy generator and deployer (`broker-policy/`) and the catalog app (`api-catalog/`).
-- **Consumer**: [`example-mqtt/`](../example-mqtt/): the AsyncAPI contract, the backend, the subscriber and a thin PR workflow. `gitea-seed` pushes it into a fresh Gitea repo on each `up`, and PRs happen against that Gitea repo.
+- **Consumer**: [`example/`](../example/), the orders repo: the AsyncAPI contract next to the OpenAPI one, `events-backend/` and `events-subscriber/` next to the REST `backend/`, one `catalog-info.yaml` for both APIs and a thin PR workflow per API. `gitea-seed` pushes it into a fresh Gitea repo on each `up`, and PRs happen against that Gitea repo.
 - **Kafka consumer**: [`example-kafka/`](../example-kafka/): the same API on Kafka, pushed as `order-events-kafka-api`. Its PR workflow runs the same gates with a Kafka environment. See [Kafka](#kafka).
 
 ### The contract
 
-[`example-mqtt/contracts/order-events-asyncapi.yaml`](../example-mqtt/contracts/order-events-asyncapi.yaml) describes the Order Events API: the backend sends `OrderCreated` on `orders/v1/{orderId}/created` and `OrderPaid` on `orders/v1/{orderId}/paid`. Three conventions come from the tooling:
+[`example/contracts/order-events-asyncapi.yaml`](../example/contracts/order-events-asyncapi.yaml) describes the Order Events API: the backend sends `OrderCreated` on `orders/v1/{orderId}/created` and `OrderPaid` on `orders/v1/{orderId}/paid`. Three conventions come from the tooling:
 
 - **One message per operation, and every operation has an `mqtt` binding.** Microcks mocks one example per operation, and only operations with an MQTT binding.
 - **One event type per topic.** Microcks validates every message on a topic against the tested operation's schema, and MQTT has no type header, so each event type gets its own topic (guideline `api-peak:mqtt6`).
@@ -150,7 +140,7 @@ As in the REST demo, a product team's repo stays separate from the platform that
 
 ### Catalog
 
-[`example-mqtt/catalog-info.yaml`](../example-mqtt/catalog-info.yaml) puts the event flow into Backstage (http://localhost:7007, profile `catalog`):
+[`example/catalog-info.yaml`](../example/catalog-info.yaml) puts the event flow into Backstage, next to the REST API (http://localhost:7007, profile `catalog`):
 
 | Entity | Kind | Relation |
 |--------|------|----------|
@@ -228,14 +218,14 @@ CI jobs run in `localhost/devops-api-governance-ci:latest` ([`ci-image/Dockerfil
 | Symptom | Cause and fix |
 |---------|---------------|
 | A gate in a PR says "skipping" or the `contract-test` job fails with "Microcks is not reachable" | The `contract` profile is not up: `docker compose --profile contract up -d`. |
-| `contract-test` fails with "no message arrived within the listening window" | The backend is not publishing, or the broker policy no longer lets it: `docker compose logs mqtt-backend`, then `docker compose --profile events up -d broker-policy-seed` (or `demo events goto <step>`) to restore main's policy. |
+| `contract-test` fails with "no message arrived within the listening window" | The backend is not publishing, or the broker policy no longer lets it: `docker compose logs mqtt-backend`, then `docker compose --profile events up -d broker-policy-seed` (or `demo goto <step>`) to restore main's policy. |
 | The subscriber logs `DENIED ... not granted by the broker policy` | A PR applied a policy without the subscriber (for example a catalog change). `docker compose --profile events up -d broker-policy-seed` restores main's. |
-| `breaking-changes` fails for a change that looks harmless | Read the `review` and `FAIL` lines: a payload must pass the topic's compatibility rule against the latest registered schema (http://localhost:8280). After experiments, `demo events goto <step>` resets the registry to that step's main. |
+| `breaking-changes` fails for a change that looks harmless | Read the `review` and `FAIL` lines: a payload must pass the topic's compatibility rule against the latest registered schema (http://localhost:8280). After experiments, `demo goto <step>` resets the registry to that step's main. |
 | Kafka PRs fail at once, or `kafka-backend` restarts | The `kafka` profile is not up, or Kafka is still starting: `docker compose --profile kafka up -d` and wait for `kafka` to be healthy. |
-| Backstage does not list a merged change | The Gitea provider rescans every 10 s; `demo events refresh-catalog` triggers it now. |
-| The API guidelines page shows "building" | TechDocs builds on first open; `demo events goto` prebuilds it. |
-| `git push` from a demo clone is refused | You are on `main`, or the branch already exists on Gitea from an earlier take: `demo events goto <step>`. |
-| Everything after `docker compose up` looks reset | `gitea-seed` force-pushes the template repos on every `up`. Mid-demo, never run `up`; use `demo events goto <step>`. |
+| Backstage does not list a merged change | The Gitea provider rescans every 10 s; `demo refresh-catalog` triggers it now. |
+| The API guidelines page shows "building" | TechDocs builds on first open; `demo goto` prebuilds it. |
+| `git push` from a demo clone is refused | You are on `main`, or the branch already exists on Gitea from an earlier take: `demo goto <step>`. |
+| Everything after `docker compose up` looks reset | `gitea-seed` force-pushes the template repos on every `up`. Mid-demo, never run `up`; use `demo goto <step>`. |
 
 ## Stop / reset
 

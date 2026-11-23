@@ -1,5 +1,6 @@
-# Backstage catalog entities for this repository. Discovered by the
-# GiteaEntityProvider (scans the Gitea org for catalog-info.yaml at repo root).
+# Backstage catalog entities for this repository: the Orders API (REST) and
+# the Order Events API (MQTT), side by side. Discovered by the Gitea entity
+# provider (scans the Gitea org for catalog-info.yaml at repo root).
 apiVersion: backstage.io/v1alpha1
 kind: API
 metadata:
@@ -20,6 +21,7 @@ spec:
   type: openapi
   lifecycle: experimental
   owner: group:default/platform-team
+  system: orders
   definition:
     $text: ./contracts/orders-openapi.yaml
 ---
@@ -32,8 +34,87 @@ spec:
   type: service
   lifecycle: experimental
   owner: group:default/platform-team
+  system: orders
   providesApis:
     - orders-api
+---
+apiVersion: backstage.io/v1alpha1
+kind: API
+metadata:
+  name: order-events-api
+  title: Order Events API
+  description: Order lifecycle events over MQTT, described with AsyncAPI 3.1.0.
+  tags:
+    - asyncapi
+    - mqtt
+    - orders
+  links:
+    - url: http://localhost:8080/#/services
+      title: 'Microcks: mock events and contract tests'
+      icon: dashboard
+spec:
+  type: asyncapi
+  lifecycle: experimental
+  owner: group:default/platform-team
+  system: orders
+  definition:
+    $text: ./contracts/order-events-asyncapi.yaml
+---
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: orders-backend
+  description: Publishes the Order Events API's events (the provider under test).
+  tags:
+    - mqtt
+spec:
+  type: service
+  lifecycle: experimental
+  owner: group:default/platform-team
+  system: orders
+  providesApis:
+    - order-events-api
+  dependsOn:
+    - resource:default/mqtt-broker
+---
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: orders-subscriber
+  description: Consumes the Order Events API and logs every event.
+  tags:
+    - mqtt
+spec:
+  type: service
+  lifecycle: experimental
+  owner: group:default/platform-team
+  system: orders
+  consumesApis:
+    - order-events-api
+  dependsOn:
+    - resource:default/mqtt-broker
+---
+apiVersion: backstage.io/v1alpha1
+kind: Resource
+metadata:
+  name: mqtt-broker
+  title: MQTT broker
+  description: Eclipse Mosquitto, the broker the order events travel through (mqtt://mosquitto:1883).
+  tags:
+    - mqtt
+    - mosquitto
+spec:
+  type: message-broker
+  owner: group:default/platform-team
+  system: orders
+---
+apiVersion: backstage.io/v1alpha1
+kind: System
+metadata:
+  name: orders
+  description: Order processing. The Orders API serves an order, the order lifecycle events connect the services.
+spec:
+  owner: group:default/platform-team
 ---
 apiVersion: backstage.io/v1alpha1
 kind: Group
