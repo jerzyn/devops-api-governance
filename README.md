@@ -70,7 +70,7 @@ The first start takes a while (images to pull, Backstage and the CI image to bui
 - **gitea-seed** creates the admin user (`demo` / `demo12345`), the `governance-demo` organization and its repos: the orders repo `devops-api-governance` with the REST and the MQTT API (from [`example/`](example/)), the Kafka repo `order-events-kafka-api` (from [`example-kafka/`](example-kafka/)), and the governance repo `api-governance` that both link (rulesets, guidelines, gate scripts). It also writes the CI runner's registration token.
 - **microcks-seed** imports the REST and the MQTT contracts into Microcks (`microcks-seed-kafka`: the Kafka one).
 - **broker-policy-seed**, **broker-policy-seed-kafka** and **registry-seed** (event profiles) apply the broker policy of the contracts on `main` and register their payload schemas.
-- **ci-image** builds the image CI jobs run in, with OpenLint, oasdiff, the KrakenD CLI and the AsyncAPI tools preinstalled.
+- **ci-image** builds the image CI jobs run in, with OpenLint, oasdiff, the KrakenD CLI and the AsyncAPI tools preinstalled. It then stays up doing nothing: Podman starts a container only when the containers it depends on are running, so an exited ci-image would keep the event backends and subscribers in `Created`.
 
 ### Check that it runs
 
