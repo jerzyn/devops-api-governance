@@ -34,7 +34,7 @@ function sendJson(res, status, contentType, body) {
 function handleGetOrder(res, orderId) {
   if (!orderId) {
     return sendJson(res, 400, 'application/problem+json', {
-      type: 'https://errors.example.com/bad-request',
+      type: 'https://errors.api-peak.com/bad-request',
       title: 'Bad Request',
       detail: 'orderId path parameter is required.',
     });
@@ -69,7 +69,7 @@ const server = http.createServer((req, res) => {
   }
 
   return sendJson(res, 404, 'application/problem+json', {
-    type: 'https://errors.example.com/not-found',
+    type: 'https://errors.api-peak.com/not-found',
     title: 'Not Found',
     detail: `No route for ${req.method} ${url.pathname}.`,
   });
