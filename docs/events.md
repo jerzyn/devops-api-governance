@@ -111,7 +111,7 @@ In the talk the event API goes through the same steps as the REST one, **in the 
 |------|------|------------------------|
 | 1 | Catalog | The merge puts the Order Events API in Backstage next to the Orders API, with its producer, consumer and broker. |
 | 2 | Lint | `paid_at` goes red with `api-peak:async11`, whose link opens the guideline; `paidAt` goes green. |
-| 3 | Contract test | A required `currency` the backend never sends goes red in Microcks; optional goes green. |
+| 3 | Contract test | A required `currency` the backend doesn't send goes red in Microcks; the PR's backend that sends it (deployed by the gate) goes green. |
 | 4 | Broker policy | The policy is generated from the contract and the catalog; `demo deny` shows the broker saying no. |
 | 5 | Breaking changes | Removing `isPaid` goes red in the registry; deprecating it goes green. |
 | Kafka | Same gates on Kafka | The Kafka repo: its catalog entry and an optional field pass all four gates, and the Kafka API joins the catalog; removing `isPaid` is red there too. |

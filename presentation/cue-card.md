@@ -81,15 +81,19 @@ PR → lint green, **both contract-test red** → **Details** (REST): `currency'
 curl -s http://localhost:8080/rest/Orders+API/1.0.0/orders/123    # mock: has currency
 curl -s http://localhost:8081/orders/123                          # backend: doesn't
 ```
-*"We don't promise what the code doesn't deliver yet."*
+*"A contract is a promise. The code keeps it."*
 ```bash
-sed -i 's/required: \[orderId, isPaid, currency\]/required: [orderId, isPaid]/' contracts/orders-openapi.yaml
-sed -i 's/required: \[orderId, createdAt, currency\]/required: [orderId, createdAt]/' contracts/order-events-asyncapi.yaml
+sed -i 's/isPaid: true,$/isPaid: true, currency: "PLN",/' backend/server.js
+sed -i 's/createdAt: new Date().toISOString() }/createdAt: new Date().toISOString(), currency: "PLN" }/' events-backend/server.js
 git diff
-git commit -am "Don't promise currency until the backends send it"
+git commit -am "Send the currency the contract promises"
 git push origin feat/orders-currency
 ```
-Both green → **Merge**. T2: `next`.
+contract-test deploys the PR's backends first (**Deploy the PR's backend** step) → both green → **Merge**.
+```bash
+curl -s http://localhost:8081/orders/123                          # backend: now has currency
+```
+T2: `next`.
 
 ## 4 · Deploy from the contract — "Expose it for real, generated from the contract."
 ```bash

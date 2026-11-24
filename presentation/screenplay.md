@@ -83,7 +83,7 @@ Have everything below open **before** you press record, so no recording starts w
 | `goto 2-red` | + openlint gate | `feat/orders-server-url` |
 | `goto 3` | + stage 2 fix (server URL is now `https://orders.api-peak.com`) | `feat/add-contract-test-gate` |
 | `goto 3-red` | + contract-test gate | `feat/orders-currency` |
-| `goto 4` | + stage 3 fix (`currency` exists, optional) | `feat/add-gateway-gate` |
+| `goto 4` | + stage 3 fix (`currency` required, both backends send it) | `feat/add-gateway-gate` |
 | `goto 5` | + gateway gate | `feat/add-backwards-compat-gate` |
 | `goto 5-red` | + backwards-compat gate (all four gates) | `feat/orders-require-channel` |
 | `goto end` | everything, incl. optional `channel` | (nothing left) |
@@ -253,15 +253,21 @@ curl -s http://localhost:8081/orders/123
 ```
 `{"orderId":"123","isPaid":true,"currency":"PLN"}` next to `{"orderId":"123","isPaid":true}`: that difference is exactly what the red check says.
 
-**Terminal (fix):** say it out loud: "Contract first: we don't promise what the code doesn't deliver yet. We keep `currency` in the contract but optional; once the backend returns it, we make it required."
+**Terminal (fix):** say it out loud: "A contract is a promise. We don't weaken the promise, we make the code keep it." Both backends start sending the currency; the contract stays as it is.
 ```bash
-vi +48 contracts/orders-openapi.yaml             # the response's required: line. /, currency Enter, dt], :wq
-git diff                                         # ", currency" is gone from required
-git commit -am "Don't promise currency until the backend returns it"
+sed -i 's/isPaid: true,$/isPaid: true, currency: "PLN",/' backend/server.js
+sed -i 's/createdAt: new Date().toISOString() }/createdAt: new Date().toISOString(), currency: "PLN" }/' events-backend/server.js
+git diff                                         # currency: "PLN" in both backends, the contracts untouched
+git commit -am "Send the currency the contract promises"
 git push origin feat/orders-currency
 ```
 
-**Browser:** back on the PR, contract-test goes green. Merge.
+**Browser:** back on the PR, contract-test runs again. Its first step, **Deploy the PR's backend**, puts the PR's code into the running backend (backend-deployer), so Microcks tests the code of this PR, not whatever ran before. contract-test goes green. Merge.
+
+**Terminal (optional):** the running backend now keeps the promise.
+```bash
+curl -s http://localhost:8081/orders/123         # {"orderId":"123","isPaid":true,"currency":"PLN"}
+```
 
 **Duration:** ~35 s per CI run (openlint ~16 s, then contract-test ~17 s); the red → fix → green loop ~1.5 min.
 

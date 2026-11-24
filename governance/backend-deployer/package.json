@@ -1,0 +1,8 @@
+{
+  "name": "backend-deployer",
+  "private": true,
+  "description": "Deploys a PR's backend sources into the running backend container",
+  "scripts": {
+    "test": "node --test server.test.js"
+  }
+}

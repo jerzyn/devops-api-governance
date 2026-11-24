@@ -1,4 +1,4 @@
-FROM docker.io/library/node:20-alpine
+FROM docker.io/library/node:24-alpine
 
 WORKDIR /app
 COPY server.js ./
@@ -10,4 +10,6 @@ ENV PORT=8081
 HEALTHCHECK --interval=10s --timeout=3s --retries=5 \
   CMD wget -q -O /dev/null http://localhost:8081/health || exit 1
 
-CMD ["node", "server.js"]
+# --watch-path: backend-deployer copies a PR's code in, and the server
+# reloads (watching the folder survives files being replaced; Node 24 for it).
+CMD ["node", "--watch-path=/app", "server.js"]

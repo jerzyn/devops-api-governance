@@ -97,7 +97,7 @@ Scenario: every rule fires on the intentionally broken examples
 ## Scenario 3: the contract test checks what the running backend publishes
 
 ```gherkin
-Scenario: a field the backend never sends is red, making it optional is green
+Scenario: a field the backend doesn't send is red, sending it is green
   Given the contract-test gate is merged (branch "feat/add-contract-test-gates")
   And the branch "feat/orders-currency" makes "currency" required on OrderCreated
   When I push it and open a PR
@@ -105,8 +105,9 @@ Scenario: a field the backend never sends is red, making it optional is green
   And "contract-test" FAILS: Microcks listened on orders/v1/+/created and every
       message lacks the required "currency"
   And the log links to the test report in Microcks
-  When I make "currency" optional and push
-  Then "contract-test" PASSES on both topics and I merge
+  When events-backend/server.js adds "currency": "PLN" to OrderCreated and I push
+  Then "contract-test" deploys the PR's events-backend into mqtt-backend
+  And "contract-test" PASSES on both topics and I merge
 ```
 
 ```gherkin

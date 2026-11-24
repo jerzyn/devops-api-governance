@@ -8,7 +8,7 @@ name: PR API governance (REST)
 #      version on the PR's base branch using oasdiff; fail on any breaking
 #      change. New (added) files are skipped (no baseline). Skipped entirely
 #      on workflow_dispatch (no PR base ref).
-#   3. contract-test — runtime contract test of the running backend
+#   3. contract-test — deploys the PR's backend (backend-deployer) and tests it
 #      against the PR's contract. Runs ONLY if the two gates above pass
 #      (don't contract-test a contract that fails lint or breaks consumers).
 #   4. gateway-deploy-check — generates a KrakenD config from the PR's
@@ -226,6 +226,27 @@ jobs:
           git fetch -q origin '+refs/heads/*:refs/remotes/origin/*'
           git fetch -q origin "${CHECKOUT_REF}"
           git checkout -q FETCH_HEAD
+
+      - name: Deploy the PR's backend
+        shell: bash
+        env:
+          BACKEND_DEPLOYER_URL: http://backend-deployer:9200
+          BACKEND_DIR: backend
+          BACKEND_CONTAINER: backend
+        run: |
+          # Test the PR's code, not whatever runs: backend-deployer copies
+          # ${BACKEND_DIR}/ into the running ${BACKEND_CONTAINER} container, which
+          # reloads itself. A contract failure is then fixed in the PR, in
+          # the code or in the contract.
+          set -e
+          tar -czf - -C "${BACKEND_DIR}" --exclude=node_modules . \
+            | curl -sf --noproxy '*' -X POST -H 'Content-Type: application/gzip' \
+                --data-binary @- "${BACKEND_DEPLOYER_URL}/deploy/${BACKEND_CONTAINER}"
+          echo
+          for i in $(seq 1 15); do
+            curl -sf "${TEST_ENDPOINT}/health" >/dev/null && exit 0; sleep 1
+          done
+          echo "${BACKEND_CONTAINER} did not come back after the deploy" >&2; exit 1
 
       - name: Wait for Microcks to be ready
         shell: bash

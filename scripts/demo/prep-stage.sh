@@ -27,8 +27,8 @@
 #   stage2-red  feat/orders-server-and-paid-at   http:// server URL and snake_case paid_at: red;
 #                                                fix on camera: https://, paidAt
 #   stage3      feat/add-contract-test-gates     PR workflows: + contract-test (Microcks), both
-#   stage3-red  feat/orders-currency             required currency the backends never send: red;
-#                                                fix on camera: make it optional in both
+#   stage3-red  feat/orders-currency             required currency the backends don't send: red;
+#                                                fix on camera: both backends send it
 #   stage4      feat/add-deploy-gates            PR workflows: + gateway (KrakenD), + broker policy
 #   stage5      feat/add-breaking-changes-gates  PR workflows: + breaking changes, events publish on merge
 #   stage5-red  feat/orders-channel-and-is-paid  required channel parameter, isPaid removed: red;
@@ -181,7 +181,7 @@ do_stage3() {
   use_event_gates "$1" asyncapi-lint contract-test
   use_readme "$1" "$RD/stage3.md"
 }
-# Both contracts promise a currency the running backends don't send.
+# Both contracts promise a currency the backends don't send yet.
 do_stage3_red() {
   python3 - "$1/$CONTRACT" <<'PY'
 import sys
@@ -222,12 +222,23 @@ s = s.replace(old, """      required: [orderId, createdAt, currency]
         currency:
           type: string
           description: ISO 4217 code of the order total.""")
+# The mock events come from the examples: they must carry it too.
+old = "            createdAt: '2026-11-11T10:00:00Z'"
+assert s.count(old) == 1
+s = s.replace(old, old + "\n            currency: PLN")
 open(p, 'w').write(s)
 PY
 }
+# The fix keeps the promise: the backends send the currency (the same edits
+# as on camera, see presentation/cue-card.md).
 do_stage3_fix() {
-  sed -i 's/required: \[orderId, isPaid, currency\]/required: [orderId, isPaid]/' "$1/$CONTRACT"
-  sed -i 's/required: \[orderId, createdAt, currency\]/required: [orderId, createdAt]/' "$1/$EV_CONTRACT"
+  sed -i 's/isPaid: true,$/isPaid: true, currency: "PLN",/' "$1/backend/server.js"
+  sed -i 's/createdAt: new Date().toISOString() }/createdAt: new Date().toISOString(), currency: "PLN" }/' \
+    "$1/events-backend/server.js"
+  local f
+  for f in "$1/backend/server.js" "$1/events-backend/server.js"; do
+    grep >/dev/null -c 'currency: "PLN"' "$f" || { echo "do_stage3_fix: $f changed, update its sed" >&2; exit 1; }
+  done
 }
 
 # Step 4: deploy from the contract: the gateway (REST), the broker policy (events).
@@ -328,7 +339,7 @@ LAYERS=(
   "do_stage2"                       # 2  step 2 part 1: lint gates
   "do_stage2_red do_stage2_fix"     # 3  step 2 part 2: https and paidAt merged
   "do_stage3"                       # 4  step 3 part 1: contract-test gates
-  "do_stage3_red do_stage3_fix"     # 5  step 3 part 2: optional currency merged
+  "do_stage3_red do_stage3_fix"     # 5  step 3 part 2: required currency, backends send it
   "do_stage4"                       # 6  step 4: gateway and broker-policy gates
   "do_stage5"                       # 7  step 5 part 1: breaking-changes gates
   "do_stage5_red do_stage5_fix"     # 8  step 5 part 2: optional channel, deprecated isPaid merged
@@ -510,6 +521,19 @@ gateway_deploy() {  # $1 = krakend.json
 }
 
 # $1 = layers merged so far (layer 6 is the gateway gate); reads $WORK/base
+# The running backends follow the state: the contract-test gate deploys a
+# PR's backends (backend-deployer), so after a take they run that PR's code.
+sync_backends() {
+  local t
+  for t in backend:backend mqtt-backend:events-backend; do
+    ci_run "$WORK/base" sh -c 'tar -czf - -C "$2" --exclude=node_modules . \
+      | curl -sf --noproxy "*" -X POST -H "Content-Type: application/gzip" --data-binary @- \
+          "http://backend-deployer:9200/deploy/$1" >/dev/null' sh "${t%%:*}" "${t#*:}" \
+      || { echo "could not deploy ${t%%:*} (is backend-deployer up?)" >&2; exit 1; }
+  done
+  echo "backends run the state's code"
+}
+
 sync_gateway() {
   if [ "$1" -ge 6 ]; then
     local g="$WORK/gw"
@@ -775,7 +799,7 @@ preflight() {
 
   echo "Stack"
   names="$("$ENGINE" ps --format '{{.Names}}')"
-  for c in gitea gitea-runner backstage backend krakend krakend-deployer \
+  for c in gitea gitea-runner backstage backend backend-deployer krakend krakend-deployer \
            microcks-uber microcks-async-minion mosquitto mqtt-backend mqtt-subscriber \
            broker-policy-deployer apicurio kafka kafka-backend kafka-subscriber; do
     grep -qx "$c" <<<"$names" && pass "container $c running" \
@@ -876,6 +900,7 @@ goto() {
   push_state "$k" "$kk"
   sync_governance_repo
   delete_repo_entities
+  sync_backends
   sync_gateway "$k"
   sync_broker_policy
   sync_registry "$WORK/base" "$EV_CONTRACT"
