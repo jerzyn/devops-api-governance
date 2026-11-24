@@ -274,6 +274,7 @@ The official `@microcks/microcks-backstage-provider` (0.0.7) isn't used: it depe
 - **`gitea-seed` fails or the runner never registers:** the socket isn't reachable. Check `systemctl --user status podman.socket` and that `.env` holds your user id (`id -u`) in `DOCKER_SOCK`.
 - **Restarting `backstage` or `gitea-runner` wipes your Gitea `main`:** Podman starts their dependency `gitea-seed` again (Docker doesn't). With `demo`, run `demo goto <step>` afterwards.
 - **`backend` can't be recreated** while `krakend` runs ("has dependent containers").
+- **A container stays in Created after `up`** ("container state improper", "internal libpod error"): Podman starts a dependent's exited one-shot dependencies again, and fails when one of them depends on another one-shot. Keep every one-shot service (`*-seed`, `ci-image`) free of `depends_on` on another one-shot.
 
 ## Stop / reset
 

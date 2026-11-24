@@ -341,9 +341,14 @@ services:
     container_name: broker-policy-seed
     restart: "no"
     profiles: ["events"]
+    # No depends_on ci-image (here, in registry-seed and in
+    # broker-policy-seed-kafka): `up` builds every image before it starts any
+    # container, and on Podman a chain of one-shots breaks `up`. podman-compose
+    # turns depends_on into `--requires`, and Podman starts an exited required
+    # container again whenever a dependent starts: mqtt-backend would start
+    # this seed, which would start ci-image, and the nested start fails with
+    # "container state improper", leaving mqtt-backend in Created.
     depends_on:
-      ci-image:
-        condition: service_completed_successfully
       broker-policy-deployer:
         condition: service_healthy
     volumes:
@@ -427,9 +432,8 @@ services:
     container_name: registry-seed
     restart: "no"
     profiles: ["events", "kafka"]
+    # No depends_on ci-image: see broker-policy-seed.
     depends_on:
-      ci-image:
-        condition: service_completed_successfully
       apicurio:
         condition: service_healthy
     environment:
@@ -526,9 +530,8 @@ services:
     container_name: broker-policy-seed-kafka
     restart: "no"
     profiles: ["kafka"]
+    # No depends_on ci-image: see broker-policy-seed.
     depends_on:
-      ci-image:
-        condition: service_completed_successfully
       broker-policy-deployer:
         condition: service_healthy
       kafka:

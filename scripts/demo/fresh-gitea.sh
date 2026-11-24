@@ -40,4 +40,9 @@ for i in $(seq 1 120); do
   sleep 3
 done
 [ $ok = 1 ] || { echo "stack did not come up; check: $ENGINE ps" >&2; exit 1; }
+# A container compose created but could not start stays in Created, and `up`
+# may still exit 0 (Podman: "internal libpod error"). Stop here, not mid-demo.
+stuck="$("$ENGINE" ps -a --filter status=created \
+  --filter "label=com.docker.compose.project=$(basename "$ROOT")" --format '{{.Names}}')"
+[ -z "$stuck" ] || { echo "these containers did not start: $stuck" >&2; exit 1; }
 "$ROOT/scripts/demo/prep-stage.sh" goto 1
