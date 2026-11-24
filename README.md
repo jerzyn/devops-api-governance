@@ -114,7 +114,7 @@ Then branch, change `contracts/orders-openapi.yaml`, `contracts/order-events-asy
 |------|-------------------|--------------------------|
 | **1 — API Catalog.** One `catalog-info.yaml` makes both APIs visible to the whole organization. | Backstage → **APIs** shows `orders-api`, discovered from Gitea; its **Definition** tab shows the contract. | `order-events-api` appears next to it, with the broker as a Resource and its producer and consumer as edges. |
 | **2 — Guidelines as code.** The guidelines live in the catalog (Backstage → **Docs** → `api-guidelines`) and run as OpenLint checks in CI; every finding links to its rule. | Server URL `http://` instead of `https://`: `openlint-openapi-check` goes **red**. | A snake_case `paid_at` field: `asyncapi-lint` goes **red**. |
-| **3 — Mocking & contract testing.** The contract is a live mock at once; the contract test checks the running backend against it. | `curl http://localhost:8080/rest/Orders+API/1.0.0/orders/123` answers from the contract. A required `currency` the backend doesn't return: `contract-test` goes **red**. | Microcks publishes the contract's example events. A required `currency` on `OrderCreated` the backend never sends: `contract-test` goes **red**. |
+| **3 — Mocking & contract testing.** The contract is a live mock at once; the contract test deploys the PR's backend and checks it against the contract. | `curl http://localhost:8080/rest/Orders+API/1.0.0/orders/123` answers from the contract. A required `currency` the backend doesn't return: `contract-test` goes **red**; the backend that returns it: **green**. | Microcks publishes the contract's example events. A required `currency` on `OrderCreated` the backend doesn't send: `contract-test` goes **red**; the backend that sends it: **green**. |
 | **4 — Deploy from the contract.** The contract isn't only tested, it is deployed. | `gateway-deploy-check` generates a KrakenD config, deploys it and re-runs the contract test through the gateway (`:8090`). | `broker-policy` generates who may publish and subscribe to which topic from the contract and the catalog and applies it to Mosquitto; `demo deny` shows the broker saying no. |
 | **5 — Breaking changes.** A change that breaks the clients is blocked; the later gates are skipped. | A new *required* `channel` query parameter: `breaking-changes-check` (oasdiff) goes **red**. Optional: **green**. | Removing `isPaid` from `OrderPaid`: `breaking-changes` (Apicurio, FORWARD) goes **red**. Deprecating it: **green**. |
 
@@ -246,7 +246,9 @@ BACKEND_DRIFT=true  docker compose --profile contract up -d backend    # contrac
 BACKEND_DRIFT=false docker compose --profile contract up -d backend    # back to green
 ```
 
-With Podman, `backend` can't be recreated while `krakend` (which depends on it) runs; the talk's walkthrough changes the contract instead. Microcks runs as the all-in-one "uber" image with in-memory storage: imported contracts and test results are gone after a restart and re-imported by CI.
+With Podman, `backend` can't be recreated while `krakend` (which depends on it) runs.
+
+The contract-test gates test **the PR's code**, not whatever runs: their first step sends the PR's `backend/` (REST) or `events-backend/` (MQTT) to **backend-deployer**, which copies it into the running `backend` or `mqtt-backend` container; the backends run under `node --watch-path=/app` and reload. So a red contract test is fixed in the PR, in the contract or in the code (step 3 of the talk fixes the code). The deployed code lives in the container until it is recreated; `demo goto` deploys each step's backends. A PR that changes a backend's dependencies needs a rebuild instead (`up -d --build`). Microcks runs as the all-in-one "uber" image with in-memory storage: imported contracts and test results are gone after a restart and re-imported by CI.
 
 ### Backstage catalog
 
@@ -303,7 +305,7 @@ With Podman, use `podman-compose` with the same arguments, and `podman unshare r
 
 ## Security note
 
-This is a local demo. `gitea-seed`, `gitea-runner` and `krakend-deployer` get access to the container engine socket (to run the Gitea CLI, start CI jobs and restart KrakenD); the `/deploy` endpoints of `krakend-deployer` and `broker-policy-deployer` are unauthenticated on the compose network; the brokers speak plain MQTT and Kafka, and the demo accounts and their passwords sit in `mosquitto/users.txt`, the compose file and the workflows. Fine on a laptop, not a pattern for shared infrastructure.
+This is a local demo. `gitea-seed`, `gitea-runner`, `krakend-deployer` and `backend-deployer` get access to the container engine socket (to run the Gitea CLI, start CI jobs, restart KrakenD and copy a PR's code into the backends); the `/deploy` endpoints of `krakend-deployer`, `backend-deployer` and `broker-policy-deployer` are unauthenticated on the compose network; the brokers speak plain MQTT and Kafka, and the demo accounts and their passwords sit in `mosquitto/users.txt`, the compose file and the workflows. Fine on a laptop, not a pattern for shared infrastructure.
 
 ## For presenters
 

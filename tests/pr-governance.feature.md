@@ -87,8 +87,9 @@ Scenario: PR #1 — tighten the contract, fix lint, fix drift, merge
   And the contract under test is the PR branch's version (not main)
 
   # --- fix the mismatch (both GREEN) ---
-  When I commit a fix: drop the "currency" requirement (match the backend)
+  When I commit a fix: backend/server.js returns "currency": "PLN" (keep the contract)
   Then "openlint-openapi-check" PASSES
+  And "contract-test" deploys the PR's backend (step "Deploy the PR's backend")
   And "contract-test" PASSES
   And both PR checks are green
 
