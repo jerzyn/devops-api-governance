@@ -289,6 +289,24 @@ services:
       retries: 10
       start_period: 5s
 
+  # Deploys a PR's backend code into the running backend (REST) or
+  # mqtt-backend (events) before the contract test, so the gate tests the
+  # PR's code; `demo goto` deploys each step's backends. Same pattern as
+  # krakend-deployer: the sidecar has the engine socket, the job doesn't.
+  backend-deployer:
+    build: ./governance/backend-deployer
+    container_name: backend-deployer
+    restart: unless-stopped
+    profiles: ["contract"]
+    volumes:
+      - ${DOCKER_SOCK:-/var/run/docker.sock}:/var/run/docker.sock
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:9200/health"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+      start_period: 5s
+
   # --- Events: MQTT (profile: events) ------------------------------------------
   # Every client authenticates (demo accounts in mosquitto/users.txt). The
   # dynamic security plugin holds the accounts and the broker policy, which
