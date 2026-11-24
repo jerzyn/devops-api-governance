@@ -84,6 +84,18 @@ The first start takes a while (images to pull, Backstage and the CI image to bui
 | backend | http://localhost:8081/orders/123 | the implementation under test |
 | KrakenD | http://localhost:8090/orders/123 | the gateway; its routes come from the config CI deployed last |
 
+The event API speaks MQTT on `localhost:1883`. curl can subscribe to it (`mqtt://`, the topic URL-encoded: `/` is `%2F`, `+` is `%2B`, `#` is `%23`). `tr` turns curl's binary topic-length prefix into line breaks; Ctrl+C stops it.
+
+```bash
+MQ="mqtt://localhost:1883"; U=observer:observer-pw    # read-only demo account
+# Microcks mock events: the contract's examples, every 3 s, always the same
+curl -sN -u $U "$MQ/OrderEventsAPI-1.0.0-orders%2Fv1%2F%7BorderId%7D%2Fcreated" | tr -c '[:print:]' '\n'
+# mqtt-backend, the implementation: OrderCreated (orderId, createdAt) every second
+curl -sN -u $U "$MQ/orders%2Fv1%2F%2B%2Fcreated" | tr -c '[:print:]' '\n'
+# OrderPaid (orderId, isPaid); both topics at once: orders%2Fv1%2F%23
+curl -sN -u $U "$MQ/orders%2Fv1%2F%2B%2Fpaid" | tr -c '[:print:]' '\n'
+```
+
 Or, with the `demo` helper (below): `demo preflight` checks everything and ends with `READY` or a list of problems.
 
 ## Try it

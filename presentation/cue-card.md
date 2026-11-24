@@ -65,6 +65,9 @@ PR → **Files changed** → both green (cut) → **Merge**. Then:
 ```bash
 curl -s http://localhost:8080/rest/Orders+API/1.0.0/orders/123    # live REST mock from the contract
 ```
+```bash
+curl -sN -u observer:observer-pw "mqtt://localhost:1883/OrderEventsAPI-1.0.0-orders%2Fv1%2F%7BorderId%7D%2Fcreated" | tr -c '[:print:]' '\n'   # MQTT mock events, Ctrl+C
+```
 Microcks → **Order Events API**: the mock events from the contract's examples. *"Partners and consumers integrate today, before the code exists."* T2: `next`.
 
 **3b**
