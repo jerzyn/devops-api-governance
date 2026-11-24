@@ -242,6 +242,7 @@ git push -u origin feat/orders-currency          # hand the change over: the bra
 1. Open the PR (`compare/main...feat/orders-currency`). openlint goes green (the contract is valid), then **contract-test goes red**.
 2. **Details** on contract-test → expand **Run contract test**. Microcks reports `currency' not found`: the running backend doesn't keep the promise.
 3. Optional: open the `Details: http://localhost:8080/#/tests/…` link from that log to show the test in Microcks.
+4. Back on the PR: **Merge** is blocked. Gitea protects `main` from step 2 on, so a red gate stops the merge, not only the build.
 
 **Terminal (Q2: does the code match the contract?):** the CI job loaded the PR's contract into Microcks, so the mock already speaks the new version. The real backend doesn't.
 ```bash

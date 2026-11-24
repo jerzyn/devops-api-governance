@@ -624,11 +624,33 @@ fresh_clone() {  # $1 = clone dir, $2 = repo name, $3 = remote
 # temporary worktree, so whatever the recording terminal has checked out stays
 # untouched. $1 = clone, $2 = repo, $3 = remote, $4 = branch, $5 = message,
 # $6.. = change functions.
+# Protect main of $1 so a red PR can't be merged, once main holds the PR
+# gates. Gitea blocks a merge while any check failed or still runs, and also
+# when a PR has no checks at all, so stage 1 (no workflows yet) stays
+# unprotected. The demo user may still push and force-push main: goto rewrites
+# it. Admins can't override the checks either.
+protect_main() {
+  local repo="$1" checks=false
+  curl -sf -o /dev/null -u "$U:$P" "$API/repos/$ORG/$repo/contents/.gitea/workflows/pr-governance.yml?ref=main" \
+    && checks=true
+  curl -sf -o /dev/null -u "$U:$P" -X DELETE "$API/repos/$ORG/$repo/branch_protections/main" || true
+  curl -sf -o /dev/null -u "$U:$P" -X POST -H 'Content-Type: application/json' -d "{
+    \"rule_name\": \"main\",
+    \"enable_push\": true, \"enable_push_whitelist\": true, \"push_whitelist_usernames\": [\"$U\"],
+    \"enable_force_push\": true, \"enable_force_push_allowlist\": true, \"force_push_allowlist_usernames\": [\"$U\"],
+    \"enable_status_check\": $checks, \"status_check_contexts\": [],
+    \"block_on_rejected_reviews\": false, \"block_admin_merge_override\": true
+  }" "$API/repos/$ORG/$repo/branch_protections" \
+    || { echo "warning: could not protect $repo main" >&2; return 0; }
+  [ $checks = true ] && echo "$repo main: merge needs green checks" || echo "$repo main: no PR gates yet, merge not blocked"
+}
+
 make_local_branch() {
   local clone="$1" repo="$2" remote="$3" branch="$4" msg="$5"; shift 5
   local g=(git -C "$clone") cur wt="$WORK/wt"
   [ -d "$clone/.git" ] || fresh_clone "$clone" "$repo" "$remote"
   check_clone "$clone" "$repo"
+  protect_main "$repo"
   if git ls-remote --exit-code "$remote" "refs/heads/$branch" >/dev/null; then
     echo "Gitea already has branch $branch (from an earlier take). Run 'goto <target>' to reset, or delete that branch first." >&2
     exit 1

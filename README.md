@@ -193,6 +193,8 @@ The orders repo runs two PR workflows on every pull request: `pr-governance.yml`
 3. **`contract-test`** — imports the PR's contract into Microcks (which also updates the live mock) and tests the running `backend` against it. **Fails on drift.**
 4. **`gateway-deploy-check`** — generates a KrakenD config from the PR's contract, validates it (`krakend check`), deploys it to the running gateway and re-runs the Microcks test through the gateway. **Fails on an invalid config or a gateway-level contract mismatch.**
 
+**A red PR can't be merged.** `main` of both consumer repos is a protected branch: Gitea allows the merge only when every check of the PR is green, and the admin can't override it either. `gitea-seed` sets this up; `demo` turns the check off for step 1 (no PR workflows on `main` yet, and Gitea also blocks a PR without checks) and on from step 2. The `demo` user may still push `main` directly, as the seed and `demo goto` do.
+
 On merge, Backstage's Gitea provider picks up `catalog-info.yaml` from `main` (it rescans every 10 s, a demo setting). A walkthrough of green and red for each gate: [`docs/ci-test-path.md`](docs/ci-test-path.md); scripted scenarios: [`tests/pr-governance.feature.md`](tests/pr-governance.feature.md).
 
 CI jobs run in `localhost/devops-api-governance-ci:latest` ([`ci-image/Dockerfile`](ci-image/Dockerfile), amd64 or arm64) and check out with plain `git` from Gitea, so they download nothing. On a plain `node:22` runner (OpenLint needs Node 22+) the workflow installs the tools itself.

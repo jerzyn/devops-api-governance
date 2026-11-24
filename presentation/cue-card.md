@@ -44,7 +44,7 @@ git switch feat/orders-server-and-paid-at
 git diff main -- contracts/
 git push -u origin feat/orders-server-and-paid-at
 ```
-PR → **both red** → **Details** of `openlint-openapi-check`: `rest17:2025-https-required` → **Details** of `asyncapi-lint`: `async11:2026-property-naming … 'paid_at' MUST be camelCase`. Open a link → the rule in Backstage. *"One set of guidelines, for REST and events, for humans and CI."*
+PR → **both red**, **Merge** blocked → **Details** of `openlint-openapi-check`: `rest17:2025-https-required` → **Details** of `asyncapi-lint`: `async11:2026-property-naming … 'paid_at' MUST be camelCase`. Open a link → the rule in Backstage. *"One set of guidelines, for REST and events, for humans and CI."*
 ```bash
 sed -i 's#http://orders.api-peak.com#https://orders.api-peak.com#' contracts/orders-openapi.yaml
 sed -i 's/^        paid_at:$/        paidAt:/' contracts/order-events-asyncapi.yaml
