@@ -8,8 +8,9 @@ name: PR API governance (events)
 #   2. breaking-changes  compare each changed contract with main: structure
 #                      with @asyncapi/diff, payloads against the schema
 #                      registry's compatibility rules
-#   3. contract-test   listen on the broker and check that what the running
-#                      backend publishes matches the PR's contract
+#   3. contract-test   deploy the PR's events-backend into the running
+#                      mqtt-backend (backend-deployer), listen on the broker
+#                      and check that what it publishes matches the PR's contract
 #   4. broker-policy   generate the broker policy (who may publish and
 #                      subscribe to which topic) from the contract and the
 #                      catalog, apply it to the broker, check it from the
@@ -237,6 +238,23 @@ jobs:
           git remote add origin "${REPO_URL}"
           git fetch -q origin "${CHECKOUT_REF}"
           git checkout -q FETCH_HEAD
+
+      - name: Deploy the PR's backend
+        shell: bash
+        env:
+          BACKEND_DEPLOYER_URL: http://backend-deployer:9200
+          BACKEND_DIR: events-backend
+          BACKEND_CONTAINER: mqtt-backend
+        run: |
+          # Test the PR's code, not whatever runs: backend-deployer copies
+          # ${BACKEND_DIR}/ into the running ${BACKEND_CONTAINER} container, which
+          # reloads itself. A contract failure is then fixed in the PR, in
+          # the code or in the contract.
+          set -e
+          tar -czf - -C "${BACKEND_DIR}" --exclude=node_modules . \
+            | curl -sf --noproxy '*' -X POST -H 'Content-Type: application/gzip' \
+                --data-binary @- "${BACKEND_DEPLOYER_URL}/deploy/${BACKEND_CONTAINER}"
+          echo
 
       - name: Fetch governance contract test (linked, not vendored)
         shell: bash
