@@ -88,13 +88,17 @@ services:
       sh -c "apk add --no-cache git curl >/dev/null && sh /scripts/seed-gitea.sh"
 
   # Builds the job image the runner starts for every CI job (tools
-  # preinstalled, so jobs don't download anything). Runs once and exits.
+  # preinstalled, so jobs don't download anything). It stays up doing nothing
+  # rather than exiting: Podman starts a container only when every container
+  # it depends on is running, and an exited ci-image under the seeds kept the
+  # event backends and subscribers from starting there.
   ci-image:
     build: ./ci-image
     image: localhost/devops-api-governance-ci:latest
     container_name: ci-image
-    restart: "no"
-    command: ["true"]
+    restart: unless-stopped
+    command: ["sleep", "infinity"]
+    stop_signal: SIGKILL
 
   gitea-runner:
     image: docker.io/gitea/act_runner:0.6.1
@@ -104,7 +108,7 @@ services:
       gitea-seed:
         condition: service_completed_successfully
       ci-image:
-        condition: service_completed_successfully
+        condition: service_started
     environment:
       - GITEA_INSTANCE_URL=http://gitea:3000/
       # run.sh reads the token from this file (written by gitea-seed).
@@ -341,14 +345,9 @@ services:
     container_name: broker-policy-seed
     restart: "no"
     profiles: ["events"]
-    # No depends_on ci-image (here, in registry-seed and in
-    # broker-policy-seed-kafka): `up` builds every image before it starts any
-    # container, and on Podman a chain of one-shots breaks `up`. podman-compose
-    # turns depends_on into `--requires`, and Podman starts an exited required
-    # container again whenever a dependent starts: mqtt-backend would start
-    # this seed, which would start ci-image, and the nested start fails with
-    # "container state improper", leaving mqtt-backend in Created.
     depends_on:
+      ci-image:
+        condition: service_started
       broker-policy-deployer:
         condition: service_healthy
     volumes:
@@ -432,8 +431,9 @@ services:
     container_name: registry-seed
     restart: "no"
     profiles: ["events", "kafka"]
-    # No depends_on ci-image: see broker-policy-seed.
     depends_on:
+      ci-image:
+        condition: service_started
       apicurio:
         condition: service_healthy
     environment:
@@ -530,8 +530,9 @@ services:
     container_name: broker-policy-seed-kafka
     restart: "no"
     profiles: ["kafka"]
-    # No depends_on ci-image: see broker-policy-seed.
     depends_on:
+      ci-image:
+        condition: service_started
       broker-policy-deployer:
         condition: service_healthy
       kafka:

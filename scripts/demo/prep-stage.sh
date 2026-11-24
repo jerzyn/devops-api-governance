@@ -556,7 +556,8 @@ prewarm_techdocs() {
 
 # Never run compose `up` mid-demo, and on Podman never start/restart backstage
 # either: that runs its dependency gitea-seed, which force-pushes the full
-# repos over Gitea main and wipes the stage state. Instead, trigger the Gitea
+# repos over Gitea main and wipes the stage state. (Likewise the event backends
+# and subscribers re-run the broker-policy and registry seeds when started.) Instead, trigger the Gitea
 # provider's scheduled task: it rescans Gitea in a few seconds.
 trigger_refresh() {
   local t; t="$(backstage_token)"

@@ -70,7 +70,7 @@ The first start takes a while (images to pull, Backstage and the CI image to bui
 - **gitea-seed** creates the admin user (`demo` / `demo12345`), the `governance-demo` organization and its repos: the orders repo `devops-api-governance` with the REST and the MQTT API (from [`example/`](example/)), the Kafka repo `order-events-kafka-api` (from [`example-kafka/`](example-kafka/)), and the governance repo `api-governance` that both link (rulesets, guidelines, gate scripts). It also writes the CI runner's registration token.
 - **microcks-seed** imports the REST and the MQTT contracts into Microcks (`microcks-seed-kafka`: the Kafka one).
 - **broker-policy-seed**, **broker-policy-seed-kafka** and **registry-seed** (event profiles) apply the broker policy of the contracts on `main` and register their payload schemas.
-- **ci-image** builds the image CI jobs run in, with OpenLint, oasdiff, the KrakenD CLI and the AsyncAPI tools preinstalled.
+- **ci-image** builds the image CI jobs run in, with OpenLint, oasdiff, the KrakenD CLI and the AsyncAPI tools preinstalled. It then stays up doing nothing: Podman starts a container only when the containers it depends on are running, so an exited ci-image would keep the event backends and subscribers in `Created`.
 
 ### Check that it runs
 
@@ -274,7 +274,7 @@ The official `@microcks/microcks-backstage-provider` (0.0.7) isn't used: it depe
 - **`gitea-seed` fails or the runner never registers:** the socket isn't reachable. Check `systemctl --user status podman.socket` and that `.env` holds your user id (`id -u`) in `DOCKER_SOCK`.
 - **Restarting `backstage` or `gitea-runner` wipes your Gitea `main`:** Podman starts their dependency `gitea-seed` again (Docker doesn't). With `demo`, run `demo goto <step>` afterwards.
 - **`backend` can't be recreated** while `krakend` runs ("has dependent containers").
-- **A container stays in Created after `up`** ("container state improper", "internal libpod error"): Podman starts a dependent's exited one-shot dependencies again, and fails when one of them depends on another one-shot. Keep every one-shot service (`*-seed`, `ci-image`) free of `depends_on` on another one-shot.
+- **A container stays in Created after `up`** ("container state improper", "internal libpod error"): Podman starts a dependent's exited one-shot dependencies again, and fails when one of them depends on another exited one-shot. That is why `ci-image` stays up: keep every `*-seed` free of `depends_on` on a container that exits.
 
 ## Stop / reset
 
