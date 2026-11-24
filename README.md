@@ -84,6 +84,18 @@ The first start takes a while (images to pull, Backstage and the CI image to bui
 | backend | http://localhost:8081/orders/123 | the implementation under test |
 | KrakenD | http://localhost:8090/orders/123 | the gateway; its routes come from the config CI deployed last |
 
+The event API speaks MQTT on `localhost:1883`. curl can subscribe to it (`mqtt://`, the topic URL-encoded: `/` is `%2F`, `+` is `%2B`, `#` is `%23`). `tr` turns curl's binary topic-length prefix into line breaks; Ctrl+C stops it.
+
+```bash
+MQ="mqtt://localhost:1883"; U=observer:observer-pw    # read-only demo account
+# Microcks mock events: the contract's examples, every 3 s, always the same
+curl -sN -u $U "$MQ/OrderEventsAPI-1.0.0-orders%2Fv1%2F%7BorderId%7D%2Fcreated" | tr -c '[:print:]' '\n'
+# mqtt-backend, the implementation: OrderCreated (orderId, createdAt) every second
+curl -sN -u $U "$MQ/orders%2Fv1%2F%2B%2Fcreated" | tr -c '[:print:]' '\n'
+# OrderPaid (orderId, isPaid); both topics at once: orders%2Fv1%2F%23
+curl -sN -u $U "$MQ/orders%2Fv1%2F%2B%2Fpaid" | tr -c '[:print:]' '\n'
+```
+
 Or, with the `demo` helper (below): `demo preflight` checks everything and ends with `READY` or a list of problems.
 
 ## Try it
@@ -180,6 +192,8 @@ The orders repo runs two PR workflows on every pull request: `pr-governance.yml`
 2. **`breaking-changes-check`** — [`oasdiff`](https://github.com/oasdiff/oasdiff) (v1.19.0) diffs every PR-modified `*openapi*.{yml,yaml}` against the PR's base branch. **Fails on any ERR-severity breaking finding** (`--fail-on ERR`). New files (no baseline) and identical-content edits are skipped; the job is skipped on `workflow_dispatch`.
 3. **`contract-test`** — imports the PR's contract into Microcks (which also updates the live mock) and tests the running `backend` against it. **Fails on drift.**
 4. **`gateway-deploy-check`** — generates a KrakenD config from the PR's contract, validates it (`krakend check`), deploys it to the running gateway and re-runs the Microcks test through the gateway. **Fails on an invalid config or a gateway-level contract mismatch.**
+
+**A red PR can't be merged.** `main` of both consumer repos is a protected branch: Gitea allows the merge only when every check of the PR is green, and the admin can't override it either. `gitea-seed` sets this up; `demo` turns the check off for step 1 (no PR workflows on `main` yet, and Gitea also blocks a PR without checks) and on from step 2. The `demo` user may still push `main` directly, as the seed and `demo goto` do.
 
 On merge, Backstage's Gitea provider picks up `catalog-info.yaml` from `main` (it rescans every 10 s, a demo setting). A walkthrough of green and red for each gate: [`docs/ci-test-path.md`](docs/ci-test-path.md); scripted scenarios: [`tests/pr-governance.feature.md`](tests/pr-governance.feature.md).
 

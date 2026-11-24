@@ -222,6 +222,13 @@ curl -s http://localhost:8080/rest/Orders+API/1.0.0/orders/123
 ```
 `{"orderId":"123","isPaid":true}`. Optional: in the Microcks tab, open **APIs | Services** → **Orders API 1.0.0** to show the same operation and its example.
 
+The event API has a mock too: Microcks publishes the contract's examples on the broker every 3 s, on topics prefixed with the API name.
+```bash
+# the mock events, from the contract's examples (Ctrl+C to stop)
+curl -sN -u observer:observer-pw "mqtt://localhost:1883/OrderEventsAPI-1.0.0-orders%2Fv1%2F%7BorderId%7D%2Fcreated" | tr -c '[:print:]' '\n'
+```
+`OrderEventsAPI-1.0.0-orders/v1/{orderId}/created{"orderId":"123","createdAt":"2026-11-11T10:00:00Z"}`, the same message every time.
+
 **Part 2: the contract promises more than the code delivers.** Run `next`. Branch `feat/orders-currency` adds a **required** `currency` field to the order response. The running backend doesn't return it.
 
 **Terminal:**
@@ -235,6 +242,7 @@ git push -u origin feat/orders-currency          # hand the change over: the bra
 1. Open the PR (`compare/main...feat/orders-currency`). openlint goes green (the contract is valid), then **contract-test goes red**.
 2. **Details** on contract-test → expand **Run contract test**. Microcks reports `currency' not found`: the running backend doesn't keep the promise.
 3. Optional: open the `Details: http://localhost:8080/#/tests/…` link from that log to show the test in Microcks.
+4. Back on the PR: **Merge** is blocked. Gitea protects `main` from step 2 on, so a red gate stops the merge, not only the build.
 
 **Terminal (Q2: does the code match the contract?):** the CI job loaded the PR's contract into Microcks, so the mock already speaks the new version. The real backend doesn't.
 ```bash

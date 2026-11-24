@@ -44,7 +44,7 @@ git switch feat/orders-server-and-paid-at
 git diff main -- contracts/
 git push -u origin feat/orders-server-and-paid-at
 ```
-PR → **both red** → **Details** of `openlint-openapi-check`: `rest17:2025-https-required` → **Details** of `asyncapi-lint`: `async11:2026-property-naming … 'paid_at' MUST be camelCase`. Open a link → the rule in Backstage. *"One set of guidelines, for REST and events, for humans and CI."*
+PR → **both red**, **Merge** blocked → **Details** of `openlint-openapi-check`: `rest17:2025-https-required` → **Details** of `asyncapi-lint`: `async11:2026-property-naming … 'paid_at' MUST be camelCase`. Open a link → the rule in Backstage. *"One set of guidelines, for REST and events, for humans and CI."*
 ```bash
 sed -i 's#http://orders.api-peak.com#https://orders.api-peak.com#' contracts/orders-openapi.yaml
 sed -i 's/^        paid_at:$/        paidAt:/' contracts/order-events-asyncapi.yaml
@@ -64,6 +64,9 @@ git push -u origin feat/add-contract-test-gates
 PR → **Files changed** → both green (cut) → **Merge**. Then:
 ```bash
 curl -s http://localhost:8080/rest/Orders+API/1.0.0/orders/123    # live REST mock from the contract
+```
+```bash
+curl -sN -u observer:observer-pw "mqtt://localhost:1883/OrderEventsAPI-1.0.0-orders%2Fv1%2F%7BorderId%7D%2Fcreated" | tr -c '[:print:]' '\n'   # MQTT mock events, Ctrl+C
 ```
 Microcks → **Order Events API**: the mock events from the contract's examples. *"Partners and consumers integrate today, before the code exists."* T2: `next`.
 

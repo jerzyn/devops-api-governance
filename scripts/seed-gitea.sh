@@ -69,6 +69,22 @@ echo "==> push governance repo: lean policy -> '$ORG/$GOV_REPO' main"
 sh /scripts/governance-bundle.sh /governance /tmp/gov-src
 seed_repo /tmp/gov-src "$GOV_REPO" "Governance policy: rulesets, gate scripts and guidelines"
 
+# Both consumer repos now hold their PR gates on main: a red PR must not be
+# mergeable, not even by the admin. The admin may still (force-)push main, as
+# this seed and `demo goto` do. `demo` re-applies this per step
+# (scripts/demo/prep-stage.sh, protect_main).
+for r in "$REPO" "$KAFKA_REPO"; do
+  echo "==> protect '$ORG/$r' main: merge needs green checks"
+  curl -sf -o /dev/null -u "$U:$P" -X DELETE "$API/repos/$ORG/$r/branch_protections/main" || true
+  curl -sf -o /dev/null -u "$U:$P" -X POST -H 'Content-Type: application/json' -d "{
+    \"rule_name\": \"main\",
+    \"enable_push\": true, \"enable_push_whitelist\": true, \"push_whitelist_usernames\": [\"$U\"],
+    \"enable_force_push\": true, \"enable_force_push_allowlist\": true, \"force_push_allowlist_usernames\": [\"$U\"],
+    \"enable_status_check\": true, \"status_check_contexts\": [],
+    \"block_admin_merge_override\": true
+  }" "$API/repos/$ORG/$r/branch_protections" || echo "    could not protect $r main"
+done
+
 echo "==> runner registration token -> /seed/runner-token"
 docker exec -u git gitea gitea actions generate-runner-token 2>/dev/null \
   | tr -d '\r\n' > /seed/runner-token
