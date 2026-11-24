@@ -48,6 +48,10 @@
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
+# Run from the repo, not from the caller's directory: goto deletes and
+# re-clones the demo clone, so a terminal inside it is left in a directory that
+# no longer exists, and `podman run` refuses to start from one.
+cd "$ROOT"
 . "$ROOT/scripts/demo/engine.sh"   # ENGINE (docker|podman), COMPOSE
 U="${GITEA_ADMIN_USER:-demo}"
 P="${GITEA_ADMIN_PASSWORD:-demo12345}"
