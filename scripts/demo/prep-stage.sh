@@ -866,7 +866,8 @@ PY
   "$ENGINE" logs --since 30s mqtt-subscriber 2>&1 | grep -c 'orders/v1/' >/dev/null \
     && pass "the MQTT subscriber receives events" || miss "the MQTT subscriber received nothing in the last 30 s (docker compose logs mqtt-subscriber)"
   t="$(backstage_token)"
-  curl -sf -H "Authorization: Bearer $t" "$BACKSTAGE/api/techdocs/static/docs/default/component/api-guidelines/index.html" \
+  # The MQTT rules live on their own page since the guidelines are split.
+  curl -sf -H "Authorization: Bearer $t" "$BACKSTAGE/api/techdocs/static/docs/default/component/api-guidelines/mqtt/index.html" \
     | grep >/dev/null -c 'id="topic-naming-api-peakmqtt12026-topic-naming"' && pass "API guidelines page built in Backstage" \
     || miss "API guidelines page not built: goto builds it"
 
