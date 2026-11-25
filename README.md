@@ -162,7 +162,7 @@ The Order Events API is an AsyncAPI 3.1 contract for order events. In the orders
 | 4. Deploy | KrakenD config generated from the contract | broker policy generated from the contract and the catalog: Mosquitto roles, or Kafka topics and ACLs |
 | 5. Breaking changes | oasdiff | `@asyncapi/diff` on the structure + Apicurio Registry compatibility on the payloads |
 
-Backstage lists the REST and the event APIs side by side, and the API guidelines in TechDocs hold the general, REST, async, MQTT and Kafka rules in one document; every lint finding, REST or events, links to its section.
+Backstage lists the REST and the event APIs side by side, and the API guidelines in TechDocs hold the general, REST, async, MQTT and Kafka rules, one page each in the sidebar; every lint finding, REST or events, links to its section.
 
 ```bash
 mkdir -p ~/demo && cd ~/demo
@@ -201,7 +201,7 @@ CI jobs run in `localhost/devops-api-governance-ci:latest` ([`ci-image/Dockerfil
 
 ### Governance rules (OpenLint)
 
-The ruleset extends OpenLint's built-in OpenAPI rules (the legacy `spectral:oas` set) with checks based on the API guidelines ([`governance/api-guidelines/docs/index.md`](governance/api-guidelines/docs/index.md)), for example:
+The ruleset extends OpenLint's built-in OpenAPI rules (the legacy `spectral:oas` set) with checks based on the API guidelines ([`governance/api-guidelines/docs/`](governance/api-guidelines/docs/): general, REST, async, MQTT and Kafka, one page each), for example:
 
 - OpenAPI 3.x.y (3.1.y recommended); `info.title` in Title Case ending with `API`; semver `info.version`.
 - camelCase JSON properties, PascalCase schema names, plural array names.

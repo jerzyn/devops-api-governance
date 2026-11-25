@@ -102,7 +102,7 @@ Repo: `http://localhost:3000/governance-demo/devops-api-governance`
 - **Read a job's log:** **Details** next to a check, then click a step row (e.g. "Run OpenLint (fail on errors)") to expand it.
 - **Merge:** when all checks are green, **Create merge commit** at the bottom of the Conversation tab, then confirm.
 - **Backstage:** `http://localhost:7007`. Left menu **APIs**, then the API's name.
-- **API guidelines in the catalog:** `http://localhost:7007/docs/default/component/api-guidelines` (Backstage → **Docs** → `api-guidelines`). Every OpenLint error links to its rule on this page.
+- **API guidelines in the catalog:** `http://localhost:7007/docs/default/component/api-guidelines` (Backstage → **Docs** → `api-guidelines`). One page per guideline set in the sidebar (General, REST, Async with MQTT and Kafka); every OpenLint error links to its rule.
 - **Mock:** `http://localhost:8080/rest/Orders+API/1.0.0/orders/123` returns the contract's example.
 - **Microcks:** `http://localhost:8080`. Test results are linked from the CI log (`Details: http://localhost:8080/#/tests/…`).
 
@@ -159,7 +159,7 @@ git push -u origin feat/add-openlint-gate        # hand the change over: the bra
 
 **Browser:**
 1. Open the PR (`compare/main...feat/add-openlint-gate`). Show **Files changed**: the one gate, running on every PR.
-2. Back on **Conversation**, `openlint-openapi-check` runs. While it runs, switch to the Backstage tab → **Docs** → `api-guidelines` and scroll the page: these are the rules the gate enforces. Say: "the guidelines are a document in the catalog, and the gate makes CI enforce them." Cut the wait in editing.
+2. Back on **Conversation**, `openlint-openapi-check` runs. While it runs, switch to the Backstage tab → **Docs** → `api-guidelines` and click through the sidebar (General, REST, Async): these are the rules the gate enforces. Say: "the guidelines are a document in the catalog, and the gate makes CI enforce them." Cut the wait in editing.
 3. Back on the PR, the check goes green (no contract changed, so it only confirms the gate works). Merge.
 
 **Part 2: the gate catches something.** Run `next` (off camera). Branch `feat/orders-server-url` moves the server URL to `http://orders.api-peak.com`.
@@ -175,7 +175,7 @@ git push -u origin feat/orders-server-url        # hand the change over: the bra
 1. Open the PR (`compare/main...feat/orders-server-url`). `openlint-openapi-check` goes **red**.
 2. **Details** → expand **Run OpenLint (fail on errors)**. The contract is otherwise clean, so this is the only finding:
    `error api-peak:rest17:2025-https-required server.url MUST use HTTPS.` and `✖ 1 problem (1 error, 0 warnings, 0 infos, 0 hints)`.
-3. **Guidelines live in the catalog** (seen in part 1). The line under the error is the rule's link, `http://localhost:7007/docs/default/component/api-guidelines/#https-api-peakrest172025-https`. Open it (click it, or copy it into the Backstage tab): Backstage opens the **API Guidelines** page at the HTTPS rule. Say: "same rule for humans and for CI, one source of truth, and the CI error points right at it."
+3. **Guidelines live in the catalog** (seen in part 1). The line under the error is the rule's link, `http://localhost:7007/docs/default/component/api-guidelines/rest/#https-api-peakrest172025-https`. Open it (click it, or copy it into the Backstage tab): Backstage opens the **API Guidelines** page at the HTTPS rule. Say: "same rule for humans and for CI, one source of truth, and the CI error points right at it."
 
 **Terminal (fix):**
 ```bash

@@ -1,10 +1,18 @@
 # TechDocs config for the governance policy repo. Renders the API Guidelines.
 # Docs live in the default docs/ directory (mkdocs requires docs_dir to be a
-# child of the config file). The single guidelines page is docs/index.md so
-# mkdocs emits index.html at the site root, which Backstage TechDocs serves.
-# techdocs-core is required by Backstage TechDocs.
+# child of the config file). One page per guideline set, so the left sidebar
+# lists them and the right one shows the whole table of contents of each.
+# index.md (the general guidelines) is the landing page.
+# A rule's link (in the OpenLint rulesets) points at its page:
+#   http://localhost:7007/docs/default/component/api-guidelines/<page>/#<heading-id>
+# (index.md: no <page>). techdocs-core is required by Backstage TechDocs.
 site_name: API Guidelines
 nav:
-  - API Guidelines: index.md
+  - General API Guidelines: index.md
+  - REST API Guidelines: rest.md
+  - Async API Guidelines:
+      - Async API Guidelines: async.md
+      - MQTT Guidelines: mqtt.md
+      - Kafka Guidelines: kafka.md
 plugins:
   - techdocs-core

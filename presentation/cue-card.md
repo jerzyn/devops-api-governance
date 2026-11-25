@@ -36,7 +36,7 @@ git switch feat/add-lint-gates
 git diff --stat main
 git push -u origin feat/add-lint-gates
 ```
-PR → **Files changed** (two workflows, one lint gate each) → while CI runs: Backstage → **Docs** → `api-guidelines`, scroll: REST, then the async and MQTT rules → back, both green → **Merge**. T2: `next`.
+PR → **Files changed** (two workflows, one lint gate each) → while CI runs: Backstage → **Docs** → `api-guidelines`, sidebar: General, REST, Async (MQTT, Kafka) → back, both green → **Merge**. T2: `next`.
 
 **2b**
 ```bash

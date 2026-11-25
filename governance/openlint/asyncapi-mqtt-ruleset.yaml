@@ -10,7 +10,7 @@ rules:
 
   api-peak:mqtt1:2026-topic-naming:
     description: Topics MUST be lowercase levels separated by '/', with {camelCase} parameters and no wildcards.
-    message: "Topic '{{value}}' MUST be lowercase levels (a-z, 0-9, -) or {camelCase} parameters separated by '/', without leading or trailing '/', wildcards or '$'. \n http://localhost:7007/docs/default/component/api-guidelines/#topic-naming-api-peakmqtt12026-topic-naming"
+    message: "Topic '{{value}}' MUST be lowercase levels (a-z, 0-9, -) or {camelCase} parameters separated by '/', without leading or trailing '/', wildcards or '$'. \n http://localhost:7007/docs/default/component/api-guidelines/mqtt/#topic-naming-api-peakmqtt12026-topic-naming"
     severity: error
     given: $.channels[?(@.address)].address
     then:
@@ -20,7 +20,7 @@ rules:
 
   api-peak:mqtt2:2026-topic-version:
     description: Every topic MUST contain a major version level v{MAJOR}.
-    message: "Topic '{{value}}' MUST contain a version level such as 'v1'. \n http://localhost:7007/docs/default/component/api-guidelines/#topic-versioning-api-peakmqtt22026-topic-version"
+    message: "Topic '{{value}}' MUST contain a version level such as 'v1'. \n http://localhost:7007/docs/default/component/api-guidelines/mqtt/#topic-versioning-api-peakmqtt22026-topic-version"
     severity: error
     given: $.channels[?(@.address)].address
     then:
@@ -30,7 +30,7 @@ rules:
 
   api-peak:mqtt6:2026-one-event-type-per-topic:
     description: Every channel MUST carry exactly one message type.
-    message: "Channel MUST carry exactly one message type; give each event type its own topic. \n http://localhost:7007/docs/default/component/api-guidelines/#one-event-type-per-topic-api-peakmqtt62026-one-event-type-per-topic"
+    message: "Channel MUST carry exactly one message type; give each event type its own topic. \n http://localhost:7007/docs/default/component/api-guidelines/mqtt/#one-event-type-per-topic-api-peakmqtt62026-one-event-type-per-topic"
     severity: error
     given: $.channels[*]
     then:
@@ -42,7 +42,7 @@ rules:
 
   api-peak:mqtt3:2026-qos:
     description: Every operation MUST declare bindings.mqtt.qos.
-    message: "Operation MUST declare its MQTT quality of service in bindings.mqtt.qos. \n http://localhost:7007/docs/default/component/api-guidelines/#quality-of-service-api-peakmqtt32026-qos"
+    message: "Operation MUST declare its MQTT quality of service in bindings.mqtt.qos. \n http://localhost:7007/docs/default/component/api-guidelines/mqtt/#quality-of-service-api-peakmqtt32026-qos"
     severity: error
     given: $.operations[*]
     then:
@@ -51,7 +51,7 @@ rules:
 
   api-peak:mqtt4:2026-retain:
     description: Every operation SHOULD declare bindings.mqtt.retain.
-    message: "Operation SHOULD declare bindings.mqtt.retain. \n http://localhost:7007/docs/default/component/api-guidelines/#retained-messages-api-peakmqtt42026-retain"
+    message: "Operation SHOULD declare bindings.mqtt.retain. \n http://localhost:7007/docs/default/component/api-guidelines/mqtt/#retained-messages-api-peakmqtt42026-retain"
     severity: warn
     given: $.operations[*]
     then:
@@ -60,7 +60,7 @@ rules:
 
   api-peak:mqtt5:2026-secure-transport:
     description: Servers MUST use secure-mqtt; plain mqtt only for a local broker.
-    message: "Server host '{{value}}' uses plain mqtt: use secure-mqtt (TLS); plain mqtt is only for localhost, 127.0.0.1 or mosquitto. \n http://localhost:7007/docs/default/component/api-guidelines/#secure-transport-api-peakmqtt52026-secure-transport"
+    message: "Server host '{{value}}' uses plain mqtt: use secure-mqtt (TLS); plain mqtt is only for localhost, 127.0.0.1 or mosquitto. \n http://localhost:7007/docs/default/component/api-guidelines/mqtt/#secure-transport-api-peakmqtt52026-secure-transport"
     severity: error
     given: $.servers[?(@.protocol === 'mqtt')].host
     then:

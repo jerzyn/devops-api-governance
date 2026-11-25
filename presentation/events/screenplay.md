@@ -82,7 +82,7 @@ Keep the same clone for the whole walk-through: `~/demo/order-events-api`, and `
 2. Push, open the PR. `asyncapi-lint` goes **red** in about 6 s. **Details**:
    ```
    error  api-peak:async11:2026-property-naming  Property 'paid_at' MUST be camelCase.
-    http://localhost:7007/docs/default/component/api-guidelines/#property-naming-api-peakasync112026-property-naming
+    http://localhost:7007/docs/default/component/api-guidelines/async/#property-naming-api-peakasync112026-property-naming
    ```
 3. Click the link: the guideline opens in Backstage TechDocs.
 4. Fix:
