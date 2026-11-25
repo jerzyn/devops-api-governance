@@ -48,6 +48,10 @@
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
+# Run from the repo, not from the caller's directory: goto deletes and
+# re-clones the demo clone, so a terminal inside it is left in a directory that
+# no longer exists, and `podman run` refuses to start from one.
+cd "$ROOT"
 . "$ROOT/scripts/demo/engine.sh"   # ENGINE (docker|podman), COMPOSE
 U="${GITEA_ADMIN_USER:-demo}"
 P="${GITEA_ADMIN_PASSWORD:-demo12345}"
@@ -648,15 +652,16 @@ fresh_clone() {  # $1 = clone dir, $2 = repo name, $3 = remote
 # temporary worktree, so whatever the recording terminal has checked out stays
 # untouched. $1 = clone, $2 = repo, $3 = remote, $4 = branch, $5 = message,
 # $6.. = change functions.
-# Protect main of $1 so a red PR can't be merged, once main holds the PR
-# gates. Gitea blocks a merge while any check failed or still runs, and also
-# when a PR has no checks at all, so stage 1 (no workflows yet) stays
-# unprotected. The demo user may still push and force-push main: goto rewrites
-# it. Admins can't override the checks either.
+# Protect main of $1 so no PR merges before every gate passed: Gitea blocks a
+# merge while any check failed or still runs. $2 is the branch the step's PR
+# comes from. Gitea also blocks a PR that has no checks at all, so only the
+# step 1 PR (the catalog entry, before any gate exists) is left unchecked.
+# From step 2 on the PR carries gates, the step 2 one too (its own workflows
+# run on it while main has none yet). The demo user may still push and
+# force-push main: goto rewrites it. Admins can't override the checks either.
 protect_main() {
-  local repo="$1" checks=false
-  curl -sf -o /dev/null -u "$U:$P" "$API/repos/$ORG/$repo/contents/.gitea/workflows/pr-governance.yml?ref=main" \
-    && checks=true
+  local repo="$1" checks=true
+  [ "${2:-}" = "$(branch_of stage1)" ] && checks=false
   curl -sf -o /dev/null -u "$U:$P" -X DELETE "$API/repos/$ORG/$repo/branch_protections/main" || true
   curl -sf -o /dev/null -u "$U:$P" -X POST -H 'Content-Type: application/json' -d "{
     \"rule_name\": \"main\",
@@ -666,7 +671,8 @@ protect_main() {
     \"block_on_rejected_reviews\": false, \"block_admin_merge_override\": true
   }" "$API/repos/$ORG/$repo/branch_protections" \
     || { echo "warning: could not protect $repo main" >&2; return 0; }
-  [ $checks = true ] && echo "$repo main: merge needs green checks" || echo "$repo main: no PR gates yet, merge not blocked"
+  [ $checks = true ] && echo "$repo main: merge needs every check green" \
+    || echo "$repo main: step 1 has no gates yet, merge not blocked"
 }
 
 make_local_branch() {
@@ -674,7 +680,7 @@ make_local_branch() {
   local g=(git -C "$clone") cur wt="$WORK/wt"
   [ -d "$clone/.git" ] || fresh_clone "$clone" "$repo" "$remote"
   check_clone "$clone" "$repo"
-  protect_main "$repo"
+  protect_main "$repo" "$branch"
   if git ls-remote --exit-code "$remote" "refs/heads/$branch" >/dev/null; then
     echo "Gitea already has branch $branch (from an earlier take). Run 'goto <target>' to reset, or delete that branch first." >&2
     exit 1
