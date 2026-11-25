@@ -117,6 +117,7 @@ git push -u origin feat/add-deploy-gates
 PR → **Files changed** → 3 gates each → **Details** `gateway-deploy-check`: **Generate krakend.json…**, **Deploy…**, **Run contract test through the gateway** · **Details** `broker-policy`: the generated policy, the checks from the outside → green → **Merge**.
 ```bash
 curl -i http://localhost:8090/orders/123                          # 200, through KrakenD
+curl -v -sN -u orders-subscriber:orders-subscriber-pw "mqtt://localhost:1883/orders%2Fv1%2F%2B%2Fcreated" 2>&1 | tr -c '[:print:]\n' '\n'   # the policy lets the catalog's consumer read; Ctrl+C
 demo deny                                                         # the broker says no to what the contract doesn't grant
 ```
 (slides: ACL animation) T2: `next`.
