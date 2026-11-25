@@ -3,10 +3,19 @@ info:
   title: Orders API
   version: 1.0.0
   description: |
-    Access to customer orders. Look up an order by its identifier and check
-    whether it has been paid.
+    Read access to the customer orders of API Peak. Shops, customer service
+    and the billing team use it to look up a single order by its identifier
+    and to see whether it has been paid.
 
-    Errors are returned as `application/problem+json` (RFC 9457).
+    The API is read-only: orders are created and paid elsewhere, and every
+    change of an order is also published as an event in the Order Events API
+    (`orders/v1/{orderId}/created`, `orders/v1/{orderId}/paid`), so a client
+    that needs to react to changes subscribes there instead of polling here.
+
+    Identifiers are opaque strings. Responses are JSON; fields may be added
+    over time, so clients must ignore fields they do not know. Errors are
+    returned as `application/problem+json` (RFC 9457), with a stable `type`
+    URL per error.
   contact:
     name: Orders team
     email: orders-team@api-peak.com

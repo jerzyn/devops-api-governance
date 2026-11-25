@@ -5,7 +5,7 @@ kind: API
 metadata:
   name: order-events-kafka-api
   title: Order Events Kafka API
-  description: Order lifecycle events on Kafka, described with AsyncAPI 3.1.0; payload schemas registered in Apicurio.
+  description: The lifecycle of a customer order as events on Kafka (AsyncAPI 3.1), keyed by order id; payload schemas in the schema registry.
   tags:
     - asyncapi
     - kafka
@@ -29,6 +29,7 @@ apiVersion: backstage.io/v1alpha1
 kind: Component
 metadata:
   name: orders-kafka-backend
+  title: Orders Backend (Kafka)
   description: Publishes the Order Events Kafka API's events, checked against the schema registry.
   tags:
     - kafka
@@ -47,6 +48,7 @@ apiVersion: backstage.io/v1alpha1
 kind: Component
 metadata:
   name: orders-kafka-subscriber
+  title: Orders Subscriber (Kafka)
   description: Consumes the Order Events Kafka API and logs every event.
   tags:
     - kafka
@@ -64,7 +66,7 @@ apiVersion: backstage.io/v1alpha1
 kind: Resource
 metadata:
   name: kafka-cluster
-  title: Kafka cluster
+  title: Kafka Cluster
   description: Single-node Apache Kafka (KRaft), apps on kafka:9092 (SASL/PLAIN), platform tools on kafka:9094.
   tags:
     - kafka
@@ -77,7 +79,7 @@ apiVersion: backstage.io/v1alpha1
 kind: Resource
 metadata:
   name: schema-registry
-  title: Schema registry
+  title: Schema Registry
   description: Apicurio Registry, the published payload schema of every topic with its compatibility rule.
   tags:
     - apicurio

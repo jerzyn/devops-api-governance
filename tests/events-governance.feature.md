@@ -72,7 +72,7 @@ Scenario: a property name that breaks the guidelines is red, the fix is green
   Then "asyncapi-lint" FAILS with
     """
     error  api-peak:async11:2026-property-naming  Property 'paid_at' MUST be camelCase.
-    http://localhost:7007/docs/default/component/api-guidelines/#property-naming-api-peakasync112026-property-naming
+    http://localhost:7007/docs/default/component/api-guidelines/async/#property-naming-api-peakasync112026-property-naming
     """
   And the link opens that guideline in Backstage TechDocs
   When I rename the property to "paidAt" and push

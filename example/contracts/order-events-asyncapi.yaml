@@ -2,9 +2,21 @@ asyncapi: 3.1.0
 info:
   title: Order Events API
   version: 1.0.0
-  description: >
-    Events the Orders backend publishes when an order changes state.
-    Consumers subscribe to the order's topic to follow its lifecycle.
+  description: |
+    The lifecycle of a customer order as events: the Orders backend publishes
+    one event each time an order changes state, so other services (shipping,
+    invoicing, notifications) react without polling the Orders API.
+
+    Each event type has its own MQTT topic, with the order id in the topic:
+    `orders/v1/{orderId}/created` when an order is accepted and
+    `orders/v1/{orderId}/paid` when its payment is confirmed. Subscribe to
+    `orders/v1/+/created` for all new orders, or to `orders/v1/{orderId}/#`
+    to follow one order.
+
+    Events are sent with QoS 1 (at least once) and not retained: a consumer
+    may see an event twice and should deduplicate by `orderId`. Payloads are
+    JSON and open: new optional fields can appear, so ignore what you do not
+    know. A breaking change gets a new topic version (`orders/v2/...`).
   contact:
     name: Platform team
     url: http://localhost:7007/catalog/default/group/platform-team

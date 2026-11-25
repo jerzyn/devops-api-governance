@@ -23,7 +23,7 @@ rules:
 
   api-peak:async1:2026-asyncapi:
     description: The API MUST be described with AsyncAPI 3.x.
-    message: "AsyncAPI version MUST be 3.x.y, found '{{value}}'. \n http://localhost:7007/docs/default/component/api-guidelines/#asyncapi-specification-api-peakasync12026-asyncapi"
+    message: "AsyncAPI version MUST be 3.x.y, found '{{value}}'. \n http://localhost:7007/docs/default/component/api-guidelines/async/#asyncapi-specification-api-peakasync12026-asyncapi"
     severity: error
     given: $.asyncapi
     then:
@@ -33,7 +33,7 @@ rules:
 
   api-peak:async2:2026-api-title:
     description: info.title MUST be Title Case and end with "API".
-    message: "info.title '{{value}}' MUST be Title Case and end with 'API'. \n http://localhost:7007/docs/default/component/api-guidelines/#api-title-api-peakasync22026-api-title"
+    message: "info.title '{{value}}' MUST be Title Case and end with 'API'. \n http://localhost:7007/docs/default/component/api-guidelines/async/#api-title-api-peakasync22026-api-title"
     severity: error
     given: $.info.title
     then:
@@ -43,7 +43,7 @@ rules:
 
   api-peak:async3:2026-api-version:
     description: info.version MUST be a semantic version.
-    message: "info.version '{{value}}' MUST be MAJOR.MINOR.PATCH. \n http://localhost:7007/docs/default/component/api-guidelines/#api-version-api-peakasync32026-api-version"
+    message: "info.version '{{value}}' MUST be MAJOR.MINOR.PATCH. \n http://localhost:7007/docs/default/component/api-guidelines/async/#api-version-api-peakasync32026-api-version"
     severity: error
     given: $.info.version
     then:
@@ -53,7 +53,7 @@ rules:
 
   api-peak:async4:2026-contact:
     description: info.contact SHOULD have name, url and email.
-    message: "info.contact SHOULD have {{property}}. \n http://localhost:7007/docs/default/component/api-guidelines/#contact-and-ownership-api-peakasync42026-contact"
+    message: "info.contact SHOULD have {{property}}. \n http://localhost:7007/docs/default/component/api-guidelines/async/#contact-and-ownership-api-peakasync42026-contact"
     severity: warn
     given: $.info
     then:
@@ -66,7 +66,7 @@ rules:
 
   api-peak:async5:2026-operation-summary:
     description: Every operation MUST have a summary that starts with a capital letter, at most 75 characters.
-    message: "{{error}} (operation summary: required, capital first letter, at most 75 characters). \n http://localhost:7007/docs/default/component/api-guidelines/#operation-summary-api-peakasync52026-operation-summary"
+    message: "{{error}} (operation summary: required, capital first letter, at most 75 characters). \n http://localhost:7007/docs/default/component/api-guidelines/async/#operation-summary-api-peakasync52026-operation-summary"
     severity: error
     given: $.operations[*]
     then:
@@ -83,7 +83,7 @@ rules:
 
   api-peak:async6:2026-operation-naming:
     description: Operation ids SHOULD be camelCase and start with send or receive.
-    message: "Operation id '{{property}}' SHOULD be camelCase and start with 'send' or 'receive'. \n http://localhost:7007/docs/default/component/api-guidelines/#operation-naming-api-peakasync62026-operation-naming"
+    message: "Operation id '{{property}}' SHOULD be camelCase and start with 'send' or 'receive'. \n http://localhost:7007/docs/default/component/api-guidelines/async/#operation-naming-api-peakasync62026-operation-naming"
     severity: warn
     given: $.operations
     then:
@@ -94,7 +94,7 @@ rules:
 
   api-peak:async7:2026-one-message-per-operation:
     description: An operation MUST reference exactly one message.
-    message: "An operation MUST reference exactly one message. \n http://localhost:7007/docs/default/component/api-guidelines/#one-message-per-operation-api-peakasync72026-one-message-per-operation"
+    message: "An operation MUST reference exactly one message. \n http://localhost:7007/docs/default/component/api-guidelines/async/#one-message-per-operation-api-peakasync72026-one-message-per-operation"
     severity: error
     given: $.operations[*]
     then:
@@ -106,7 +106,7 @@ rules:
 
   api-peak:async15:2026-own-channel-messages:
     description: An operation MUST only use messages defined on its own channel.
-    message: "{{error}} \n http://localhost:7007/docs/default/component/api-guidelines/#messages-from-own-channel-api-peakasync152026-own-channel-messages"
+    message: "{{error}} \n http://localhost:7007/docs/default/component/api-guidelines/async/#messages-from-own-channel-api-peakasync152026-own-channel-messages"
     severity: error
     resolved: false
     given: $.operations[*]
@@ -115,7 +115,7 @@ rules:
 
   api-peak:async8:2026-message-metadata:
     description: Every message MUST have a PascalCase name, a title, a contentType and a payload.
-    message: "Message MUST have a name in PascalCase, a title, a contentType and a payload. \n http://localhost:7007/docs/default/component/api-guidelines/#message-metadata-api-peakasync82026-message-metadata"
+    message: "Message MUST have a name in PascalCase, a title, a contentType and a payload. \n http://localhost:7007/docs/default/component/api-guidelines/async/#message-metadata-api-peakasync82026-message-metadata"
     severity: error
     given: $.channels[*].messages[*]
     then:
@@ -134,7 +134,7 @@ rules:
 
   api-peak:async9:2026-message-examples:
     description: Every message MUST have at least one example.
-    message: "Message MUST have at least one example. \n http://localhost:7007/docs/default/component/api-guidelines/#message-examples-api-peakasync92026-message-examples"
+    message: "Message MUST have at least one example. \n http://localhost:7007/docs/default/component/api-guidelines/async/#message-examples-api-peakasync92026-message-examples"
     severity: error
     given: $.channels[*].messages[*]
     then:
@@ -147,7 +147,7 @@ rules:
 
   api-peak:async10:2026-json-payloads:
     description: Payloads MUST be JSON.
-    message: "Content type '{{value}}' is not allowed: payloads MUST be application/json. \n http://localhost:7007/docs/default/component/api-guidelines/#json-payloads-api-peakasync102026-json-payloads"
+    message: "Content type '{{value}}' is not allowed: payloads MUST be application/json. \n http://localhost:7007/docs/default/component/api-guidelines/async/#json-payloads-api-peakasync102026-json-payloads"
     severity: error
     given:
       - $.defaultContentType
@@ -159,7 +159,7 @@ rules:
 
   api-peak:async11:2026-property-naming:
     description: Payload property names MUST be camelCase.
-    message: "Property '{{property}}' MUST be camelCase. \n http://localhost:7007/docs/default/component/api-guidelines/#property-naming-api-peakasync112026-property-naming"
+    message: "Property '{{property}}' MUST be camelCase. \n http://localhost:7007/docs/default/component/api-guidelines/async/#property-naming-api-peakasync112026-property-naming"
     severity: error
     given:
       - $.channels[*].messages[*].payload..properties
@@ -171,7 +171,7 @@ rules:
 
   api-peak:async12:2026-schema-naming:
     description: Reusable schema names SHOULD be PascalCase.
-    message: "Schema name '{{property}}' SHOULD be PascalCase. \n http://localhost:7007/docs/default/component/api-guidelines/#schema-naming-api-peakasync122026-schema-naming"
+    message: "Schema name '{{property}}' SHOULD be PascalCase. \n http://localhost:7007/docs/default/component/api-guidelines/async/#schema-naming-api-peakasync122026-schema-naming"
     severity: warn
     given: $.components.schemas
     then:
@@ -182,7 +182,7 @@ rules:
 
   api-peak:async13:2026-open-payloads:
     description: Payload schemas MUST NOT set additionalProperties to false.
-    message: "{{error}} Adding an optional field would break consumers. \n http://localhost:7007/docs/default/component/api-guidelines/#open-payload-schemas-api-peakasync132026-open-payloads"
+    message: "{{error}} Adding an optional field would break consumers. \n http://localhost:7007/docs/default/component/api-guidelines/async/#open-payload-schemas-api-peakasync132026-open-payloads"
     severity: error
     given: $.channels[*].messages[*].payload
     then:
