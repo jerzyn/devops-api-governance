@@ -5,7 +5,8 @@ apiVersion: backstage.io/v1alpha1
 kind: API
 metadata:
   name: orders-api
-  description: Orders API governed by the OpenLint ruleset and Microcks.
+  title: Orders API
+  description: 'Read access to customer orders (REST, OpenAPI 3.1): look up an order and its payment status.'
   tags:
     - openapi
     - orders
@@ -29,6 +30,7 @@ apiVersion: backstage.io/v1alpha1
 kind: Component
 metadata:
   name: backend
+  title: Orders Backend (REST)
   description: Minimal provider-under-test implementing the Orders API.
 spec:
   type: service
@@ -43,7 +45,7 @@ kind: API
 metadata:
   name: order-events-api
   title: Order Events API
-  description: Order lifecycle events over MQTT, described with AsyncAPI 3.1.0.
+  description: 'The lifecycle of a customer order as events on MQTT (AsyncAPI 3.1): order created, order paid.'
   tags:
     - asyncapi
     - mqtt
@@ -64,6 +66,7 @@ apiVersion: backstage.io/v1alpha1
 kind: Component
 metadata:
   name: orders-backend
+  title: Orders Backend (MQTT)
   description: Publishes the Order Events API's events (the provider under test).
   tags:
     - mqtt
@@ -81,6 +84,7 @@ apiVersion: backstage.io/v1alpha1
 kind: Component
 metadata:
   name: orders-subscriber
+  title: Orders Subscriber (MQTT)
   description: Consumes the Order Events API and logs every event.
   tags:
     - mqtt
@@ -98,7 +102,7 @@ apiVersion: backstage.io/v1alpha1
 kind: Resource
 metadata:
   name: mqtt-broker
-  title: MQTT broker
+  title: MQTT Broker
   description: Eclipse Mosquitto, the broker the order events travel through (mqtt://mosquitto:1883).
   tags:
     - mqtt
@@ -112,6 +116,7 @@ apiVersion: backstage.io/v1alpha1
 kind: System
 metadata:
   name: orders
+  title: Orders
   description: Order processing. The Orders API serves an order, the order lifecycle events connect the services.
 spec:
   owner: group:default/platform-team
@@ -120,6 +125,7 @@ apiVersion: backstage.io/v1alpha1
 kind: Group
 metadata:
   name: platform-team
+  title: Platform Team
   description: Owns API governance tooling and the demo platform.
 spec:
   type: team

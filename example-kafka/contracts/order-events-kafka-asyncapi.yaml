@@ -2,9 +2,20 @@ asyncapi: 3.1.0
 info:
   title: Order Events Kafka API
   version: 1.0.0
-  description: >
-    Events the Orders backend publishes to Kafka when an order changes state.
-    Consumers read each event type from its own topic.
+  description: |
+    The lifecycle of a customer order as events on Kafka: the Orders backend
+    publishes one event each time an order changes state, for services that
+    consume orders in bulk or replay them (analytics, invoicing, search).
+
+    Each event type has its own topic: `orders.order-created.v1` when an
+    order is accepted and `orders.order-paid.v1` when its payment is
+    confirmed. Every message is keyed by the order id, so all events of one
+    order land on one partition and arrive in order.
+
+    Topics keep events for 7 days, so a consumer can replay after an outage.
+    Payload schemas are registered in the schema registry and change only in
+    forward-compatible ways; new optional fields can appear, so ignore what
+    you do not know. A breaking change gets a new topic (`...v2`).
   contact:
     name: Platform team
     url: http://localhost:7007/catalog/default/group/platform-team

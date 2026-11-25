@@ -6,6 +6,7 @@ apiVersion: backstage.io/v1alpha1
 kind: Component
 metadata:
   name: api-guidelines
+  title: API Guidelines
   description: API Peak API Guidelines — design-first standards for REST and event-driven APIs, enforced by the OpenLint rulesets.
   tags:
     - governance
