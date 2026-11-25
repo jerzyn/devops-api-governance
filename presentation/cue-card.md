@@ -46,8 +46,14 @@ git push -u origin feat/orders-server-and-paid-at
 ```
 PR → **both red**, **Merge** blocked → **Details** of `openlint-openapi-check`: `rest17:2025-https-required` → **Details** of `asyncapi-lint`: `async11:2026-property-naming … 'paid_at' MUST be camelCase`. Open a link → the rule in Backstage. *"One set of guidelines, for REST and events, for humans and CI."*
 ```bash
-sed -i 's#http://orders.api-peak.com#https://orders.api-peak.com#' contracts/orders-openapi.yaml
-sed -i 's/^        paid_at:$/        paidAt:/' contracts/order-events-asyncapi.yaml
+vi +27 contracts/orders-openapi.yaml
+```
+Line 27: `  - url: http://orders.api-peak.com` → `  - url: https://orders.api-peak.com`
+```bash
+vi +132 contracts/order-events-asyncapi.yaml
+```
+Line 132: `        paid_at:` → `        paidAt:`
+```bash
 git diff
 git commit -am "Use HTTPS, name it paidAt"
 git push origin feat/orders-server-and-paid-at
@@ -83,8 +89,14 @@ curl -s http://localhost:8081/orders/123                          # backend: doe
 ```
 *"A contract is a promise. The code keeps it."*
 ```bash
-sed -i 's/isPaid: true,$/isPaid: true, currency: "PLN",/' backend/server.js
-sed -i 's/createdAt: new Date().toISOString() }/createdAt: new Date().toISOString(), currency: "PLN" }/' events-backend/server.js
+vi +55 backend/server.js
+```
+Line 55: `    isPaid: true,` → `    isPaid: true, currency: "PLN",`
+```bash
+vi +33 events-backend/server.js
+```
+Line 33: `  return { orderId, createdAt: new Date().toISOString() };` → `  return { orderId, createdAt: new Date().toISOString(), currency: "PLN" };`
+```bash
 git diff
 git commit -am "Send the currency the contract promises"
 git push origin feat/orders-currency
@@ -127,9 +139,15 @@ git push -u origin feat/orders-channel-and-is-paid
 ```
 PR → **both breaking-changes red**, the later gates **Skipped** (wait until they turn grey) → **Details** REST: `new-required-request-parameter … channel` · **Details** events: `not FORWARD-compatible` (consumers still read `isPaid`).
 ```bash
-sed -i '/name: channel/,/required:/ s/required: true/required: false/' contracts/orders-openapi.yaml
-git checkout main -- contracts/order-events-asyncapi.yaml
-sed -i '/^        isPaid:$/{n;s/$/\n          deprecated: true/}' contracts/order-events-asyncapi.yaml
+vi +52 contracts/orders-openapi.yaml
+```
+Line 52 (under `- name: channel`): `          required: true` → `          required: false`
+```bash
+git checkout main -- contracts/order-events-asyncapi.yaml    # isPaid back
+vi +135 contracts/order-events-asyncapi.yaml
+```
+After line 135 (`          type: boolean`, under `isPaid:`), add: `          deprecated: true`
+```bash
 git diff
 git commit -am "Make channel optional, deprecate isPaid instead of removing it"
 git push origin feat/orders-channel-and-is-paid
