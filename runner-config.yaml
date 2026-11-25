@@ -1,6 +1,11 @@
 # act_runner config: job containers join gitea-network so checkout can reach
 # Gitea at http://gitea:3000/. Mounted read-only by the gitea-runner service.
 runner:
+  # Every step's PR runs two workflows (REST and events) and the Kafka repo a
+  # third; with the default capacity of 1 their jobs ran one at a time,
+  # interleaved. 4 runs them side by side: a step's checks take about half
+  # as long. The gates of one workflow still run in order (needs:).
+  capacity: 4
   # Overrides the labels stored at registration. Jobs run in the CI image
   # (ci-image/Dockerfile, built by the ci-image compose service), which has
   # OpenLint, oasdiff, the KrakenD CLI and js-yaml preinstalled.
