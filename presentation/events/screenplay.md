@@ -18,7 +18,7 @@ Every step below was run end to end against the stack, with real PRs and real CI
 |---|---|---|
 | 1 | Catalog | Merge a `catalog-info.yaml`, and the Order Events API appears in Backstage, rendered as AsyncAPI docs, with who produces and who consumes it. No CI yet. |
 | 2 | Lint | Red check with one finding, `api-peak:async11:2026-property-naming`, whose link opens the guideline in Backstage. Renaming `paid_at` to `paidAt` turns it green. |
-| 3 | Contract test (Microcks) | Microcks listens on the broker: `required property 'currency' not found` in all 5 messages the backend sent. Making `currency` optional turns it green. |
+| 3 | Contract test (Microcks) | Microcks listens on the broker: `required property 'currency' not found` in all 5 messages the backend sent. The backend that sends `currency` (deployed by the gate) turns it green. |
 | 4 | Broker policy | The policy is generated from the contract and the catalog and applied to Mosquitto. Then `demo events deny`: the broker refuses a topic the contract does not have. The ACL animation in the slides follows. |
 | 5 | Breaking changes (diff + Apicurio) | Removing `isPaid`: the registry says the new schema is not FORWARD-compatible, and the later gates are skipped. Deprecating it instead turns everything green. |
 | 6 | Kafka | The same four gates on the Kafka repo: an optional field passes, with topics and ACLs applied to Kafka; removing `isPaid` is red there too. |
@@ -87,7 +87,10 @@ Keep the same clone for the whole walk-through: `~/demo/order-events-api`, and `
 3. Click the link: the guideline opens in Backstage TechDocs.
 4. Fix:
    ```bash
-   sed -i 's/^        paid_at:$/        paidAt:/' contracts/order-events-asyncapi.yaml
+   vi +132 contracts/order-events-asyncapi.yaml
+   ```
+   Line 132: `        paid_at:` → `        paidAt:`
+   ```bash
    git commit -am "Name it paidAt" && git push
    ```
    Green. Merge.
@@ -109,12 +112,15 @@ Keep the same clone for the whole walk-through: `~/demo/order-events-api`, and `
    PASS  SEND sendOrderPaid  on orders/v1/+/paid  (5 messages, 0 invalid)
    ```
 3. Optional: open the report link in Microcks: each received message with its validation error.
-4. Fix (the backend does not have the field yet, so it stays optional):
+4. Fix the backend, not the contract: it sends the currency the contract promises.
    ```bash
-   sed -i 's/required: \[orderId, createdAt, currency\]/required: [orderId, createdAt]/' contracts/order-events-asyncapi.yaml
-   git commit -am "currency is optional until the backend sends it" && git push
+   vi +33 events-backend/server.js
    ```
-   Green. Merge.
+   Line 33: `  return { orderId, createdAt: new Date().toISOString() };` → `  return { orderId, createdAt: new Date().toISOString(), currency: "PLN" };`
+   ```bash
+   git commit -am "Send the currency the contract promises" && git push
+   ```
+   `contract-test` first deploys the PR's `events-backend/` into `mqtt-backend` (step **Deploy the PR's backend**), then listens. Green. Merge.
 
 ## Stage 4: broker policy
 
@@ -153,8 +159,11 @@ Keep the same clone for the whole walk-through: `~/demo/order-events-api`, and `
    `contract-test` and `broker-policy` are **skipped**.
 3. Fix: keep the field, mark it deprecated:
    ```bash
-   git checkout main -- contracts/order-events-asyncapi.yaml
-   sed -i '/^        isPaid:$/{n;s/$/\n          deprecated: true/}' contracts/order-events-asyncapi.yaml
+   git checkout main -- contracts/order-events-asyncapi.yaml    # isPaid back
+   vi +135 contracts/order-events-asyncapi.yaml
+   ```
+   After line 135 (`          type: boolean`, under `isPaid:`), add: `          deprecated: true`
+   ```bash
    git commit -am "Deprecate isPaid instead of removing it" && git push
    ```
    All four gates green in about 45 s. Merge; **Publish API (main)** registers the new version.
@@ -186,7 +195,7 @@ Never run `docker compose up` during a recording: `gitea-seed` force-pushes the 
 | `2-red` | + lint gate | `feat/order-paid-at` |
 | `3` | + `paidAt` | `feat/add-contract-test-gate` |
 | `3-red` | + contract-test gate | `feat/order-currency` |
-| `4` | + optional `currency` | `feat/add-broker-policy-gate` |
+| `4` | + required `currency`, the backend sends it | `feat/add-broker-policy-gate` |
 | `5` | + broker-policy gate | `feat/add-breaking-changes-gate` |
 | `5-red` | + breaking-changes gate, main-publish | `feat/drop-is-paid` |
 | `kafka` | + `isPaid` deprecated (all MQTT steps merged) | `feat/kafka-paid-at` (Kafka repo) |
