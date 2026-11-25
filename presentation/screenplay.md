@@ -255,8 +255,14 @@ curl -s http://localhost:8081/orders/123
 
 **Terminal (fix):** say it out loud: "A contract is a promise. We don't weaken the promise, we make the code keep it." Both backends start sending the currency; the contract stays as it is.
 ```bash
-sed -i 's/isPaid: true,$/isPaid: true, currency: "PLN",/' backend/server.js
-sed -i 's/createdAt: new Date().toISOString() }/createdAt: new Date().toISOString(), currency: "PLN" }/' events-backend/server.js
+vi +55 backend/server.js
+```
+Line 55: `    isPaid: true,` → `    isPaid: true, currency: "PLN",`
+```bash
+vi +33 events-backend/server.js
+```
+Line 33: `  return { orderId, createdAt: new Date().toISOString() };` → `  return { orderId, createdAt: new Date().toISOString(), currency: "PLN" };`
+```bash
 git diff                                         # currency: "PLN" in both backends, the contracts untouched
 git commit -am "Send the currency the contract promises"
 git push origin feat/orders-currency
