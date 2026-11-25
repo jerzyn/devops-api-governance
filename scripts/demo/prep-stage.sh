@@ -405,12 +405,34 @@ push_state() {
 }
 
 # How many layers Gitea main holds: compare it with every replayed state.
+# 0 when Gitea main ($1) holds demo state $2. Hand edits made on camera
+# (vi) differ from the scripted ones in whitespace and line breaks, so
+# whitespace doesn't count; the backends' code doesn't either (the contracts,
+# workflows and catalog tell the states apart, and the deployed code is
+# checked by the contract tests).
+same_state() {
+  python3 - "$1" "$2" <<'PY'
+import os, re, sys
+def files(root):
+    out = {}
+    for d, dirs, fs in os.walk(root):
+        rel = os.path.relpath(d, root)
+        if rel.split(os.sep)[0] in ('backend', 'events-backend', 'subscriber', 'events-subscriber'):
+            continue
+        for f in fs:
+            path = os.path.normpath(os.path.join(rel, f))
+            out[path] = re.sub(rb'\s+', b'', open(os.path.join(d, f), 'rb').read())
+    return out
+sys.exit(0 if files(sys.argv[1]) == files(sys.argv[2]) else 1)
+PY
+}
+
 detect_layers() {
   local cur="$WORK/cur" k
   rm -rf "$cur"; git clone -q "$REMOTE" "$cur"; rm -rf "$cur/.git"
   for ((k = 0; k <= ${#LAYERS[@]}; k++)); do
     build_state "$WORK/st" "$k"
-    diff -rq "$cur" "$WORK/st" >/dev/null 2>&1 && { echo "$k"; return 0; }
+    same_state "$cur" "$WORK/st" && { echo "$k"; return 0; }
   done
   return 1
 }
@@ -419,7 +441,7 @@ detect_kafka_layers() {
   rm -rf "$cur"; git clone -q "$KREMOTE" "$cur"; rm -rf "$cur/.git"
   for ((k = 0; k <= ${#KLAYERS[@]}; k++)); do
     build_kafka_state "$WORK/kst" "$k"
-    diff -rq "$cur" "$WORK/kst" >/dev/null 2>&1 && { echo "$k"; return 0; }
+    same_state "$cur" "$WORK/kst" && { echo "$k"; return 0; }
   done
   return 1
 }
