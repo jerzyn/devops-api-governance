@@ -147,6 +147,23 @@ components:
 
 ---
 
+## [Message Description (api-peak:async16:2026-message-description)](#message-description)
+
+Every message **MUST** have a `description`: when it is sent and what it means for a consumer. A consumer, human or agent, reads the contract and nothing else, so a message without a description leaves it guessing.
+
+#### Example
+
+```yaml
+components:
+  messages:
+    OrderCreated:
+      name: OrderCreated
+      title: Order created
+      description: Sent once, when the backend accepts a new order.
+```
+
+---
+
 ## [Message Examples (api-peak:async9:2026-message-examples)](#message-examples)
 
 Every message **MUST** have at least one example. Examples drive the mock events and are the first thing a consumer reads.

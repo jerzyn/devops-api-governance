@@ -87,9 +87,9 @@ Keep the same clone for the whole walk-through: `~/demo/order-events-api`, and `
 3. Click the link: the guideline opens in Backstage TechDocs.
 4. Fix:
    ```bash
-   vi +132 contracts/order-events-asyncapi.yaml
+   vi +134 contracts/order-events-asyncapi.yaml
    ```
-   Line 132: `        paid_at:` → `        paidAt:`
+   Line 134: `        paid_at:` → `        paidAt:`
    ```bash
    git commit -am "Name it paidAt" && git push
    ```
@@ -160,9 +160,9 @@ Keep the same clone for the whole walk-through: `~/demo/order-events-api`, and `
 3. Fix: keep the field, mark it deprecated:
    ```bash
    git checkout main -- contracts/order-events-asyncapi.yaml    # isPaid back
-   vi +135 contracts/order-events-asyncapi.yaml
+   vi +137 contracts/order-events-asyncapi.yaml
    ```
-   After line 135 (`          type: boolean`, under `isPaid:`), add: `          deprecated: true`
+   After line 137 (`          type: boolean`, under `isPaid:`), add: `          deprecated: true`
    ```bash
    git commit -am "Deprecate isPaid instead of removing it" && git push
    ```

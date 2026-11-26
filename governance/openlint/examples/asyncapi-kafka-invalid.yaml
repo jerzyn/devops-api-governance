@@ -84,6 +84,7 @@ components:
     OrderCreated:
       name: OrderCreated
       title: Order created
+      description: An order was accepted. Sent once per order, when the backend accepts it.
       contentType: application/json
       payload:
         $ref: '#/components/schemas/OrderCreatedPayload'
@@ -101,6 +102,7 @@ components:
     OrderPaid:
       name: OrderPaid
       title: Order paid
+      description: The payment for an order was confirmed. Sent once per order.
       contentType: application/json
       payload:
         $ref: '#/components/schemas/OrderPaidPayload'

@@ -132,6 +132,15 @@ rules:
       - field: payload
         function: truthy
 
+  api-peak:async16:2026-message-description:
+    description: Every message MUST have a description that says when it is sent and what it means.
+    message: "Message MUST have a description. \n http://localhost:7007/docs/default/component/api-guidelines/async/#message-description-api-peakasync162026-message-description"
+    severity: error
+    given: $.channels[*].messages[*]
+    then:
+      field: description
+      function: truthy
+
   api-peak:async9:2026-message-examples:
     description: Every message MUST have at least one example.
     message: "Message MUST have at least one example. \n http://localhost:7007/docs/default/component/api-guidelines/async/#message-examples-api-peakasync92026-message-examples"

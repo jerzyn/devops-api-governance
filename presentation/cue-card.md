@@ -50,9 +50,9 @@ vi +27 contracts/orders-openapi.yaml
 ```
 Line 27: `  - url: http://orders.api-peak.com` → `  - url: https://orders.api-peak.com`
 ```bash
-vi +132 contracts/order-events-asyncapi.yaml
+vi +134 contracts/order-events-asyncapi.yaml
 ```
-Line 132: `        paid_at:` → `        paidAt:`
+Line 134: `        paid_at:` → `        paidAt:`
 ```bash
 git diff
 git commit -am "Use HTTPS, name it paidAt"
@@ -145,9 +145,9 @@ vi +52 contracts/orders-openapi.yaml
 Line 52 (under `- name: channel`): `          required: true` → `          required: false`
 ```bash
 git checkout main -- contracts/order-events-asyncapi.yaml    # isPaid back
-vi +135 contracts/order-events-asyncapi.yaml
+vi +137 contracts/order-events-asyncapi.yaml
 ```
-After line 135 (`          type: boolean`, under `isPaid:`), add: `          deprecated: true`
+After line 137 (`          type: boolean`, under `isPaid:`), add: `          deprecated: true`
 ```bash
 git diff
 git commit -am "Make channel optional, deprecate isPaid instead of removing it"
