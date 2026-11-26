@@ -119,11 +119,6 @@ The published JSON schema corresponding to the expected request and response bod
 ---
 
 ## [Single Source of Truth (api-peak:general12:2025-single-source-of-truth)](#single-source-of-truth)
-<!--
-Azure API Center is the primary platform supporting the API-first approach. Azure API Center **MUST** be used when designing an API.
-
-Every API description **MUST** be stored in Azure API Center within the API Peak team. -->
-
 Interface definition schema files, such as:
 
 - OpenAPI Specification (OAS)/Swagger
@@ -132,8 +127,3 @@ Interface definition schema files, such as:
 - Avro Schema
 
 and similar, located in the project repository, **MUST** be the single source of truth for the API definition.
-
-<!-- Azure API Center **SHOULD** be fed directly from the project repository with a design file, such as
-
-NOTE: Azure API Center supports the API-first approach in many ways:
-For example, it validates the correctness of the API description and automatically generates API documentation, making it easier for stakeholders to discuss. (No more exchanging emails with the API description between stakeholders) -->
