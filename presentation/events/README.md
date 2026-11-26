@@ -7,7 +7,6 @@ The event API now goes through the demo **in the same pull requests as the REST 
 | File | What it is |
 |------|------------|
 | [`acl-animation.html`](acl-animation.html) | The broker policy, animated for the slides: what the contract allows passes the broker, the rest is denied. Open it in a browser; Space or → steps, `A` autoplays, `K` switches between MQTT and Kafka (`?protocol=kafka&autoplay` in the URL does the same). Works offline. |
-| [`screenplay.md`](screenplay.md) | The script of the earlier event recordings, made before the event API joined the orders repo: what each stage shows, the expected log lines, CI durations. The event half of each step still looks like this. |
 | `acl-*.png` | Stills of the animation. |
 
 ## The event half of each step

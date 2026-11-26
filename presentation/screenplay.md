@@ -1,416 +1,368 @@
-# Screenplay: DevOps API Governance — Iterative Build-Up Demo
+# Screenplay: DevOps API Governance, built up gate by gate
 
-> **Note.** This screenplay was written for the recordings of the REST demo on its own. The demo now runs the REST and the event API in the same PRs, with new branch names and fixes for both contracts: [`cue-card.md`](cue-card.md) has the current steps. The narrative, the browser click-paths and the REST half of each step below still apply.
+The demo grows a delivery pipeline one gate at a time, in five steps. Every step is **one pull request in the orders repo** that governs both of its APIs at once:
 
-Five short recordings, one per pipeline maturity stage. Each stage adds one gate and shows it working. The recordings are played back during the talk, not run live.
+- the **Orders API**, REST, `contracts/orders-openapi.yaml`;
+- the **Order Events API**, events on MQTT, `contracts/order-events-asyncapi.yaml`.
 
-Two parts happen in every stage:
-- **Terminal:** git commands in your clone of the Gitea repo.
-- **Browser:** Gitea (PR, changed files, CI logs), Backstage, Microcks. Every browser step below is a click-path, so you can do the whole demo solo and record it in one go.
+Each PR runs two workflows with the same gates: **PR API governance (REST)** and **PR API governance (events)**. After step 5, the same gates run on the Kafka version of the event API, in a repo of its own.
+
+Two parts happen in every step:
+- **Terminal:** git commands in the demo clone of the Gitea repo.
+- **Browser:** Gitea (PR, changed files, CI logs), Backstage, Microcks. Every browser step below is a click-path, so you can run the whole demo alone, live or recorded.
 
 Between steps there is one off-camera command, always the same: `demo next`.
 
-**The `demo` command** wraps every script in `scripts/demo/` and completes with Tab (`demo <Tab>`, `demo goto <Tab>`). One-time setup: `~/projekty/devops-api-governance/scripts/demo/demo install` (adds one line to `~/.bashrc`), then open a new terminal. `demo help` lists everything. It works from any directory.
+**The `demo` command** wraps every script in `scripts/demo/` and completes with Tab (`demo <Tab>`, `demo goto <Tab>`). One-time setup, from the root of this repo: `scripts/demo/demo install` (adds one line to `~/.bashrc`), then open a new terminal. `demo help` lists everything. It works from any directory.
 
-**While recording, use `cue-card.md`**: the same steps on one page (commands to paste, clicks, one line to say). This file explains them.
-
-Every step below was run end to end against the stack: every command from this page in a throwaway clone, real PRs, real CI, every red/fix loop and every `goto` target. Durations are measured from that run.
+**While presenting, use [`cue-card.md`](cue-card.md)**: the same steps on one page (commands, clicks, one line to say). This file explains them.
 
 ## Run of show
 
-| Stage | Adds | Key shot (what the audience should remember) |
-|---|---|---|
-| 1 | Catalog | Merge a `catalog-info.yaml`, and `orders-api` appears in Backstage by itself. No CI yet. |
-| 2 | OpenLint | Red check with exactly one finding, `api-peak:rest17:2025-https-required`, whose link opens the rule in the API catalog: the guidelines live in Backstage. One-line fix turns it green. |
-| 3 | Mocks + contract test (Microcks) | The pushed contract is a live mock at once; then the mock returns a `currency` the running backend doesn't, and contract-test catches it (`currency' not found`). |
-| 4 | API gateway (KrakenD) | `curl` through the gateway goes from 404 (no routes yet) to 200 after the merge, with the generated `krakend.json` in the CI log. |
-| 5 | Backwards compatibility (oasdiff) | `new-required-request-parameter` goes red, and downstream gates show as skipped (grey). Making it optional turns everything green. |
+| Step | Adds | REST · what the audience should remember | Events · what the audience should remember |
+|---|---|---|---|
+| 1 | Catalog | Merge one `catalog-info.yaml`: `orders-api` appears in Backstage by itself. No CI yet. | `order-events-api` appears at the same moment, rendered as AsyncAPI, with its producer, consumer and broker. |
+| 2 | Guidelines (OpenLint) | `api-peak:rest17:2025-https-required` goes red, its link opens the rule in Backstage. | `api-peak:async11:2026-property-naming`: `paid_at` MUST be camelCase. One fix commit turns both green. |
+| 3 | Mocks + contract test (Microcks) | The contract is a live mock; then it promises a `currency` the backend doesn't send: `currency' not found`. | Microcks listens on the broker: `required property 'currency' not found` in every message. Both backends send it, green. |
+| 4 | Deploy from the contract | KrakenD config generated from the contract: `curl` goes from 404 to 200. | Broker policy generated from the contract and the catalog; `demo deny` shows the broker refusing the rest. |
+| 5 | Breaking changes | oasdiff: `new-required-request-parameter`, the later gates are skipped. `channel` becomes optional. | The schema registry: removing `isPaid` is not FORWARD-compatible. Deprecating it instead passes. |
+| Kafka | Same gates, other broker | (none) | An optional field passes all four gates on Kafka; removing `isPaid` is red there too. |
 
-## How every stage works
+## How every step works
 
-Stages 2, 3 and 5 have two parts. **Part 1** installs the new gate. **Part 2** is the real shot: the gate catches a bad change (red, one-line fix, green). Stages 1 and 4 have a single part.
+Steps 2, 3 and 5 have two parts. **Part 1** installs the new gates. **Part 2** is the real shot: the gates catch a bad change (red, fix, green). Steps 1 and 4 have a single part.
 
-1. **Prep (off camera):** `demo next`. It looks at Gitea `main`, works out which step comes next and creates that step's branch **in your demo clone**, committed but **not pushed**. It first brings the clone's `main` up to Gitea `main`, and it doesn't touch what your terminal has checked out, so you can run it while the recording terminal sits in the clone. Nothing is typed from scratch on camera, and the red states are red every time. Run it after the previous PR is merged (it tells you if you are too early). After a `goto`, the next branch is already there.
+1. **Prep (off camera):** `demo next`. It reads Gitea `main`, works out which step comes next and creates that step's branch **in your demo clone**, committed but **not pushed**. It first brings the clone's `main` up to Gitea `main`, and it doesn't touch what your terminal has checked out, so you can run it while the presenting terminal sits in the clone. Nothing is typed from scratch, and the red states are red every time. Run it after the previous PR is merged (it tells you if you are too early). After a `goto`, the next branch is already there.
 2. **Terminal, show and push:** `git switch <branch>`, show the change, then `git push -u origin <branch>`.
-   - Contract changes are a few lines: show them in the terminal with `git diff main -- contracts/`.
-   - Workflow changes are 40–60 lines of YAML: in the terminal only `git diff --stat main`, and show the change itself in the browser (**Files changed** tab of the PR), where it is readable.
-   - The push is the developer handing the change over: normal local work, no `git fetch`, no branches appearing from the server.
-3. **Browser, PR and checks:** open the PR (`compare/main...<branch>` → **New Pull Request** → **Create Pull Request**). Let the checks run and open a check's **Details** for the one log line that matters (each stage names it). The gate's verdict is the payload of the recording.
-4. **Terminal, fix (red demos only):** one `sed` edits the contract, then `git commit -am` and `git push`. The push updates the same PR, so the checks re-run by themselves and go from red to green in the browser.
-5. **Browser, merge:** **Create merge commit**. `main` now contains this step, and the next step starts from that. (Stage 1 has a PR too, but no checks run on it: no gate exists yet.)
+   - Contract changes are a few lines: show them with `git diff main -- contracts/`.
+   - Workflow changes are long YAML: in the terminal only `git diff --stat main`, and the change itself in the PR's **Files changed** tab, where it is readable.
+3. **Browser, PR and checks:** open the PR (`compare/main...<branch>` → **New Pull Request** → **Create Pull Request**). Both workflows start. Open a check's **Details** for the one log line that matters (each step names it).
+4. **Terminal, fix (red parts only):** edit the files in `vi` at the line the cue card gives, `git diff`, `git commit -am`, `git push`. The push updates the same PR, so the checks re-run and go from red to green.
+5. **Browser, merge:** **Create merge commit**. `main` of both consumer repos is protected from step 2 on: Gitea allows the merge only when every check is green.
 
-**Part 1 is short on purpose.** A PR that only adds a workflow has nothing for the new gate to find (OpenLint logs "skipping", oasdiff has nothing to compare), so its green check says little. Show what is added (**Files changed**), let the checks start, cut the wait in editing, merge. Spend the time on part 2.
+**Part 1 is short on purpose.** A PR that only adds workflows has nothing for the new gates to find, so its green checks say little. Show what is added (**Files changed**), let the checks start, cut or talk over the wait, merge. Spend the time on part 2.
 
 Three things to keep in mind:
-- Keep the same clone (`~/demo/orders-api`) for the whole walk-through. `next` adds each branch to it. `goto` replaces it with a fresh one.
+- Keep the same clone (`~/demo/orders-api`, Kafka: `~/demo/order-events-kafka-api`) for the whole walk-through. `next` adds each branch to it. `goto` replaces it with a fresh one.
 - A `git push` does not open a PR in Gitea (the "Create a new pull request" line it prints is only a hint). PRs are always opened in the browser.
-- `git diff main` is right because `next` updates your local `main` to Gitea `main` just before creating the branch. No `git fetch` or `origin/main` on camera.
+- `git diff main` is right because `next` updates your local `main` to Gitea `main` just before creating the branch. No `git fetch` or `origin/main` on screen.
 
-If a take goes wrong, don't redo the earlier stages: use `demo goto <target>` (see "Retakes").
+If a step goes wrong, don't redo the earlier steps: use `demo goto <target>` (see "Retakes").
 
 ---
 
-## Before recording
+## Before you start
 
-1. **Stack up** (see appendix).
-2. **For the final recording only: `demo fresh`.** It wipes the demo Gitea (all PRs, CI runs and branches from rehearsals), brings the stack up again and runs `goto 1`. PR numbers then start at #1 and the Actions tab is empty. It asks before deleting anything. For a dry run, `demo goto 1` is enough.
-3. `demo goto 1` (if you didn't run `demo fresh`): Gitea `main` goes back to the Stage 1 starting state, open PRs are closed, all `feat/*` branches on Gitea are deleted, the governance repo is synced, the Backstage catalog is cleared, the gateway has no routes, and a **fresh demo clone** is made at `~/demo/orders-api` with the Stage 1 branch in it (not pushed).
-4. In the browser, **sign in to Gitea** at `http://localhost:3000/user/login` as `demo` / `demo12345`. Without a login the PR page shows "Sign in to…" and has no create or merge buttons.
-5. In the recording terminal: `demo shell`. It `cd`s into the clone, sets a short prompt that shows the current branch (`orders-api (main) $`), makes long output page only when it doesn't fit, and clears the screen.
-6. Check: `demo preflight`. It checks the stack, the runner and CI image, Gitea (state, no open PRs), Backstage, the gateway, the Microcks mock, the guidelines page, CI still running from an earlier take, and the demo clone, and ends with `READY: record …` or a list of problems with the command that fixes each. It works at any stage, so run it before every take.
+1. **Stack up** with all five profiles (see the appendix).
+2. **For the final run only: `demo fresh`.** It wipes the demo Gitea (all PRs, CI runs and branches from rehearsals), brings the stack up again and runs `goto 1`. PR numbers then start at #1 and the Actions tab is empty. It asks before deleting anything. For a dry run, `demo goto 1` is enough.
+3. `demo goto 1` (if you didn't run `demo fresh`): Gitea `main` of both consumer repos goes back to the step 1 start, open PRs are closed, all `feat/*` branches on Gitea are deleted, the governance repo is synced, the Backstage catalog is cleared, the gateway has no routes, the broker policy, the schema registry and the Microcks mocks match `main`, and **fresh demo clones** are made with the step 1 branch in them (not pushed).
+4. In the browser, **sign in to Gitea** at `http://localhost:3000/user/login` as `demo` / `demo12345`. Without a login the PR page has no create or merge buttons. If Backstage shows a sign-in page, sign in as guest once.
+5. In the presenting terminal: `demo shell`. It `cd`s into the clone, sets a short prompt with the current branch (`orders (main) $`), pages long output only when it doesn't fit, and clears the screen.
+6. Check: `demo preflight` in the second terminal. It checks the stack, the runner and CI image, Gitea, Backstage, the gateway, the mocks, the broker, the registry, the guidelines page, CI still running from an earlier take, and the demo clones. It ends with `READY` or a list of problems with the command that fixes each. Run it before every take.
 
-The Gitea repo has the same name as this project (`devops-api-governance`), so never clone it under that name or inside the project directory: a clone in `~/projekty` collides with the project, and a `rm -rf` of that name would delete it. `~/demo/orders-api` can't be confused with it. `goto` only ever deletes a folder that is a clone of the demo repo, and refuses otherwise.
+The Gitea repo has the same name as this project (`devops-api-governance`), so never clone it under that name or inside the project directory: a `rm -rf` of that name could delete the project. `~/demo/orders-api` can't be confused with it, and `goto` only ever deletes a folder that is a clone of the demo repo.
 
 ## Screen layout and windows
 
-Have everything below open **before** you press record, so no recording starts with a blank browser or a login screen.
+Have everything below open **before** you start, so no step begins with a blank browser or a login screen.
 
-- **Screen:** terminal on the left, browser on the right, both inside the recorded area. Terminal font ~18–20 pt and browser zoom ~125–150% (`Ctrl` `+`), so it is readable on a projector.
-- **Terminal 1 (recorded):** after `demo shell`, in `~/demo/orders-api`. Only git commands and the stage-4 `curl` run here. `clear` before each step.
-- **Terminal 2 (NOT recorded):** any directory, only for `demo` commands (`next`, `preflight`, `goto`). Keep it outside the recorded area (another workspace, or minimised). If you record every part as its own take, one terminal is enough: stop recording, run `next` there, start again.
-- **Browser:** one window with a few prepared tabs (listed per stage below). Signed in to Gitea as `demo`. Bookmarks bar hidden. If Backstage shows a sign-in page, sign in as guest once beforehand.
-- **Tabs only for what a stage shows:** Backstage in Stages 1 and 2 (the catalog, then the guidelines in it), Microcks at most in Stage 3. Close them in the other stages so nothing distracts.
-- **Not running / not visible:** the older `devops-driven-governance` stack (same container names and ports), desktop notifications, other windows.
+- **Screen:** terminal on the left, browser on the right. Terminal font ~18–20 pt and browser zoom ~125–150% (`Ctrl` `+`), so it is readable on a projector.
+- **Terminal 1 (shown):** after `demo shell`, in the demo clone. Only git, `vi`, `curl` and `demo deny` run here. `clear` before each step.
+- **Terminal 2 (not shown):** any directory, only for `demo next`, `preflight` and `goto`. Keep it off the shared screen.
+- **Browser:** one window, signed in to Gitea. Tabs: the Gitea repo home and Backstage **APIs**; Microcks (`localhost:8080`) only in step 3. Bookmarks bar hidden.
+- **Not running / not visible:** desktop notifications, other windows.
 
-## Retakes: roll back to any stage
+## Retakes: roll back to any step
 
-`demo goto <target>` puts Gitea `main`, the Backstage catalog and the KrakenD gateway in the state right **before** that step is recorded (the gateway has no routes until Stage 4 is merged). It replays every earlier stage's changes onto `main` (including the merged fixes), closes open PRs, deletes all `feat/*` branches on Gitea, loads the state's contract into Microcks (so the mock matches), builds the guidelines page in Backstage (so it never shows "building" on camera), makes a fresh demo clone and prepares the branch of the step you are about to record in it (local, not pushed). No CI needed, ~10 s. If the aborted take's CI is still running, `goto` first waits for it to finish (a late job would redeploy the gateway or reload the mock after the reset); that can add a minute or two.
+`demo goto <target>` puts Gitea `main` of both consumer repos, the Backstage catalog, the KrakenD gateway, the Microcks mocks, the schema registry and the broker policy in the state right **before** that step. It replays every earlier step's changes onto `main` (including the merged fixes), closes open PRs, deletes all `feat/*` branches on Gitea, builds the guidelines page in Backstage (so it never shows "building" on screen), makes fresh demo clones and prepares the branch of the step you are about to show (local, not pushed). If an aborted take's CI is still running, `goto` first waits for it to finish (a late job would redeploy the gateway or reload a mock after the reset).
 
-| Target | State: what is already merged | Branch prepared in the clone |
+| Target | Already merged on `main` | Branch prepared in the clone |
 |---|---|---|
-| `goto 1` | nothing | `feat/add-catalog-entry` |
-| `goto 2` | stage 1 (catalog entry; the API is in Backstage) | `feat/add-openlint-gate` |
-| `goto 2-red` | + openlint gate | `feat/orders-server-url` |
-| `goto 3` | + stage 2 fix (server URL is now `https://orders.api-peak.com`) | `feat/add-contract-test-gate` |
-| `goto 3-red` | + contract-test gate | `feat/orders-currency` |
-| `goto 4` | + stage 3 fix (`currency` required, both backends send it) | `feat/add-gateway-gate` |
-| `goto 5` | + gateway gate | `feat/add-backwards-compat-gate` |
-| `goto 5-red` | + backwards-compat gate (all four gates) | `feat/orders-require-channel` |
-| `goto end` | everything, incl. optional `channel` | (nothing left) |
+| `goto 1` | nothing: both contracts and the backends, no catalog entry, no workflows | `feat/add-catalog-entry` |
+| `goto 2` | step 1 (both APIs in Backstage) | `feat/add-lint-gates` |
+| `goto 2-red` | + both lint gates | `feat/orders-server-and-paid-at` |
+| `goto 3` | + step 2 fix (`https://orders.api-peak.com`, `paidAt`) | `feat/add-contract-test-gates` |
+| `goto 3-red` | + both contract-test gates | `feat/orders-currency` |
+| `goto 4` | + step 3 fix (`currency` required, both backends send it) | `feat/add-deploy-gates` |
+| `goto 5` | + gateway and broker-policy gates | `feat/add-breaking-changes-gates` |
+| `goto 5-red` | + both breaking-changes gates, `main-publish.yml` | `feat/orders-channel-and-is-paid` |
+| `goto kafka` | + step 5 fix (optional `channel`, deprecated `isPaid`) | `feat/kafka-paid-at` (Kafka repo) |
+| `goto end` | Kafka repo: + catalog entry, `paidAt` | `feat/kafka-drop-is-paid` (Kafka repo) |
 
-After a `goto`, `cd ~/demo/orders-api` again if your terminal was inside the old clone (or run `demo shell` again), then record. `demo status` tells you where you are at any time.
-
-If `git switch` says `fatal: invalid reference: feat/...`, the branch isn't prepared yet: run `demo next`.
+After a `goto`, run `demo shell` again if your terminal was inside the old clone. `demo status` tells you where you are at any time. If `git switch` says `fatal: invalid reference: feat/...`, the branch isn't prepared yet: run `demo next`.
 
 ## Browser cheat sheet
 
 Repo: `http://localhost:3000/governance-demo/devops-api-governance`
 
 - **Open a PR:** `<repo>/compare/main...<branch>` → **New Pull Request** → **Create Pull Request**. The title is prefilled from the branch's commit.
-- **Show the change:** the PR's **Files changed** tab (coloured diff, easier to read than a terminal).
-- **Watch the checks:** listed on the PR's **Conversation** tab. The list updates by itself; reload if it looks stuck.
-- **Read a job's log:** **Details** next to a check, then click a step row (e.g. "Run OpenLint (fail on errors)") to expand it.
+- **Show the change:** the PR's **Files changed** tab.
+- **Watch the checks:** listed on the PR's **Conversation** tab, one group per workflow (REST, events). The list updates by itself; reload if it looks stuck.
+- **Read a job's log:** **Details** next to a check, then click a step row to expand it.
 - **Merge:** when all checks are green, **Create merge commit** at the bottom of the Conversation tab, then confirm.
 - **Backstage:** `http://localhost:7007`. Left menu **APIs**, then the API's name.
-- **API guidelines in the catalog:** `http://localhost:7007/docs/default/component/api-guidelines` (Backstage → **Docs** → `api-guidelines`). One page per guideline set in the sidebar (General, REST, Async with MQTT and Kafka); every OpenLint error links to its rule.
-- **Mock:** `http://localhost:8080/rest/Orders+API/1.0.0/orders/123` returns the contract's example.
-- **Microcks:** `http://localhost:8080`. Test results are linked from the CI log (`Details: http://localhost:8080/#/tests/…`).
+- **API guidelines in the catalog:** `http://localhost:7007/docs/default/component/api-guidelines` (Backstage → **Docs** → `api-guidelines`). Sidebar: General, REST, Async (MQTT, Kafka). Every lint error links to its rule.
+- **Microcks:** `http://localhost:8080`. Test reports are linked from the CI logs (`http://localhost:8080/#/tests/…`).
+- **Apicurio Registry:** `http://localhost:8280`, group `order-events-api`.
 
 ---
 
-## Stage 1 — Catalog (the contract already exists)
+## Step 1: Catalog
 
-**Narrative:** "The team already has an API contract, but you can't govern what you can't see. One `catalog-info.yaml` makes the API visible to the whole org."
+**Say:** "You can't govern what you can't see. One file makes both APIs visible to the whole organization."
 
-**Starting state:** Gitea `main` has `backend/` and the OpenAPI contract `contracts/orders-openapi.yaml` (plus `README.md`, `.gitignore`). No `catalog-info.yaml`, no workflow. Backstage lists no APIs.
-
-**Prep:** `goto 1` has already created `feat/add-catalog-entry` in your clone. It adds `catalog-info.yaml` and updates the README to mention it.
-
-**On screen at the start:**
-- Terminal 1: `orders-api (main) $`, screen cleared.
-- Browser tab 1 (visible first): Gitea repo home. The file list shows `contracts/`, `backend/`, `README.md`, `.gitignore`, and the README below says the same: contract and backend, no catalog entry, no checks. This is the "before".
-- Browser tab 2: Backstage, **APIs**. The list is empty: the other "before".
+**Starting state:** Gitea `main` has both contracts, `backend/`, `events-backend/` and `events-subscriber/`. No `catalog-info.yaml`, no workflow. Backstage lists no order APIs.
 
 **Terminal:**
 ```bash
-ls                                               # contracts/ and backend/, no catalog-info.yaml
-git switch feat/add-catalog-entry                # local branch, already committed
-vi catalog-info.yaml                             # show what gets registered (:q to close)
-git push -u origin feat/add-catalog-entry        # hand the change over: the branch goes to Gitea
+ls contracts/                                    # orders-openapi.yaml, order-events-asyncapi.yaml
+git switch feat/add-catalog-entry
+vi catalog-info.yaml                             # both APIs, their providers, the subscriber, the broker (:q to close)
+git push -u origin feat/add-catalog-entry
 ```
 
 **Browser:**
-1. Open the PR (`compare/main...feat/add-catalog-entry`). There are no checks, so it is mergeable at once. Merge.
-2. Switch to the Backstage tab and reload **APIs**. `orders-api` appears by itself within ~10 s (8 s measured; Backstage rescans Gitea every 10 s). Reload once more if it isn't there yet.
-3. Open `orders-api`: show the **Definition** tab (the rendered contract that was already in the repo) and the owner.
-
-**Duration:** ~30–40 s.
+1. Open the PR. There are no checks, so it is mergeable at once. Merge.
+2. Backstage **APIs**, reload: `orders-api` (openapi) and `order-events-api` (asyncapi) appear together within ~10 s (Backstage rescans Gitea every 10 s).
+3. **Definition** of each: the rendered OpenAPI, then channels, operations, messages and MQTT bindings.
+4. `order-events-api` → **Dependencies** (or the Catalog Graph): `orders-backend` provides it, `orders-subscriber` consumes it, both depend on `mqtt-broker`.
 
 ---
 
-## Stage 2 — OpenLint (guidelines as code)
+## Step 2: Guidelines as code
 
-**Narrative:** "A guideline nobody enforces is just a suggestion."
+**Say:** "A guideline nobody enforces is a suggestion."
 
-**Part 1: install the gate.** Branch `feat/add-openlint-gate` adds `.gitea/workflows/pr-governance.yml` with only the `openlint-openapi-check` job.
+**Part 1: install the gates.** Branch `feat/add-lint-gates` adds the two PR workflows, each with one lint gate: `openlint-openapi-check` (REST) and `asyncapi-lint` (events, with the ruleset for the contract's protocol).
 
-**On screen at the start:**
-- Terminal 1: same clone, screen cleared.
-- Browser tab 1: Gitea repo home. It now lists `contracts/` and `catalog-info.yaml` (stage 1 is merged), and the README describes them. No `.gitea/` folder yet.
-- Browser tab 2: Backstage, left open from Stage 1 (it is needed again in part 2). Microcks tab closed.
-- Terminal 2 (off camera): `next` already run.
-
-**Terminal:**
 ```bash
-git switch feat/add-openlint-gate
-git diff --stat main                             # one new file: the workflow
-git push -u origin feat/add-openlint-gate        # hand the change over: the branch goes to Gitea
+git switch feat/add-lint-gates
+git diff --stat main                             # two new workflows (and the README)
+git push -u origin feat/add-lint-gates
 ```
 
-**Browser:**
-1. Open the PR (`compare/main...feat/add-openlint-gate`). Show **Files changed**: the one gate, running on every PR.
-2. Back on **Conversation**, `openlint-openapi-check` runs. While it runs, switch to the Backstage tab → **Docs** → `api-guidelines` and click through the sidebar (General, REST, Async): these are the rules the gate enforces. Say: "the guidelines are a document in the catalog, and the gate makes CI enforce them." Cut the wait in editing.
-3. Back on the PR, the check goes green (no contract changed, so it only confirms the gate works). Merge.
+1. Open the PR → **Files changed**: two workflows, one lint gate each, both cloning the central governance repo for the rules.
+2. While CI runs: Backstage → **Docs** → `api-guidelines`, click through the sidebar (General, REST, Async with MQTT and Kafka): these are the rules the gates enforce.
+3. Back on the PR, both checks go green. Merge. T2: `demo next`.
 
-**Part 2: the gate catches something.** Run `next` (off camera). Branch `feat/orders-server-url` moves the server URL to `http://orders.api-peak.com`.
+**Part 2: the gates catch something.** Branch `feat/orders-server-and-paid-at`: the REST server URL moves to `http://orders.api-peak.com`, and `OrderPaid` gets an optional `paid_at`.
 
-**Terminal:**
 ```bash
-git switch feat/orders-server-url
-git diff main -- contracts/                      # https://api.api-peak.com -> http://orders.api-peak.com
-git push -u origin feat/orders-server-url        # hand the change over: the branch goes to Gitea
+git switch feat/orders-server-and-paid-at
+git diff main -- contracts/
+git push -u origin feat/orders-server-and-paid-at
 ```
 
-**Browser:**
-1. Open the PR (`compare/main...feat/orders-server-url`). `openlint-openapi-check` goes **red**.
-2. **Details** → expand **Run OpenLint (fail on errors)**. The contract is otherwise clean, so this is the only finding:
-   `error api-peak:rest17:2025-https-required server.url MUST use HTTPS.` and `✖ 1 problem (1 error, 0 warnings, 0 infos, 0 hints)`.
-3. **Guidelines live in the catalog** (seen in part 1). The line under the error is the rule's link, `http://localhost:7007/docs/default/component/api-guidelines/rest/#https-api-peakrest172025-https`. Open it (click it, or copy it into the Backstage tab): Backstage opens the **API Guidelines** page at the HTTPS rule. Say: "same rule for humans and for CI, one source of truth, and the CI error points right at it."
+1. Open the PR. **Both lint checks go red**, and **Merge** is blocked.
+2. **Details** of `openlint-openapi-check` → **Run OpenLint (fail on errors)**:
+   ```
+   27:10  error  api-peak:rest17:2025-https-required  server.url MUST use HTTPS.
+    http://localhost:7007/docs/default/component/api-guidelines/rest/#https-api-peakrest172025-https
+   ```
+3. **Details** of `asyncapi-lint` → **Lint against the API guidelines (fail on errors)**:
+   ```
+   134:17  error  api-peak:async11:2026-property-naming  Property 'paid_at' MUST be camelCase.
+    http://localhost:7007/docs/default/component/api-guidelines/async/#property-naming-api-peakasync112026-property-naming
+   ```
+4. Open one of the links: Backstage opens the guideline at that rule. Say: "One set of guidelines, for REST and events, for humans and for CI."
 
 **Terminal (fix):**
 ```bash
-vi +18 contracts/orders-openapi.yaml             # the servers: line. /http: Enter, e, a, type s, Esc, :wq
-git diff                                         # one character: http -> https
-git commit -am "Use HTTPS server URL"
-git push origin feat/orders-server-url
+vi +27 contracts/orders-openapi.yaml             # http://orders.api-peak.com -> https://orders.api-peak.com
+vi +134 contracts/order-events-asyncapi.yaml     # paid_at: -> paidAt:
+git diff
+git commit -am "Use HTTPS, name it paidAt"
+git push origin feat/orders-server-and-paid-at
 ```
 
-**Browser:** back on the PR, the check re-runs and goes green (the log now says "No results with a severity of 'error' found!"). Merge.
-
-**Duration:** ~16 s per CI run; the whole red → fix → green loop ~50 s.
+**Browser:** both checks re-run and go green. Merge. T2: `demo next`.
 
 ---
 
-## Stage 3 — Mocks & contract testing (Microcks)
+## Step 3: Mocks and contract testing
 
-**Narrative:** "A contract is a promise. Push it, and partners get a live mock at once. Then CI proves the running code keeps it."
+**Say:** "A contract is a promise. Partners get a live mock at once, and CI proves the running code keeps the promise."
 
-**Part 1: install the gate.** Branch `feat/add-contract-test-gate` adds the `contract-test` job (`needs: openlint-openapi-check`).
+**Part 1: install the gates.** Branch `feat/add-contract-test-gates` adds a `contract-test` job after lint in both workflows. The REST one tests the running backend over HTTP; the event one deploys the PR's `events-backend/`, then Microcks listens on the broker and checks every event it receives.
 
-**On screen at the start:**
-- Terminal 1: same clone, screen cleared.
-- Browser tab 1: Gitea repo home, now with the `.gitea/` folder (openlint gate merged); the README lists one gate.
-- Browser tab 2 (optional): Microcks `localhost:8080`, to show the mocked service in part 1 and the test detail page in part 2.
-- Backstage tab: closed.
-- Terminal 2 (off camera): `next` already run.
-
-**Terminal:**
 ```bash
-git switch feat/add-contract-test-gate
-git diff --stat main                             # the workflow grows (and the README)
-git push -u origin feat/add-contract-test-gate   # hand the change over: the branch goes to Gitea
+git switch feat/add-contract-test-gates
+git diff --stat main
+git push -u origin feat/add-contract-test-gates
 ```
 
-**Browser:**
-1. Open the PR (`compare/main...feat/add-contract-test-gate`). **Files changed**: the new `contract-test` job, after openlint. It first imports the contract into Microcks, then tests the running backend against it.
-2. openlint and contract-test go green. Cut the wait. Merge.
+1. Open the PR → **Files changed** → both workflows green (cut or talk over the wait). Merge.
+2. **The contract is a live mock.** Partners and consumers can integrate today:
+   ```bash
+   curl -s http://localhost:8080/rest/Orders+API/1.0.0/orders/123
+   # {"orderId":"123","isPaid":true}
+   curl -sN -u observer:observer-pw "mqtt://localhost:1883/OrderEventsAPI-1.0.0-orders%2Fv1%2F%7BorderId%7D%2Fcreated" | tr -c '[:print:]' '\n'
+   # the contract's example event, every few seconds; Ctrl+C
+   ```
+3. Microcks → **Order Events API**: the mock events come from the contract's examples. T2: `demo next`.
 
-**Terminal (Q1: integrate before it exists?):** the contract is also a live mock. Partners can call it today.
-```bash
-# the mock Microcks serves from the contract's example
-curl -s http://localhost:8080/rest/Orders+API/1.0.0/orders/123
-```
-`{"orderId":"123","isPaid":true}`. Optional: in the Microcks tab, open **APIs | Services** → **Orders API 1.0.0** to show the same operation and its example.
+**Part 2: the contract promises more than the code delivers.** Branch `feat/orders-currency` makes `currency` **required** in the order response and in `OrderCreated`. Neither backend sends it.
 
-The event API has a mock too: Microcks publishes the contract's examples on the broker every 3 s, on topics prefixed with the API name.
-```bash
-# the mock events, from the contract's examples (Ctrl+C to stop)
-curl -sN -u observer:observer-pw "mqtt://localhost:1883/OrderEventsAPI-1.0.0-orders%2Fv1%2F%7BorderId%7D%2Fcreated" | tr -c '[:print:]' '\n'
-```
-`OrderEventsAPI-1.0.0-orders/v1/{orderId}/created{"orderId":"123","createdAt":"2026-11-11T10:00:00Z"}`, the same message every time.
-
-**Part 2: the contract promises more than the code delivers.** Run `next`. Branch `feat/orders-currency` adds a **required** `currency` field to the order response. The running backend doesn't return it.
-
-**Terminal:**
 ```bash
 git switch feat/orders-currency
-git diff main -- contracts/                      # new required field: currency
-git push -u origin feat/orders-currency          # hand the change over: the branch goes to Gitea
+git diff main -- contracts/
+git push -u origin feat/orders-currency
 ```
 
-**Browser:**
-1. Open the PR (`compare/main...feat/orders-currency`). openlint goes green (the contract is valid), then **contract-test goes red**.
-2. **Details** on contract-test → expand **Run contract test**. Microcks reports `currency' not found`: the running backend doesn't keep the promise.
-3. Optional: open the `Details: http://localhost:8080/#/tests/…` link from that log to show the test in Microcks.
-4. Back on the PR: **Merge** is blocked. Gitea protects `main` from step 2 on, so a red gate stops the merge, not only the build.
+1. Open the PR. Lint is green, **both contract tests go red**.
+2. **Details** (REST) → **Run contract test**: `currency' not found`.
+3. **Details** (events) → **Run contract test (fail on any invalid or missing event)**:
+   ```
+   FAIL  SEND sendOrderCreated  on orders/v1/+/created  (5 messages, 5 invalid)
+         required property 'currency' not found
+   PASS  SEND sendOrderPaid  on orders/v1/+/paid  (5 messages, 0 invalid)
+   ```
+   Optional: open the report link in Microcks.
+4. Show the difference the red check is about:
+   ```bash
+   curl -s http://localhost:8080/rest/Orders+API/1.0.0/orders/123   # mock, from the PR's contract: has currency
+   curl -s http://localhost:8081/orders/123                         # running backend: doesn't
+   ```
 
-**Terminal (Q2: does the code match the contract?):** the CI job loaded the PR's contract into Microcks, so the mock already speaks the new version. The real backend doesn't.
+**Terminal (fix):** say "We don't weaken the promise, we make the code keep it." Both backends send the currency; the contracts stay as they are.
 ```bash
-# the mock, from the PR's contract: has currency
-curl -s http://localhost:8080/rest/Orders+API/1.0.0/orders/123
-# the running backend: no currency
-curl -s http://localhost:8081/orders/123
-```
-`{"orderId":"123","isPaid":true,"currency":"PLN"}` next to `{"orderId":"123","isPaid":true}`: that difference is exactly what the red check says.
-
-**Terminal (fix):** say it out loud: "A contract is a promise. We don't weaken the promise, we make the code keep it." Both backends start sending the currency; the contract stays as it is.
-```bash
-vi +55 backend/server.js
-```
-Line 55: `    isPaid: true,` → `    isPaid: true, currency: "PLN",`
-```bash
-vi +33 events-backend/server.js
-```
-Line 33: `  return { orderId, createdAt: new Date().toISOString() };` → `  return { orderId, createdAt: new Date().toISOString(), currency: "PLN" };`
-```bash
-git diff                                         # currency: "PLN" in both backends, the contracts untouched
+vi +55 backend/server.js                         # isPaid: true,  ->  isPaid: true, currency: "PLN",
+vi +33 events-backend/server.js                  # add currency: "PLN" to the OrderCreated payload
+git diff
 git commit -am "Send the currency the contract promises"
 git push origin feat/orders-currency
 ```
 
-**Browser:** back on the PR, contract-test runs again. Its first step, **Deploy the PR's backend**, puts the PR's code into the running backend (backend-deployer), so Microcks tests the code of this PR, not whatever ran before. contract-test goes green. Merge.
-
-**Terminal (optional):** the running backend now keeps the promise.
+**Browser:** both contract tests run again. Their first step, **Deploy the PR's backend**, puts the PR's code into the running backends, so Microcks tests this PR's code. Both green. Merge.
 ```bash
 curl -s http://localhost:8081/orders/123         # {"orderId":"123","isPaid":true,"currency":"PLN"}
 ```
-
-**Duration:** ~35 s per CI run (openlint ~16 s, then contract-test ~17 s); the red → fix → green loop ~1.5 min.
+T2: `demo next`.
 
 ---
 
-## Stage 4 — API gateway (KrakenD)
+## Step 4: Deploy from the contract
 
-**Narrative:** "Now expose it for real, and prove the gateway didn't change anything."
+**Say:** "Expose it for real, generated from the contract, not written by hand."
 
-Branch `feat/add-gateway-gate` adds the `gateway-deploy-check` job (`needs: contract-test`).
+Branch `feat/add-deploy-gates` adds `gateway-deploy-check` to the REST workflow and `broker-policy` to the event one, each after the contract test.
 
-**On screen at the start:**
-- Terminal 1: same clone, screen cleared. It also runs the `curl` commands (before the PR and at the end).
-- Browser tab 1: Gitea repo home.
-- Terminal 2 (off camera): `next` already run.
-- The KrakenD container runs with **no routes**: `curl -i http://localhost:8090/orders/123` returns `404`. This is the "before" of the stage.
-
-**Terminal:**
 ```bash
 curl -i http://localhost:8090/orders/123         # before: the gateway has no routes, 404
-git switch feat/add-gateway-gate
-git diff --stat main                             # the workflow grows (and the README)
-git push -u origin feat/add-gateway-gate         # hand the change over: the branch goes to Gitea
+git switch feat/add-deploy-gates
+git diff --stat main
+git push -u origin feat/add-deploy-gates
 ```
 
-**Browser:**
-1. Open the PR (`compare/main...feat/add-gateway-gate`). **Files changed**: the new `gateway-deploy-check` job. **Three** gates now: openlint, contract-test, gateway-deploy-check.
-2. **Details** on gateway-deploy-check. Expand **Generate krakend.json from the PR contract** (the generated config), then **Deploy to the running gateway**, then **Run contract test through the gateway**.
-3. Wait for green. Merge.
+1. Open the PR → **Files changed**: three gates in each workflow now.
+2. **Details** of `gateway-deploy-check`: **Generate krakend.json from the PR contract**, **Deploy to the running gateway**, **Run contract test through the gateway**.
+3. **Details** of `broker-policy`: **Generate the broker policy from the contract and the catalog** shows `orders-backend` may publish `orders/v1/+/created` and `orders/v1/+/paid`, and `orders-subscriber` may subscribe to exactly those. Then **Apply it to the broker**, **Check the live policy from the outside**, and the contract test passing again under the new policy.
+4. Both green. Merge.
 
 **Terminal (proof it's live):**
 ```bash
-curl -i http://localhost:8090/orders/123         # after: 200, through KrakenD
-curl -s http://localhost:8081/orders/123         # straight to the backend: identical body
+curl -i http://localhost:8090/orders/123         # after: 200 through KrakenD, same body as the backend
+curl -v -sN -u orders-subscriber:orders-subscriber-pw "mqtt://localhost:1883/orders%2Fv1%2F%2B%2Fcreated" | tr -c '[:print:]\n' '\n'
+                                                 # the catalog's consumer may read; Ctrl+C
+demo deny                                        # the broker says no to what the contract doesn't grant
 ```
+`demo deny` prints:
+```
+A consumer asks for a topic the contract does not have:
+  All subscription requests were denied.
+... or for more than the contract gives it:
+  All subscription requests were denied.
+... or connects without an account:
+  Connection error: Connection Refused: not authorised.
+On Kafka, a topic the contract does not have:
+  Topic authorization failed for topics [orders.not-in-contract.v1]
+```
+In the talk, the ACL animation follows ([`events/acl-animation.html`](events/acl-animation.html), Space to step). T2: `demo next`.
 
-**Duration:** ~55 s for the CI run (openlint ~16 s, contract-test ~17 s, gateway ~22 s).
+Off-camera note: the policy also lets the platform's `observer` account read every topic (for demos and debugging) and Microcks publish its mock topics. Everything else is denied.
 
 ---
 
-## Stage 5 — Backwards compatibility (new API version)
+## Step 5: Breaking changes
 
-**Narrative:** "A partner is integrated now. An innocent-looking change would break them."
+**Say:** "A partner is integrated now. An innocent-looking change would break them."
 
-**Part 1: install the gate.** Branch `feat/add-backwards-compat-gate` inserts `breaking-changes-check` **between** openlint and contract-test, and repoints contract-test's `needs:` to it. This is the project's real, current pipeline.
+**Part 1: install the gates.** Branch `feat/add-breaking-changes-gates` inserts a breaking-changes job **between** lint and the contract test in both workflows (`breaking-changes-check` with oasdiff for REST, `breaking-changes` with `@asyncapi/diff` and the schema registry for events) and repoints `needs:`. It also adds `main-publish.yml`, which registers the event payload schemas after each merge.
 
-**On screen at the start:**
-- Terminal 1: same clone, screen cleared.
-- Browser tab 1: Gitea repo home. Keep the window wide: the PR page lists four checks with long names.
-- Terminal 2 (off camera): `next` already run.
-
-**Terminal:**
 ```bash
-git switch feat/add-backwards-compat-gate
-git diff --stat main                             # the workflow grows (and the README)
-git push -u origin feat/add-backwards-compat-gate  # hand the change over
+git switch feat/add-breaking-changes-gates
+git diff --stat main
+git push -u origin feat/add-breaking-changes-gates
 ```
 
-**Browser:**
-1. Open the PR (`compare/main...feat/add-backwards-compat-gate`). **Files changed**: the new job in the middle and the repointed `needs:`.
-2. All four gates go green. Cut the wait. Merge.
+1. Open the PR → **Files changed**: the new job in the middle of each workflow, the repointed `needs:`.
+2. All gates green (cut the wait). Merge. Actions: **Publish event API (main)** registers `main`'s schemas in Apicurio.
+3. Say: "Right after lint, before the runtime tests. A change that breaks clients shouldn't even reach them." T2: `demo next`.
 
-Say this out loud: "We insert this gate right after lint and before the runtime tests. A change that passes linting but breaks clients shouldn't even reach contract testing."
+**Part 2: the gates catch a breaking change.** Branch `feat/orders-channel-and-is-paid`: a new **required** query parameter `channel` on `GET /orders/{orderId}`, and `isPaid` removed from `OrderPaid`, which consumers still read.
 
-**Part 2: the gate catches a breaking change.** Run `next`. Branch `feat/orders-require-channel` adds a new **required** query parameter `channel` to `GET /orders/{orderId}`.
-
-**Terminal:**
 ```bash
-git switch feat/orders-require-channel
-git diff main -- contracts/                      # new required param
-git push -u origin feat/orders-require-channel   # hand the change over: the branch goes to Gitea
+git switch feat/orders-channel-and-is-paid
+git diff main -- contracts/
+git push -u origin feat/orders-channel-and-is-paid
 ```
 
-**Browser:**
-1. Open the PR (`compare/main...feat/orders-require-channel`). openlint goes green, then **breaking-changes-check goes red**.
-2. contract-test and gateway-deploy-check show as **skipped (grey)**, because their `needs:` isn't satisfied. For a few seconds after the red result they read "Blocked by required conditions" and only then "Skipped": wait for it, then point at it.
-3. **Details** on breaking-changes-check → expand **Run oasdiff breaking (fail on breaking changes)**. Zoom on:
-   `error [new-required-request-parameter] … added the new required query request parameter channel`
+1. Open the PR. Lint is green, **both breaking-changes checks go red**, and the later gates show as **Skipped** (grey). For a few seconds they read "Blocked by required conditions" first: wait until they turn grey, then point at them.
+2. **Details** REST → **Run oasdiff breaking (fail on breaking changes)**: `error [new-required-request-parameter] … added the new required query request parameter channel`.
+3. **Details** events → **Payloads against the schema registry (dry run)**:
+   ```
+   FAIL  orders/v1/{orderId}/paid (OrderPaid): not FORWARD-compatible with the registered schema
+         consumers built on the registered schema could not read what the API would now send
+   ```
+   The structural diff before it is clean: same topics, same operations.
 
-**Terminal (fix):**
+**Terminal (fix):** make the change on purpose, not by accident.
 ```bash
-vi +43 contracts/orders-openapi.yaml             # the channel parameter. /true Enter, cw, type false, Esc, :wq
-git diff                                         # required: true -> false
-git commit -am "Make channel optional (non-breaking)"
-git push origin feat/orders-require-channel
+vi +52 contracts/orders-openapi.yaml             # under "- name: channel": required: true -> required: false
+git checkout main -- contracts/order-events-asyncapi.yaml    # isPaid back
+vi +137 contracts/order-events-asyncapi.yaml     # after "type: boolean" under isPaid: add "deprecated: true"
+git diff
+git commit -am "Make channel optional, deprecate isPaid instead of removing it"
+git push origin feat/orders-channel-and-is-paid
 ```
 
-**Browser:** back on the PR, all four gates run and go green. Merge. This is the climax: keep it at full speed.
-
-**Duration:** the red run takes ~35 s (openlint ~16 s, then the BC check ~15 s); the final four-gate run ~70 s; the whole red → fix → green loop ~2 min.
+**Browser:** all gates run and go green. This is the climax: keep it at full speed. Merge. T2: `demo next`.
 
 ---
 
-## Overall timing
+## The same gates on Kafka (optional)
 
-About **8 minutes** of raw footage (the rehearsal's walk-through took 8.5 min, including 10 CI runs). With part 1 of stages 2, 3 and 5 kept short and CI waits cut, the edited demo is ~5–6 minutes. Keep Stage 5's final green run at full speed.
-
----
-
-## Post-production
-
-The talk's clips were edited with local ffmpeg helpers (`demo cards | trim | speed | concat`, not part of this repo). The usual edits:
+**Say:** "Same API, on Kafka. Same gates, same scripts; only the broker differs."
 
 ```bash
-demo cards ~/demo/cards                       # card1.mp4 .. card5.mp4, 3 s each
-demo trim stage2.mp4 00:00:12 00:01:40 s2.mp4  # keep a range
-demo speed ci-wait.mp4 4 ci-wait-4x.mp4        # CI waiting at 4x
-demo concat demo.mp4 ~/demo/cards/card1.mp4 s1.mp4 ~/demo/cards/card2.mp4 s2.mp4 ...
+DEMO_SHELL_REPO=kafka demo shell                 # into ~/demo/order-events-kafka-api
+git switch feat/kafka-paid-at
+git diff main -- contracts/                      # optional paidAt
+git push -u origin feat/kafka-paid-at
 ```
 
-- **Title cards** open each stage: the stage name, what it adds, and the pipeline so far ("Pipeline: OpenLint → Contract test → Gateway"), so the audience always knows where they are.
-- **concat** normalises everything to 1920×1080 @ 30 fps. If a clip has no audio, the whole result is silent (it says so).
-- Typical cut: trim each recording into pieces, `speed` the CI waiting pieces, `concat` cards and pieces.
+1. Open the PR in the Kafka repo: its `catalog-info.yaml` and an optional `paidAt`. All four gates green. In the logs: lint picked `asyncapi-kafka-ruleset.yaml`, the contract test listened on Kafka, the broker policy reconciled topics and ACLs. Merge.
+2. Backstage: `order-events-kafka-api` joins the other two, with the Kafka cluster and the schema registry as Resources. T2: `demo next`.
+3. ```bash
+   git switch feat/kafka-drop-is-paid
+   git push -u origin feat/kafka-drop-is-paid
+   ```
+   PR: `breaking-changes` **red**, `orders.order-paid.v1 (OrderPaid): not FORWARD-compatible`. Don't merge: end of the demo.
 
 ---
 
-## Appendix — operator notes (off camera)
+## Appendix: operator notes (off camera)
 
-**Stack:** from the project directory (`~/projekty/devops-api-governance`, check with `pwd`; the older `devops-driven-governance` project uses the same container names and ports and cannot run at the same time):
-`podman-compose --profile contract --profile catalog --profile gateway up -d`. On this machine it's the hyphenated `podman-compose` binary; with Docker it's `docker compose` with the same flags (see the main README). Endpoints:
-- Gitea `localhost:3000` (demo/demo12345)
-- Microcks `:8080`
-- Backstage `:7007`
-- backend `:8081`
-- KrakenD `:8090`
+**Stack:** from the root of this repo, all five profiles (see the main README for Podman):
+```bash
+docker compose --profile contract --profile catalog --profile gateway --profile events --profile kafka up -d
+```
+Endpoints: Gitea `localhost:3000` (`demo`/`demo12345`), Backstage `:7007`, Microcks `:8080`, REST backend `:8081`, KrakenD `:8090`, MQTT `:1883`, Apicurio `:8280`.
 
-**Run `demo goto 1` after every `podman-compose up` (or `docker compose up`).** Anything that depends on the one-shot `gitea-seed` service re-runs it, and the seed force-pushes the full repo onto Gitea `main`, wiping the stage state (`status` then says "matches no demo state"). `backstage` and `gitea-runner` depend on it. Never run it mid-demo, and never `podman start`/`restart` those two either.
+**Run `demo goto 1` after every `up`.** The one-shot `gitea-seed` service force-pushes the template repos over Gitea `main`, which wipes the step state (`demo status` then says it matches no demo state). `backstage` and `gitea-runner` depend on it, so never `up`, `start` or `restart` them mid-demo.
 
-**CI runs offline.** Jobs run in `localhost/devops-api-governance-ci:latest` (`ci-image/Dockerfile`, built by the `ci-image` compose service), which has OpenLint, oasdiff, the KrakenD CLI and js-yaml preinstalled, and the checkout is plain `git` against Gitea. Only building that image the first time needs the internet. The install steps in the workflow remain as a fallback: on a plain `node:22` runner (OpenLint needs Node 22+) they download the tools.
+**CI runs offline.** Jobs run in `localhost/devops-api-governance-ci:latest` (`ci-image/Dockerfile`, built by the `ci-image` compose service), which has OpenLint, oasdiff, the KrakenD CLI and the AsyncAPI tools preinstalled; the checkout is plain `git` against Gitea. Only building that image the first time needs the internet. The runner runs up to four jobs side by side (`runner-config.yaml`), so a PR's two workflows run in parallel; within one workflow the gates still run in order.
 
-**Backstage** rescans Gitea every 10 s (`app-config.yaml`, a demo setting). `demo refresh-catalog` still forces an immediate rescan through the catalog's scheduler endpoint, without touching any container.
+**Backstage** rescans Gitea every 10 s (`app-config.yaml`, a demo setting). `demo refresh-catalog` forces an immediate rescan.
 
-**backend can't be recreated while `krakend` runs** (podman: "has dependent containers"). That's why Stage 3's red demo changes the contract instead of toggling the backend's `DRIFT` mode, which is only read at startup.
-
-**Recording (Spectacle):**
-- One continuous recording per stage (or of the whole demo), terminal and browser side by side. Wayland asks once for screen-capture permission.
-- Record a **1920×1080** area (a region of that size, or the whole screen at that resolution). `demo concat` and the title cards are 1920×1080 at 30 fps, so clips of that size are joined without scaling; any other size is scaled and letterboxed.
-- If Spectacle lets you choose a format, pick MP4. Keep the mouse cursor visible: it shows where to look.
-- **Audio:** either record the narration with every clip, or with none of them and add it in editing. `demo concat` only keeps sound when every clip has an audio track; the title cards carry a silent one.
-- Close notifications and other windows before recording (see "Screen layout and windows").
+**If CI fails before any step ran** (`connection reset…`): **Re-run** the job, or `git commit --allow-empty -m retry && git push`.

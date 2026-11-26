@@ -1,5 +1,5 @@
 # Recording terminal setup. Source it in the terminal you record:
-#   demo shell   (or: source ~/projekty/devops-api-governance/scripts/demo/demo-shell.sh)
+#   demo shell   (or, from the root of this repo: source scripts/demo/demo-shell.sh)
 # Short prompt with the current branch, so viewers always see where you are,
 # and a pager that only kicks in for output longer than the screen.
 # DEMO_SHELL_REPO=kafka puts you in the Kafka clone instead (the Kafka steps).
