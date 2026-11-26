@@ -17,9 +17,9 @@ info:
     returned as `application/problem+json` (RFC 9457), with a stable `type`
     URL per error.
   contact:
-    name: Orders team
-    email: orders-team@api-peak.com
-    url: https://developer.api-peak.com/orders
+    name: Platform team
+    email: platform-team@api-peak.com
+    url: http://localhost:7007/catalog/default/group/platform-team
   license:
     name: MIT
     url: https://opensource.org/licenses/MIT

@@ -2,7 +2,7 @@
 
 One page to keep next to the recording. Every step is **one PR in the orders repo** that governs both APIs: the Orders API (REST, `contracts/orders-openapi.yaml`) and the Order Events API (MQTT, `contracts/order-events-asyncapi.yaml`). Each PR runs two workflows, **PR API governance (REST)** and **PR API governance (events)**, with the same gates. The Kafka repo comes after step 5.
 
-**T2** = off-camera terminal (any directory). `demo <Tab>` completes; `demo help` lists everything. One-time: `~/projekty/devops-api-governance/scripts/demo/demo install`, new terminal. **T1** = recorded terminal. **PR** = `http://localhost:3000/governance-demo/devops-api-governance/compare/main...<branch>` → **New Pull Request** → **Create Pull Request**. Merging: **Create merge commit**.
+**T2** = off-camera terminal (any directory). `demo <Tab>` completes; `demo help` lists everything. One-time, from the root of this repo: `scripts/demo/demo install`, new terminal. **T1** = recorded terminal. **PR** = `http://localhost:3000/governance-demo/devops-api-governance/compare/main...<branch>` → **New Pull Request** → **Create Pull Request**. Merging: **Create merge commit**.
 
 ## Before pressing record
 ```bash
@@ -50,9 +50,9 @@ vi +27 contracts/orders-openapi.yaml
 ```
 Line 27: `  - url: http://orders.api-peak.com` → `  - url: https://orders.api-peak.com`
 ```bash
-vi +132 contracts/order-events-asyncapi.yaml
+vi +134 contracts/order-events-asyncapi.yaml
 ```
-Line 132: `        paid_at:` → `        paidAt:`
+Line 134: `        paid_at:` → `        paidAt:`
 ```bash
 git diff
 git commit -am "Use HTTPS, name it paidAt"
@@ -145,9 +145,9 @@ vi +52 contracts/orders-openapi.yaml
 Line 52 (under `- name: channel`): `          required: true` → `          required: false`
 ```bash
 git checkout main -- contracts/order-events-asyncapi.yaml    # isPaid back
-vi +135 contracts/order-events-asyncapi.yaml
+vi +137 contracts/order-events-asyncapi.yaml
 ```
-After line 135 (`          type: boolean`, under `isPaid:`), add: `          deprecated: true`
+After line 137 (`          type: boolean`, under `isPaid:`), add: `          deprecated: true`
 ```bash
 git diff
 git commit -am "Make channel optional, deprecate isPaid instead of removing it"

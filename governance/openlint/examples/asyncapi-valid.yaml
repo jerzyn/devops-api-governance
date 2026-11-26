@@ -8,7 +8,7 @@ info:
   contact:
     name: Platform team
     url: http://localhost:7007/catalog/default/group/platform-team
-    email: platform-team@example.com
+    email: platform-team@api-peak.com
   license:
     name: CC-BY-4.0
     url: https://creativecommons.org/licenses/by/4.0/
@@ -77,6 +77,7 @@ components:
     OrderCreated:
       name: OrderCreated
       title: Order created
+      description: An order was accepted. Sent once per order, when the backend accepts it.
       contentType: application/json
       payload:
         $ref: '#/components/schemas/OrderCreatedPayload'
@@ -88,6 +89,7 @@ components:
     OrderPaid:
       name: OrderPaid
       title: Order paid
+      description: The payment for an order was confirmed. Sent once per order.
       contentType: application/json
       payload:
         $ref: '#/components/schemas/OrderPaidPayload'
